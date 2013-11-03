@@ -1,18 +1,14 @@
 package org.opensourcephysics.sip.CPM;
 
-import java.awt.Color;
-import java.awt.Graphics;
-
-import org.opensourcephysics.display.Drawable;
-import org.opensourcephysics.display.DrawingPanel;
+import java.util.Random;
+import java.util.Stack;
 
 /**
  * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
  * and polymers model.
  * 
  * @author Wei Kang Lim, Alan Denton
- * @version 0.5 beta 7-1-2013
- * 
+ * @version 1.0 11-3-2013 * 
  */
 public class CPM {
 	// constants
@@ -52,15 +48,15 @@ public class CPM {
 	public double Lx; // dimension of the boundary (along x)
 	public double Ly; // dimension of the boundary (along y)
 	public double Lz; // dimension of the boundary (along z)
-	public double steps = 0; // number of monte carlo steps
+	public double steps; // number of monte carlo steps
 	public double tolerance;
 	public double shapeTolerance;
 	public double d; // the center-to-center distance between particles of same
 						// species (hexagonal lattice),
 						// or columns and rows (square lattice)
-	public double intersectCount = 0;
+	public double totalIntersectCount;
 	public double Ep; // Penetration Energy
-	public double mcs = 0;
+	public double mcs;
 
 	// end declaration
 
@@ -75,10 +71,12 @@ public class CPM {
 	 *            the initial lattice structure of the model
 	 */
 	public void initialize(String configuration) {
+		totalIntersectCount = 0;
+		mcs = 0;
+		steps = 0;
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
-		
 		Ep = 3/q;
 
 		// Set a constant distribution
@@ -90,7 +88,7 @@ public class CPM {
 		Polymer.setDefault_eX(init_eX);
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
-		intersectCount = 0;
+		totalIntersectCount = 0;
 
 		if (configuration.toUpperCase().equals("SQUARE")) {
 			setSqrPositions();
@@ -100,42 +98,48 @@ public class CPM {
 	}
 
 	/**
-	 * Places particles on a square lattice.
+	 * Places particles on a square lattice depending on the number of nano particles.
+	 * If number of nano particles is 0, polymers are placed by themselves.
 	 */
 	public void setSqrPositions() {
 		int ix, iy, iz;
-		if(nN > 0){
+		if (nN > 0) {
 			double dnx = Math.cbrt(nN);
 			nx = (int) dnx;
 			if (dnx - nx > 0.00001) {
 				nx++; // N is not a perfect cube
 			}
 			Lx = Ly = Lz = d * nx;
-	
+
+			// place nano particles
 			int i = 0;
 			for (iy = 0; iy < nx; iy++) { // loops through particles in a column
 				for (ix = 0; ix < nx; ix++) { // loops through particles in a
 												// row
 					for (iz = 0; iz < nx; iz++) {
-						if (i < nanos.length) { // checks for remaining particles
+						if (i < nanos.length) { // checks for remaining
+												// particles
 							nanos[i] = new Nano(ix * d, iy * d, iz * d);
 							i++;
 						}
 					}
 				}
 			}
-	
+
+			// place polymer particles
 			i = 0;
 			for (iy = 0; iy < nx; iy++) {
 				for (ix = 0; ix < nx; ix++) {
 					for (iz = 0; iz < nx; iz++) {
 						if (i < polymers.length) { // checks for remaining
 													// particles
-							polymers[i] = new Polymer(ix * d + d / 2, iy * d + d
-									/ 2, iz * d + d / 2);
-							System.out.println(polymers[i].getrX() + " " + polymers[i].getrY() + " " + polymers[i].getrZ());
+							polymers[i] = new Polymer(ix * d + d / 2, iy * d
+									+ d / 2, iz * d + d / 2);
+							System.out.println(polymers[i].getrX() + " "
+									+ polymers[i].getrY() + " "
+									+ polymers[i].getrZ());
 							i++;
-	
+
 							if ((ix + 1) * d + d / 2 > Lx
 									&& (iy + 1) * d + d / 2 > Ly
 									&& (iz + 1) * d + d / 2 > Lz) { // the next
@@ -144,8 +148,8 @@ public class CPM {
 																	// the
 																	// lattice
 								ix = iy = 0; // reset position counter,
-													// overlap
-													// poylmers
+												// overlap
+												// poylmers
 								iz = -1;
 							}
 						} else
@@ -153,25 +157,28 @@ public class CPM {
 					}
 				}
 			}
-		} else{
-			double dnx = Math.cbrt(nP);
+		} else { // no nanoparticles on the lattice
+			double dnx = Math.cbrt(nP); // count lattice points based on number of polymers instead
 			nx = (int) dnx;
 			if (dnx - nx > 0.00001) {
 				nx++; // N is not a perfect cube
 			}
 			Lx = Ly = Lz = d * nx;
-			int i = 0;
 			
+			// place polymers
+			int i = 0;
 			for (iy = 0; iy < nx; iy++) {
 				for (ix = 0; ix < nx; ix++) {
 					for (iz = 0; iz < nx; iz++) {
 						if (i < polymers.length) { // checks for remaining
 													// particles
-							polymers[i] = new Polymer(ix * d + d / 2, iy * d + d
-									/ 2, iz * d + d / 2);
-							System.out.println(polymers[i].getrX() + " " + polymers[i].getrY() + " " + polymers[i].getrZ());
+							polymers[i] = new Polymer(ix * d + d / 2, iy * d
+									+ d / 2, iz * d + d / 2);
+							System.out.println(polymers[i].getrX() + " "
+									+ polymers[i].getrY() + " "
+									+ polymers[i].getrZ());
 							i++;
-	
+
 							if ((ix + 1) * d + d / 2 > Lx
 									&& (iy + 1) * d + d / 2 > Ly
 									&& (iz + 1) * d + d / 2 > Lz) { // the next
@@ -180,8 +187,8 @@ public class CPM {
 																	// the
 																	// lattice
 								ix = iy = 0; // reset position counter,
-													// overlap
-													// poylmers
+												// overlap
+												// poylmers
 								iz = -1;
 							}
 						} else
@@ -209,7 +216,7 @@ public class CPM {
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
 			polyTrialMove(polymers[i]);
-			 shapeChange(polymers[i]);
+			shapeChange(polymers[i]);
 		}
 	}
 
@@ -237,7 +244,7 @@ public class CPM {
 					if (Math.random() < Math.exp(-Ep)) { // Change in number of
 															// CP penetrations =
 															// +1, accepted
-						intersectCount++;
+						totalIntersectCount++;
 						poly.intersectPairs.add(nanos[i]); // Add
 						nanos[i].intersectPairs.add(poly);
 					} else {
@@ -260,7 +267,7 @@ public class CPM {
 																	// intersecting
 																	// pairs and
 																	// count
-					intersectCount--;
+					totalIntersectCount--;
 			}
 		}
 	}
@@ -302,7 +309,7 @@ public class CPM {
 					if (Math.random() < Math.exp(-Ep)) { // Change in number of
 															// CP penetrations =
 															// +1, accepted
-						intersectCount++;
+						totalIntersectCount++;
 						nano.intersectPairs.add(polymers[i]); // Add
 						polymers[i].intersectPairs.add(nano);
 					} else {
@@ -326,7 +333,7 @@ public class CPM {
 																	// intersecting
 																	// pairs and
 																	// count
-					intersectCount--;
+					totalIntersectCount--;
 			}
 		}
 	}
@@ -334,13 +341,14 @@ public class CPM {
 	/**
 	 * Shape changes for a polymer.
 	 * 
-	 * @param poly A polymer object to be attempted for a trial shape change.
+	 * @param poly
+	 *            A polymer object to be attempted for a trial shape change.
 	 */
 	public void shapeChange(Polymer poly) {
-//		double q = polymerColloidSizeRatio();
-		double oldRX = poly.getrX();
-		double oldRY = poly.getrY();
-		double oldRZ = poly.getrZ();
+		Random rand = new Random();
+		boolean rx_tried = false;
+		boolean ry_tried = false;
+		boolean rz_tried = false;
 		
 		double oldEX = poly.geteX();
 		double oldEY = poly.geteY();
@@ -350,88 +358,33 @@ public class CPM {
 		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
-
-		double P_x = prob(newEX, Vector.x) / prob(oldEX, Vector.x);
-		double P_y = prob(newEY, Vector.y) / prob(oldEY, Vector.y);
-		double P_z = prob(newEZ, Vector.z) / prob(oldEZ, Vector.z);
-
-		boolean rx_changed = attemptEigenRadiusChange(P_x, poly,
-				newEY, q, Vector.x);
-		boolean ry_changed = attemptEigenRadiusChange(P_y, poly,
-				newEY, q, Vector.y);
-		boolean rz_changed = attemptEigenRadiusChange(P_z, poly,
-				newEZ, q, Vector.z);
 		
-		if(rx_changed){
-			if((poly.getX() + poly.getrX()) > Lx || (poly.getX() - poly.getrX()) < 0 ){
-				rx_changed = false;
-				System.out.println("reject");
-				poly.seteX(oldEX, q);
-				System.out.println(poly.getrX() - oldRX);
-				return;
+		do{
+			int choice = rand.nextInt(3);
+			switch (choice){
+				case 0: if(rx_tried == false){
+							attemptEigenRadiusChange(poly, oldEX, newEX, Vector.x);
+							rx_tried = true;
+						}	
+				case 1: if(ry_tried == false){
+							attemptEigenRadiusChange(poly, oldEY, newEY, Vector.y);
+							ry_tried = true;
+						}
+				case 2: if(rz_tried == false){
+							attemptEigenRadiusChange(poly, oldEZ, newEZ, Vector.z);
+							rz_tried = true;
+						}
 			}
-			System.out.println("Accepted DR_X= " + (poly.getrX() - oldRX) + " with P " + P_x);
-		}
-		
-		if(ry_changed){
-			if((poly.getY() + poly.getrY()) > Lx || (poly.getY() - poly.getrY()) < 0 ){
-				ry_changed = false;
-				poly.seteY(oldEY, q);
-				return;
-			}
-		}
-		if(rz_changed){
-			if((poly.getZ() + poly.getrZ()) > Lx || (poly.getZ() - poly.getrZ()) < 0 ){
-				rz_changed = false;
-				poly.seteZ(oldEZ, q);
-				return;
-			}
-		}
-
-		// Check for intersections with nanoparticles
-		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i])) { // Nano-polymer now overlaps
-				if (!poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check
-																		// for
-																		// previous
-																		// overlap
-					if (Math.random() < Math.exp(-Ep)) {
-						intersectCount++;
-						poly.intersectPairs.add(nanos[i]); // Add
-						nanos[i].intersectPairs.add(poly);
-					} else {
-						if (rx_changed)
-							poly.seteX(oldEX, q);
-						if (ry_changed)
-							poly.seteY(oldEY, q);
-						if (rz_changed)
-							poly.seteZ(oldEZ, q);
-						return;
-					}
-				}
-			}
-		}
-
-		// Since trial move was accepted, let's look at possible intersections
-		// being removed.
-		for (int j = 0; j < nanos.length; j++) {
-			if (!poly.overlap(nanos[j])) { // particles that are no longer
-											// overlapping
-				if (poly.intersectPairs.remove(nanos[j])
-						&& nanos[j].intersectPairs.remove(poly)) // update the
-																	// intersecting
-																	// pairs and
-																	// count
-					intersectCount--;
-			}
-		}
+		} while(rx_tried == false || ry_tried == false || rz_tried == false) ;
 	}
 
 	/**
-	 * Returns the polymer shape probability for a given radius axis. 
-	 * @param ei The eigenvalue of the radius axis
-	 * @param v Enumeration representing the radius axis.
+	 * Returns the polymer shape probability for a given radius axis.
+	 * 
+	 * @param ei
+	 *            The eigenvalue of the radius axis
+	 * @param v
+	 *            Enumeration representing the radius axis.
 	 * @return Polymer shape probability.
 	 */
 	public double prob(double ei, Vector v) {
@@ -451,41 +404,98 @@ public class CPM {
 	}
 
 	/**
-	 * Attempts a change on one of the radii eigenvalue of a polymer based on the
-	 * acceptance probability. The radius of the polymer changes accordingly.
+	 * Attempts a change on one of the radii eigenvalue of a polymer based on
+	 * the acceptance probability. The radius of the polymer changes
+	 * accordingly.
 	 * 
-	 * @param p
-	 *            Acceptance probability
 	 * @param poly
 	 *            Polymer in question
+	 * @param oldE
+	 *            The old value of the radius eigenvalue
 	 * @param newE
 	 *            The new value of the radius eigenvalue
 	 * @param v
 	 *            enumeration representing the radius axis
-	 * @param q  Colloid-polymer ratio
 	 * @return true if the change succeeded, false otherwise
 	 */
-	public boolean attemptEigenRadiusChange(double p, Polymer poly, double newE,
-			double q,Vector v) {
-		if (p > 1 || Math.random() < p) {
-			switch (v) {
-			case x:
-				poly.seteX(newE, q);	// Note that the polymer calculates its new radii whenever you change its eigenvalue
-			case y:
-				poly.seteY(newE, q);
-			case z:
-				poly.seteZ(newE, q);
-			default:
-				return true;
+	public void attemptEigenRadiusChange(Polymer poly,
+			double oldE, double newE, Vector v) {
+		double overlapCount = 0;
+		Stack<Nano> overlapNanos = new Stack<Nano>();
+		
+		switch(v){
+			case x: poly.seteX(newE, q);
+			case y: poly.seteY(newE, q);
+			case z: poly.seteZ(newE, q);
+		}
+		
+		// Check for particles increasing size out of boundaries
+		switch(v){
+			case x: 
+				if( poly.getX() + poly.getrX() > Lx || poly.getX() - poly.getrX() < 0 ){
+					poly.seteX(oldE, q);
+					return;
+				}
+			case y: 
+				if( poly.getY() + poly.getrY() > Ly || poly.getY() - poly.getrY() < 0 ){
+					poly.seteY(oldE, q);
+					return;
+				}
+			case z: 
+				if( poly.getZ() + poly.getrZ() > Lz || poly.getZ() - poly.getrZ() < 0 ) {
+					poly.seteZ(oldE, q);
+					return;
+				}
+		}
+		
+		// Check for intersections with nanoparticles
+		for (int i = 0; i < nanos.length; i++) {
+			if (poly.overlap(nanos[i])) { // Nano-polymer now overlaps
+				if (!poly.intersectPairs.contains(nanos[i])
+						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+					overlapCount++;
+					overlapNanos.push(nanos[i]);
+				}
 			}
+		}
+
+		double p = prob(newE, v) / prob(oldE, v) * Math.exp(-Ep*overlapCount);
+		
+		if (p > 1 || Math.random() < p) {		
+		 // Update the intersecting pairs
+			while(!overlapNanos.empty()){
+				poly.intersectPairs.add(overlapNanos.pop());
+				totalIntersectCount++;
+			}
+		
+			// Since shape change was accepted, update possible intersections that were removed as a result.
+			for (int j = 0; j < nanos.length; j++) {
+				if (!poly.overlap(nanos[j])) { // particles that are no longer
+												// overlapping
+					if (poly.intersectPairs.remove(nanos[j])
+							&& nanos[j].intersectPairs.remove(poly)) // update the
+																		// intersecting
+																		// pairs and
+																		// count
+						totalIntersectCount--;
+				}
+			}
+			
 		} else {
-			return false;
+			
+			switch(v){
+				case x: poly.seteX(oldE, q);
+				case y: poly.seteY(oldE, q);
+				case z: poly.seteZ(oldE, q);
+			}
 		}
 	}
 
 	/**
 	 * Calculates the polymer colloid size ratio.
-	 * @param v enumeration representing the radius axis
+	 * 
+	 * @param v
+	 *            enumeration representing the radius axis
 	 * @return Polymer colloid size ratio.
 	 */
 	public double polymerColloidSizeRatio() {
@@ -494,10 +504,11 @@ public class CPM {
 		double ratio = 0;
 
 		for (Polymer poly : polymers) {
-				total += poly.geteX()*poly.geteX() + poly.geteY()*poly.geteY() + poly.geteZ()*poly.geteZ();
+			total += poly.geteX() * poly.geteX() + poly.geteY() * poly.geteY()
+					+ poly.geteZ() * poly.geteZ();
 		}
 
-		average = Math.sqrt( total / polymers.length );
+		average = Math.sqrt(total / polymers.length);
 		ratio = average / Nano.getDefault_r();
 		return ratio;
 	}
