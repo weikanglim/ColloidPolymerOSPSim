@@ -1,0 +1,7 @@
+Version 1.0
+- Implemented shape changes.
+- Implemented simulation snapshots that writes text files to workspace/data to test shape changes.
+- Number of intersections test checked.
+- User is now able to restart simulation with new input parameters by resetting the simulation (new->reset).
+
+
