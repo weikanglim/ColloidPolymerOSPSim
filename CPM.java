@@ -78,7 +78,8 @@ public class CPM {
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
 		Ep = 3/q;
-
+//		Ep = 0;
+		
 		// Set a constant distribution
 		Particle.setBoundaries(Lx, Ly, Lz);
 		Nano.setTolerance(tolerance);
@@ -135,9 +136,6 @@ public class CPM {
 													// particles
 							polymers[i] = new Polymer(ix * d + d / 2, iy * d
 									+ d / 2, iz * d + d / 2);
-							System.out.println(polymers[i].getrX() + " "
-									+ polymers[i].getrY() + " "
-									+ polymers[i].getrZ());
 							i++;
 
 							if ((ix + 1) * d + d / 2 > Lx
@@ -174,9 +172,6 @@ public class CPM {
 													// particles
 							polymers[i] = new Polymer(ix * d + d / 2, iy * d
 									+ d / 2, iz * d + d / 2);
-							System.out.println(polymers[i].getrX() + " "
-									+ polymers[i].getrY() + " "
-									+ polymers[i].getrZ());
 							i++;
 
 							if ((ix + 1) * d + d / 2 > Lx
@@ -215,8 +210,10 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
-			polyTrialMove(polymers[i]);
-			shapeChange(polymers[i]);
+//			polyTrialMove(polymers[i]);
+			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
+				shapeChange(polymers[i]);
+			}
 		}
 	}
 
@@ -230,45 +227,41 @@ public class CPM {
 		double oldX = poly.getX();
 		double oldY = poly.getY();
 		double oldZ = poly.getZ();
+		int overlapCount = 0;
+		Stack<Nano> overlapNanos = new Stack<Nano>();
 		poly.move();
 
+		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i])) { // Nano-polymer now overlaps
-				if (!poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check
-																		// if
-																		// the
-																		// particles
-																		// were
-																		// overlapping
-					if (Math.random() < Math.exp(-Ep)) { // Change in number of
-															// CP penetrations =
-															// +1, accepted
-						totalIntersectCount++;
-						poly.intersectPairs.add(nanos[i]); // Add
-						nanos[i].intersectPairs.add(poly);
-					} else {
-						poly.setX(oldX);
-						poly.setY(oldY);
-						poly.setZ(oldZ);
-						return;
-					}
-				}
+			if (poly.overlap(nanos[i]) 
+					&& !poly.intersectPairs.contains(nanos[i])
+						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+					overlapCount++;
+					overlapNanos.push(nanos[i]);
 			}
 		}
-
-		// Since trial move was accepted, let's look at possible intersections
-		// being removed.
-		for (int j = 0; j < nanos.length; j++) {
-			if (!poly.overlap(nanos[j])) { // particles that are no longer
-											// overlapping
-				if (poly.intersectPairs.remove(nanos[j])
-						&& nanos[j].intersectPairs.remove(poly)) // update the
-																	// intersecting
-																	// pairs and
-																	// count
-					totalIntersectCount--;
+		
+		// Acceptance probability
+		if (Math.random() < Math.exp(-Ep*overlapCount)) {		
+		 // Update the intersecting pairs
+			while(!overlapNanos.empty()){
+				overlapNanos.peek().intersectPairs.add(poly);
+				poly.intersectPairs.add(overlapNanos.pop());
+				totalIntersectCount++;
 			}
+		
+			// Remove particles that are no longer overlapping
+			for (int j = 0; j < nanos.length; j++) {
+				if (!poly.overlap(nanos[j]) &&
+						poly.intersectPairs.remove(nanos[j]) && 
+							nanos[j].intersectPairs.remove(poly)){ 
+						totalIntersectCount--;
+				}
+			}
+		} else {
+			poly.setX(oldX);
+			poly.setY(oldY);
+			poly.setZ(oldZ);
 		}
 	}
 
@@ -282,59 +275,52 @@ public class CPM {
 		double oldX = nano.getX();
 		double oldY = nano.getY();
 		double oldZ = nano.getZ();
+		int overlapCount = 0;
+		Stack<Polymer> overlapPolymers = new Stack<Polymer>();
 		nano.move();
 
+		// Nano-nano intersections, reject immediately
 		for (int j = 0; j < nanos.length; ++j) {
-			if (!nano.equals(nanos[j])) { // Iterate through all the other
-											// particles and check for an
-											// overlap
-				if (nano.overlap(nanos[j])) { // Nano-nano overlap
+			if (!nano.equals(nanos[j]) && nano.overlap(nanos[j])) { // Nano-nano overlap
 					nano.setX(oldX);
 					nano.setY(oldY);
 					nano.setZ(oldZ);
 					return;
 				}
-			}
 		}
 
+		// Count number of intersections
 		for (int i = 0; i < polymers.length; i++) {
-			if (nano.overlap(polymers[i])) { // Nano-polymer now overlaps
-				if (!nano.intersectPairs.contains(polymers[i])
-						&& !polymers[i].intersectPairs.contains(nano)) { // Check
-																			// if
-																			// the
-																			// particles
-																			// were
-																			// overlapping
-					if (Math.random() < Math.exp(-Ep)) { // Change in number of
-															// CP penetrations =
-															// +1, accepted
-						totalIntersectCount++;
-						nano.intersectPairs.add(polymers[i]); // Add
-						polymers[i].intersectPairs.add(nano);
-					} else {
-						nano.setX(oldX);
-						nano.setY(oldY);
-						nano.setZ(oldZ);
-						return;
+			if (nano.overlap(polymers[i]) &&
+					!nano.intersectPairs.contains(polymers[i])
+						&& !polymers[i].intersectPairs.contains(nano)) { 
+						overlapCount++;
+						overlapPolymers.push(polymers[i]);
+			}
+		}
+		
+		// Acceptance probability
+		if (Math.random() < Math.exp(-Ep*overlapCount)) { 
+				while(!overlapPolymers.isEmpty()){
+					overlapPolymers.peek().intersectPairs.add(nano);
+					nano.intersectPairs.add(overlapPolymers.pop()); // Add
+					totalIntersectCount++;
+				}
+				
+				// Remove particles that are no longer overlapping
+				for (int j = 0; j < polymers.length; j++) {
+					if (!nano.overlap(polymers[j]) &&
+							nano.intersectPairs.remove(polymers[j])
+								&& polymers[j].intersectPairs.remove(nano)){
+							totalIntersectCount--;
 					}
 				}
-			}
 		}
-
-		// Since trial move was accepted, let's look at possible intersections
-		// being removed.
-		for (int j = 0; j < polymers.length; j++) {
-			if (!nano.overlap(polymers[j])) { // particles that are no longer
-												// overlapping
-				if (nano.intersectPairs.remove(polymers[j])
-						&& polymers[j].intersectPairs.remove(nano)) // update
-																	// the
-																	// intersecting
-																	// pairs and
-																	// count
-					totalIntersectCount--;
-			}
+		else 
+		{
+			nano.setX(oldX);
+			nano.setY(oldY);
+			nano.setZ(oldZ);
 		}
 	}
 
@@ -355,27 +341,31 @@ public class CPM {
 		double oldEZ = poly.geteZ();
 
 		// trial shape changes
-		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEX = oldEX + shapeTolerance; //shapeTolerance * 2. * (Math.random() - 0.5);
+//		double newEY = newEX;
+//		double newEZ = newEX;
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
 		
-		do{
-			int choice = rand.nextInt(3);
-			switch (choice){
-				case 0: if(rx_tried == false){
-							attemptEigenRadiusChange(poly, oldEX, newEX, Vector.x);
-							rx_tried = true;
-						}	
-				case 1: if(ry_tried == false){
-							attemptEigenRadiusChange(poly, oldEY, newEY, Vector.y);
-							ry_tried = true;
-						}
-				case 2: if(rz_tried == false){
-							attemptEigenRadiusChange(poly, oldEZ, newEZ, Vector.z);
-							rz_tried = true;
-						}
-			}
-		} while(rx_tried == false || ry_tried == false || rz_tried == false) ;
+		attemptEigenRadiusChange(poly);
+		
+//		do{
+//			int choice = rand.nextInt(3);
+//			switch (choice){
+//				case 0: if(rx_tried == false){
+//							attemptEigenRadiusChange(poly, oldEX, newEX, Vector.x);
+//							rx_tried = true;
+//						}	
+//				case 1: if(ry_tried == false){
+//							attemptEigenRadiusChange(poly, oldEY, newEY, Vector.y);
+//							ry_tried = true;
+//						}
+//				case 2: if(rz_tried == false){
+//							attemptEigenRadiusChange(poly, oldEZ, newEZ, Vector.z);
+//							rz_tried = true;
+//						}
+//			}
+//		} while(rx_tried == false || ry_tried == false || rz_tried == false) ;
 	}
 
 	/**
@@ -393,14 +383,13 @@ public class CPM {
 			return (Math.pow(ei, -NX) * Math.pow(AX * DX, NX - 1) / (2 * KX))
 					* Math.exp(-ei / AX - DX * DX * AX / ei);
 		case y:
-			return (Math.pow(ei, -NY) * Math.pow(AY * DY, NY - 1) / (2 * KY))
-					* Math.exp(-ei / AY - DY * DY * AY / ei);
+			return (Math.pow(ei, -NY) * Math.pow( (AY * DY), (NY - 1)) / (2 * KY))
+					* Math.exp( (-ei / AY) - (DY * DY * AY / ei));
 		case z:
 			return (Math.pow(ei, -NZ) * Math.pow(AZ * DZ, NZ - 1) / (2 * KZ))
 					* Math.exp(-ei / AZ - DZ * DZ * AZ / ei);
-		default:
-			return 0;
 		}
+		return 0;
 	}
 
 	/**
@@ -420,50 +409,59 @@ public class CPM {
 	 */
 	public void attemptEigenRadiusChange(Polymer poly,
 			double oldE, double newE, Vector v) {
-		double overlapCount = 0;
+		int overlapCount = 0;
 		Stack<Nano> overlapNanos = new Stack<Nano>();
 		
-		switch(v){
-			case x: poly.seteX(newE, q);
-			case y: poly.seteY(newE, q);
-			case z: poly.seteZ(newE, q);
+		// check for negative eigenvalues
+		if(newE <= 0){
+			return;
 		}
 		
-		// Check for particles increasing size out of boundaries
 		switch(v){
-			case x: 
-				if( poly.getX() + poly.getrX() > Lx || poly.getX() - poly.getrX() < 0 ){
-					poly.seteX(oldE, q);
-					return;
-				}
-			case y: 
-				if( poly.getY() + poly.getrY() > Ly || poly.getY() - poly.getrY() < 0 ){
-					poly.seteY(oldE, q);
-					return;
-				}
-			case z: 
-				if( poly.getZ() + poly.getrZ() > Lz || poly.getZ() - poly.getrZ() < 0 ) {
-					poly.seteZ(oldE, q);
-					return;
-				}
+			case x: poly.seteX(newE);
+			case y: poly.seteY(newE);
+			case z: poly.seteZ(newE);
 		}
+		
+//		// Check for particles increasing size out of boundaries
+//		switch(v){
+//			case x: 
+//				if( poly.getX() + poly.getrX() > Lx || poly.getX() - poly.getrX() < 0 ){
+//					poly.seteX(oldE, q);
+//					return;
+//				}
+//			case y: 
+//				if( poly.getY() + poly.getrY() > Ly || poly.getY() - poly.getrY() < 0 ){
+//					poly.seteY(oldE, q);
+//					return;
+//				}
+//			case z: 
+//				if( poly.getZ() + poly.getrZ() > Lz || poly.getZ() - poly.getrZ() < 0 ) {
+//					poly.seteZ(oldE, q);
+//					return;
+//				}
+//		}
 		
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i])) { // Nano-polymer now overlaps
-				if (!poly.intersectPairs.contains(nanos[i])
+			if (poly.overlap(nanos[i]) 
+					&& !poly.intersectPairs.contains(nanos[i])
 						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
-				}
 			}
 		}
 
-		double p = prob(newE, v) / prob(oldE, v) * Math.exp(-Ep*overlapCount);
+		System.out.println(prob(newE, v));
+		System.out.println(prob(oldE, v));
+		double p = ( prob(newE, v) / prob(oldE, v) ) ; //* Math.exp(-Ep*overlapCount);
 		
-		if (p > 1 || Math.random() < p) {		
+		// Acceptance probability
+		if (p > 1){  //|| Math.random() < p) {		
 		 // Update the intersecting pairs
+			System.out.println("Accepted " + v + " " + mcs + " with "  + p);
 			while(!overlapNanos.empty()){
+				overlapNanos.peek().intersectPairs.add(poly);
 				poly.intersectPairs.add(overlapNanos.pop());
 				totalIntersectCount++;
 			}
@@ -484,13 +482,88 @@ public class CPM {
 		} else {
 			
 			switch(v){
-				case x: poly.seteX(oldE, q);
-				case y: poly.seteY(oldE, q);
-				case z: poly.seteZ(oldE, q);
+				case x: poly.seteX(oldE);
+				case y: poly.seteY(oldE);
+				case z: poly.seteZ(oldE);
 			}
 		}
 	}
+	
+	/**
+	 * Attempts a change on one of the radii eigenvalue of a polymer based on
+	 * the acceptance probability. The radius of the polymer changes
+	 * accordingly.
+	 * 
+	 * @param poly
+	 *            Polymer in question
+	 * @param oldE
+	 *            The old value of the radius eigenvalue
+	 * @param newE
+	 *            The new value of the radius eigenvalue
+	 * @param v
+	 *            enumeration representing the radius axis
+	 * @return true if the change succeeded, false otherwise
+	 */
+	public void attemptEigenRadiusChange(Polymer poly) {
+		int overlapCount = 0;
+		Stack<Nano> overlapNanos = new Stack<Nano>();
+		
+		double oldEX = poly.geteX();
+		double oldEY = poly.geteY();
+		double oldEZ = poly.geteZ();
+		
+		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
+		
+		poly.seteX(newEX);
+		poly.seteY(newEY);
+		poly.seteZ(newEZ);
+		
+		// Check for intersections with nanoparticles
+		for (int i = 0; i < nanos.length; i++) {
+			if (poly.overlap(nanos[i]) 
+					&& !poly.intersectPairs.contains(nanos[i])
+						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+					overlapCount++;
+					overlapNanos.push(nanos[i]);
+			}
+		}
 
+		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
+				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  ; //* Math.exp(-Ep*overlapCount);
+		System.out.println(p);
+		// Acceptance probability
+		if (p > 1 || Math.random() < p) {		
+		 // Update the intersecting pairs
+			while(!overlapNanos.empty()){
+				overlapNanos.peek().intersectPairs.add(poly);
+				poly.intersectPairs.add(overlapNanos.pop());
+				totalIntersectCount++;
+			}
+		
+			// Since shape change was accepted, update possible intersections that were removed as a result.
+			for (int j = 0; j < nanos.length; j++) {
+				if (!poly.overlap(nanos[j])) { // particles that are no longer
+												// overlapping
+					if (poly.intersectPairs.remove(nanos[j])
+							&& nanos[j].intersectPairs.remove(poly)) // update the
+																		// intersecting
+																		// pairs and
+																		// count
+						totalIntersectCount--;
+				}
+			}
+			
+		} else {
+			poly.seteX(oldEX);
+			poly.seteY(oldEY);
+			poly.seteZ(oldEZ);
+		}
+	}
+
+	
+	
 	/**
 	 * Calculates the polymer colloid size ratio.
 	 * 

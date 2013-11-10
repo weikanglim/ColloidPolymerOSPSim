@@ -15,9 +15,9 @@ public class Polymer extends Particle{
 		setX(x_);
 		setY(y_);
 		setZ(z_);
-		seteX(eX, q_);
-		seteY(eY, q_);
-		seteZ(eZ, q_);
+		seteX(eX);
+		seteY(eY);
+		seteZ(eZ);
 		tolerance = tolerance_;
 	}
 	
@@ -25,9 +25,9 @@ public class Polymer extends Particle{
 		setX(x_);
 		setY(y_);
 		setZ(z_);
-		seteX(default_eX, q);
-		seteY(default_eY, q);
-		seteZ(default_eZ, q);
+		seteX(default_eX);
+		seteY(default_eY);
+		seteZ(default_eZ);
 	}
 	
 	@Override
@@ -91,19 +91,19 @@ public class Polymer extends Particle{
 	}
 	
 	
-	public void seteX(double eX_, double q_){
+	public void seteX(double eX_){
 		eX = eX_;
-		setrX(toRadius(eX_, q_));
+		setrX(toRadius(eX));
 	}
 	
-	public void seteY(double eY_, double q_){
+	public void seteY(double eY_){
 		eY = eY_;
-		setrY(toRadius(eY_, q_));
+		setrY(toRadius(eY));
 	}
 	
-	public void seteZ(double eZ_, double q_){
+	public void seteZ(double eZ_){
 		eZ = eZ_;
-		setrZ(toRadius(eZ_,q_));
+		setrZ(toRadius(eZ));
 	}
 	
 	public double geteX(){
@@ -124,8 +124,8 @@ public class Polymer extends Particle{
 	 * @param v enumeration representing the radius axis
 	 * @return The radius
 	 */
-	public double toRadius(double ei, double q_) {
-		return q_ / 2 * Math.sqrt(18 * ei);
+	public double toRadius(double ei) {
+		return q / 2 * Math.sqrt(18 * ei);
 	}
 	
 	public static void setQ(double q_){

@@ -40,46 +40,18 @@ public class CPMApp extends AbstractSimulation {
 	BufferedWriter bw1;
 	BufferedWriter bw2;
 	BufferedWriter bw3;
+	Date date = new Date();
+	Path f1;
+	Path f2;
+	Path f3;
+	Path dir;
+
 
 	/**
 	 * Initializes the model.
 	 */
 	public void initialize() {
-		Date date = new Date();
-		Path dir = Paths.get("data");
-		Path f1 = Paths.get("data/" + date + " x .dat");
-		Path f2 = Paths.get("data/" + date + " y .dat");
-		Path f3 = Paths.get("data/" + date + " z .dat");
-		try {
-			if (Files.notExists(dir, LinkOption.values())) {
-				Files.createDirectory(dir);
-			}
-			
-			Charset ascii = Charset.forName("US-ASCII");
-			StandardOpenOption append = StandardOpenOption.APPEND;
-			if(f1.toFile().exists()){
-				bw1 = Files.newBufferedWriter(f1, ascii, append);
-			} else{
-				bw1 = Files.newBufferedWriter(f1, ascii);
-			}
-			
-			if(f2.toFile().exists()){
-				bw2 = Files.newBufferedWriter(f2, ascii, append);
-			} else{
-				bw2 = Files.newBufferedWriter(f2, ascii);
-			}
-			
-			if(f3.toFile().exists()){
-				bw3 = Files.newBufferedWriter(f3, ascii, append);
-			} else{
-				bw3 = Files.newBufferedWriter(f3, ascii);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 		added = false;
-		display3d.dispose();
-		display3d = new Display3DFrame("3D Frame");
 		totalIntersections = 0;
 		np.nP = control.getInt("N Polymers");
 		np.nN = control.getInt("N Nano");
@@ -96,6 +68,8 @@ public class CPMApp extends AbstractSimulation {
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
 		np.initialize(configuration);
+		if(display3d != null) display3d.dispose();
+		display3d = new Display3DFrame("3D Frame");
 		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 		display3d.setSquareAspect(true);
 
@@ -139,6 +113,42 @@ public class CPMApp extends AbstractSimulation {
 	 * Does a simulation step.
 	 */
 	public void doStep() {
+		if(np.mcs == 0 && snapshotIntervals > 0){
+			dir = Paths.get("data");
+			f1 = Paths.get("data/" + date + " x .dat");
+			f2 = Paths.get("data/" + date + " y .dat");
+			f3 = Paths.get("data/" + date + " z .dat");
+			
+			try {
+				if (Files.notExists(dir, LinkOption.values())) {
+					Files.createDirectory(dir);
+				}
+				
+				Charset ascii = Charset.forName("US-ASCII");
+				StandardOpenOption append = StandardOpenOption.APPEND;
+				if(f1.toFile().exists()){
+					bw1 = Files.newBufferedWriter(f1, ascii, append);
+				} else{
+					bw1 = Files.newBufferedWriter(f1, ascii);
+				}
+				
+				if(f2.toFile().exists()){
+					bw2 = Files.newBufferedWriter(f2, ascii, append);
+				} else{
+					bw2 = Files.newBufferedWriter(f2, ascii);
+				}
+				
+				if(f3.toFile().exists()){
+					bw3 = Files.newBufferedWriter(f3, ascii, append);
+				} else{
+					bw3 = Files.newBufferedWriter(f3, ascii);
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		
 		np.step();
 
 		for (int i = 0; i < np.nN; i++) {
@@ -152,18 +162,25 @@ public class CPMApp extends AbstractSimulation {
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
 		}
 
-		if (np.mcs % 1000 == 0 && np.mcs >= 100000) {
+		if (snapshotIntervals > 0 && np.mcs % snapshotIntervals == 0 && np.mcs >= 50000) {
 			for (Polymer poly : np.polymers) {
 				try {
-					bw1.write(String.valueOf(poly.getrX()) + "\n");
-					bw2.write(String.valueOf(poly.getrY()) + "\n");
-					bw3.write(String.valueOf(poly.getrZ()) + "\n");
-					bw1.flush();
-					bw2.flush();
-					bw3.flush();
+					bw1.write(String.valueOf(poly.geteX()) + "\n");
+					bw2.write(String.valueOf(poly.geteY()) + "\n");
+					bw3.write(String.valueOf(poly.geteZ()) + "\n");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+			}
+		}
+		
+		if(snapshotIntervals > 0 && np.mcs % 100*snapshotIntervals == 0 && np.mcs >= 50000){
+			try {
+				bw1.flush();
+				bw2.flush();
+				bw3.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -180,34 +197,38 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("N Polymers", 64);
 		control.setValue("N Nano", 0);
 		control.setValue("tolerance", 0.1);
-		control.setValue("Shape Tolerance", 0.0001);
+		control.setValue("Shape Tolerance", 0.001);
 		control.setValue("Nanoparticle radius", 0.01);
-		control.setValue("x", 0.001);
-		control.setValue("y", 0.001);
-		control.setValue("z", 0.001);
-		control.setValue("Polymer Colloid Ratio", 20);
-		control.setValue("Lattice constant", 3);
+		control.setValue("x", 0.005);
+		control.setValue("y", 0.005);
+		control.setValue("z", 0.005);
+		control.setValue("Polymer Colloid Ratio", 5);
+		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
-		control.setValue("Trial Moves to Shape Changes Ratio", 5);
+		control.setValue("Trial Moves to Shape Changes Ratio", 1);
 		control.setValue("Snapshot Interval", 1000);
 		initialize();
 	}
 
 	public void stop() {
 		double averageIntersections = totalIntersections / np.mcs;
+		
 		double volSpheres = np.nP
-				* (4 / 3d * Math.PI * np.polymers[1].getrX()
-						* np.polymers[1].getrY() * np.polymers[1].getrZ())
+				* (4 / 3d * Math.PI * np.polymers[0].geteX()
+						* np.polymers[0].geteY() * np.polymers[0].geteZ())
 				* np.nN;
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
 		control.println("Vol fraction: " + volFract);
-		try {
-			bw1.close();
-			bw2.close();
-			bw3.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		if(snapshotIntervals > 0){
+			try {
+				bw1.close();
+				bw2.close();
+				bw3.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
