@@ -210,7 +210,7 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
-//			polyTrialMove(polymers[i]);
+			polyTrialMove(polymers[i]);
 			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
 				shapeChange(polymers[i]);
 			}
@@ -341,31 +341,29 @@ public class CPM {
 		double oldEZ = poly.geteZ();
 
 		// trial shape changes
-		double newEX = oldEX + shapeTolerance; //shapeTolerance * 2. * (Math.random() - 0.5);
-//		double newEY = newEX;
-//		double newEZ = newEX;
+		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
 		
-		attemptEigenRadiusChange(poly);
+//		attemptEigenRadiusChange(poly);
 		
-//		do{
-//			int choice = rand.nextInt(3);
-//			switch (choice){
-//				case 0: if(rx_tried == false){
-//							attemptEigenRadiusChange(poly, oldEX, newEX, Vector.x);
-//							rx_tried = true;
-//						}	
-//				case 1: if(ry_tried == false){
-//							attemptEigenRadiusChange(poly, oldEY, newEY, Vector.y);
-//							ry_tried = true;
-//						}
-//				case 2: if(rz_tried == false){
-//							attemptEigenRadiusChange(poly, oldEZ, newEZ, Vector.z);
-//							rz_tried = true;
-//						}
-//			}
-//		} while(rx_tried == false || ry_tried == false || rz_tried == false) ;
+		do{
+			int choice = rand.nextInt(3);
+			switch (choice){
+				case 0: if(rx_tried == false){
+							attemptEigenRadiusChange(poly, oldEX, newEX, Vector.x);
+							rx_tried = true;
+						}	
+				case 1: if(ry_tried == false){
+							attemptEigenRadiusChange(poly, oldEY, newEY, Vector.y);
+							ry_tried = true;
+						}
+				case 2: if(rz_tried == false){
+							attemptEigenRadiusChange(poly, oldEZ, newEZ, Vector.z);
+							rz_tried = true;
+						}
+			}
+		} while(rx_tried == false || ry_tried == false || rz_tried == false) ;
 	}
 
 	/**
@@ -422,26 +420,7 @@ public class CPM {
 			case y: poly.seteY(newE);
 			case z: poly.seteZ(newE);
 		}
-		
-//		// Check for particles increasing size out of boundaries
-//		switch(v){
-//			case x: 
-//				if( poly.getX() + poly.getrX() > Lx || poly.getX() - poly.getrX() < 0 ){
-//					poly.seteX(oldE, q);
-//					return;
-//				}
-//			case y: 
-//				if( poly.getY() + poly.getrY() > Ly || poly.getY() - poly.getrY() < 0 ){
-//					poly.seteY(oldE, q);
-//					return;
-//				}
-//			case z: 
-//				if( poly.getZ() + poly.getrZ() > Lz || poly.getZ() - poly.getrZ() < 0 ) {
-//					poly.seteZ(oldE, q);
-//					return;
-//				}
-//		}
-		
+				
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
 			if (poly.overlap(nanos[i]) 
@@ -452,14 +431,11 @@ public class CPM {
 			}
 		}
 
-		System.out.println(prob(newE, v));
-		System.out.println(prob(oldE, v));
-		double p = ( prob(newE, v) / prob(oldE, v) ) ; //* Math.exp(-Ep*overlapCount);
+		double p = ( prob(newE, v) / prob(oldE, v) ) * Math.exp(-Ep*overlapCount);
 		
 		// Acceptance probability
-		if (p > 1){  //|| Math.random() < p) {		
+		if (p > 1 || Math.random() < p) {		
 		 // Update the intersecting pairs
-			System.out.println("Accepted " + v + " " + mcs + " with "  + p);
 			while(!overlapNanos.empty()){
 				overlapNanos.peek().intersectPairs.add(poly);
 				poly.intersectPairs.add(overlapNanos.pop());
@@ -531,8 +507,7 @@ public class CPM {
 		}
 
 		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
-				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  ; //* Math.exp(-Ep*overlapCount);
-		System.out.println(p);
+				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) ) * Math.exp(-Ep*overlapCount);
 		// Acceptance probability
 		if (p > 1 || Math.random() < p) {		
 		 // Update the intersecting pairs
