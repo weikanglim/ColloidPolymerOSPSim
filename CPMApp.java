@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -24,7 +23,7 @@ import org.opensourcephysics.frames.PlotFrame;
  * colloids(nanoparticles) and polymers model.
  * 
  * @author Wei Kang Lim, Alan Denton
- * @version 1.0 11-3-2013
+ * @version 1.0 11-10-2013
  * 
  */
 public class CPMApp extends AbstractSimulation {
@@ -206,7 +205,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
 		control.setValue("Trial Moves to Shape Changes Ratio", 1);
-		control.setValue("Snapshot Interval", 1000);
+		control.setValue("Snapshot Interval", 0);
 		initialize();
 	}
 

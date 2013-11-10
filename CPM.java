@@ -1,6 +1,5 @@
 package org.opensourcephysics.sip.CPM;
 
-import java.util.Random;
 import java.util.Stack;
 
 /**
@@ -8,9 +7,11 @@ import java.util.Stack;
  * and polymers model.
  * 
  * @author Wei Kang Lim, Alan Denton
- * @version 1.0 11-3-2013 * 
+ * @version 1.0 11-10-2013 * 
  */
 public class CPM {
+	public enum Vector {x, y, z};
+	
 	// constants
 	public final double NX = 0.5;
 	public final double NY = 2.5;
@@ -60,9 +61,6 @@ public class CPM {
 
 	// end declaration
 
-	public enum Vector {
-		x, y, z
-	};
 
 	/**
 	 * initializes the model.
@@ -210,7 +208,7 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
-//			polyTrialMove(polymers[i]);
+			polyTrialMove(polymers[i]);
 			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
 				shapeChange(polymers[i]);
 			}
@@ -331,187 +329,14 @@ public class CPM {
 	 *            A polymer object to be attempted for a trial shape change.
 	 */
 	public void shapeChange(Polymer poly) {
-		Random rand = new Random();
-		boolean rx_tried = false;
-		boolean ry_tried = false;
-		boolean rz_tried = false;
+		int overlapCount = 0;
+		Stack<Nano> overlapNanos = new Stack<Nano>();
 		
 		double oldEX = poly.geteX();
 		double oldEY = poly.geteY();
 		double oldEZ = poly.geteZ();
 
 		// trial shape changes
-		double newEX = oldEX + shapeTolerance; //shapeTolerance * 2. * (Math.random() - 0.5);
-//		double newEY = newEX;
-//		double newEZ = newEX;
-		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
-		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
-		
-		attemptEigenRadiusChange(poly);
-		
-//		do{
-//			int choice = rand.nextInt(3);
-//			switch (choice){
-//				case 0: if(rx_tried == false){
-//							attemptEigenRadiusChange(poly, oldEX, newEX, Vector.x);
-//							rx_tried = true;
-//						}	
-//				case 1: if(ry_tried == false){
-//							attemptEigenRadiusChange(poly, oldEY, newEY, Vector.y);
-//							ry_tried = true;
-//						}
-//				case 2: if(rz_tried == false){
-//							attemptEigenRadiusChange(poly, oldEZ, newEZ, Vector.z);
-//							rz_tried = true;
-//						}
-//			}
-//		} while(rx_tried == false || ry_tried == false || rz_tried == false) ;
-	}
-
-	/**
-	 * Returns the polymer shape probability for a given radius axis.
-	 * 
-	 * @param ei
-	 *            The eigenvalue of the radius axis
-	 * @param v
-	 *            Enumeration representing the radius axis.
-	 * @return Polymer shape probability.
-	 */
-	public double prob(double ei, Vector v) {
-		switch (v) {
-		case x:
-			return (Math.pow(ei, -NX) * Math.pow(AX * DX, NX - 1) / (2 * KX))
-					* Math.exp(-ei / AX - DX * DX * AX / ei);
-		case y:
-			return (Math.pow(ei, -NY) * Math.pow( (AY * DY), (NY - 1)) / (2 * KY))
-					* Math.exp( (-ei / AY) - (DY * DY * AY / ei));
-		case z:
-			return (Math.pow(ei, -NZ) * Math.pow(AZ * DZ, NZ - 1) / (2 * KZ))
-					* Math.exp(-ei / AZ - DZ * DZ * AZ / ei);
-		}
-		return 0;
-	}
-
-	/**
-	 * Attempts a change on one of the radii eigenvalue of a polymer based on
-	 * the acceptance probability. The radius of the polymer changes
-	 * accordingly.
-	 * 
-	 * @param poly
-	 *            Polymer in question
-	 * @param oldE
-	 *            The old value of the radius eigenvalue
-	 * @param newE
-	 *            The new value of the radius eigenvalue
-	 * @param v
-	 *            enumeration representing the radius axis
-	 * @return true if the change succeeded, false otherwise
-	 */
-	public void attemptEigenRadiusChange(Polymer poly,
-			double oldE, double newE, Vector v) {
-		int overlapCount = 0;
-		Stack<Nano> overlapNanos = new Stack<Nano>();
-		
-		// check for negative eigenvalues
-		if(newE <= 0){
-			return;
-		}
-		
-		switch(v){
-			case x: poly.seteX(newE);
-			case y: poly.seteY(newE);
-			case z: poly.seteZ(newE);
-		}
-		
-//		// Check for particles increasing size out of boundaries
-//		switch(v){
-//			case x: 
-//				if( poly.getX() + poly.getrX() > Lx || poly.getX() - poly.getrX() < 0 ){
-//					poly.seteX(oldE, q);
-//					return;
-//				}
-//			case y: 
-//				if( poly.getY() + poly.getrY() > Ly || poly.getY() - poly.getrY() < 0 ){
-//					poly.seteY(oldE, q);
-//					return;
-//				}
-//			case z: 
-//				if( poly.getZ() + poly.getrZ() > Lz || poly.getZ() - poly.getrZ() < 0 ) {
-//					poly.seteZ(oldE, q);
-//					return;
-//				}
-//		}
-		
-		// Check for intersections with nanoparticles
-		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
-					overlapCount++;
-					overlapNanos.push(nanos[i]);
-			}
-		}
-
-		System.out.println(prob(newE, v));
-		System.out.println(prob(oldE, v));
-		double p = ( prob(newE, v) / prob(oldE, v) ) ; //* Math.exp(-Ep*overlapCount);
-		
-		// Acceptance probability
-		if (p > 1){  //|| Math.random() < p) {		
-		 // Update the intersecting pairs
-			System.out.println("Accepted " + v + " " + mcs + " with "  + p);
-			while(!overlapNanos.empty()){
-				overlapNanos.peek().intersectPairs.add(poly);
-				poly.intersectPairs.add(overlapNanos.pop());
-				totalIntersectCount++;
-			}
-		
-			// Since shape change was accepted, update possible intersections that were removed as a result.
-			for (int j = 0; j < nanos.length; j++) {
-				if (!poly.overlap(nanos[j])) { // particles that are no longer
-												// overlapping
-					if (poly.intersectPairs.remove(nanos[j])
-							&& nanos[j].intersectPairs.remove(poly)) // update the
-																		// intersecting
-																		// pairs and
-																		// count
-						totalIntersectCount--;
-				}
-			}
-			
-		} else {
-			
-			switch(v){
-				case x: poly.seteX(oldE);
-				case y: poly.seteY(oldE);
-				case z: poly.seteZ(oldE);
-			}
-		}
-	}
-	
-	/**
-	 * Attempts a change on one of the radii eigenvalue of a polymer based on
-	 * the acceptance probability. The radius of the polymer changes
-	 * accordingly.
-	 * 
-	 * @param poly
-	 *            Polymer in question
-	 * @param oldE
-	 *            The old value of the radius eigenvalue
-	 * @param newE
-	 *            The new value of the radius eigenvalue
-	 * @param v
-	 *            enumeration representing the radius axis
-	 * @return true if the change succeeded, false otherwise
-	 */
-	public void attemptEigenRadiusChange(Polymer poly) {
-		int overlapCount = 0;
-		Stack<Nano> overlapNanos = new Stack<Nano>();
-		
-		double oldEX = poly.geteX();
-		double oldEY = poly.geteY();
-		double oldEZ = poly.geteZ();
-		
 		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
@@ -531,8 +356,8 @@ public class CPM {
 		}
 
 		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
-				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  ; //* Math.exp(-Ep*overlapCount);
-		System.out.println(p);
+				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  * Math.exp(-Ep*overlapCount);
+		
 		// Acceptance probability
 		if (p > 1 || Math.random() < p) {		
 		 // Update the intersecting pairs
@@ -562,7 +387,30 @@ public class CPM {
 		}
 	}
 
-	
+	/**
+	 * Returns the polymer shape probability for a given radius axis.
+	 * 
+	 * @param ei
+	 *            The eigenvalue of the radius axis
+	 * @param v
+	 *            Enumeration representing the radius axis.
+	 * @return Polymer shape probability.
+	 */
+	public double prob(double ei, Vector v) {
+		switch (v) {
+		case x:
+			return (Math.pow(ei, -NX) * Math.pow(AX * DX, NX - 1) / (2 * KX))
+					* Math.exp(-ei / AX - DX * DX * AX / ei);
+		case y:
+			return (Math.pow(ei, -NY) * Math.pow( (AY * DY), (NY - 1)) / (2 * KY))
+					* Math.exp( (-ei / AY) - (DY * DY * AY / ei));
+		case z:
+			return (Math.pow(ei, -NZ) * Math.pow(AZ * DZ, NZ - 1) / (2 * KZ))
+					* Math.exp(-ei / AZ - DZ * DZ * AZ / ei);
+		}
+		return 0;
+	}
+
 	
 	/**
 	 * Calculates the polymer colloid size ratio.
@@ -577,8 +425,7 @@ public class CPM {
 		double ratio = 0;
 
 		for (Polymer poly : polymers) {
-			total += poly.geteX() * poly.geteX() + poly.geteY() * poly.geteY()
-					+ poly.geteZ() * poly.geteZ();
+			total += poly.geteX() + poly.geteY() + poly.geteZ();
 		}
 
 		average = Math.sqrt(total / polymers.length);

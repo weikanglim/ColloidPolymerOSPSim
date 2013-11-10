@@ -2,7 +2,6 @@ package org.opensourcephysics.sip.CPM;
 import java.util.ArrayList;
 
 import org.opensourcephysics.numerics.PBC;
-import org.opensourcephysics.sip.CPM.CPM.Vector;
 
 
 public abstract class Particle {
