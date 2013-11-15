@@ -80,6 +80,10 @@ public class CPM {
 		Ep = 3/q;
 //		Ep = 0;
 		
+		if (configuration.toUpperCase().equals("SQUARE")) {
+			setSqrPositions();
+		}
+		
 		// Set a constant distribution
 		Particle.setBoundaries(Lx, Ly, Lz);
 		Nano.setTolerance(tolerance);
@@ -90,12 +94,6 @@ public class CPM {
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
 		totalIntersectCount = 0;
-
-		if (configuration.toUpperCase().equals("SQUARE")) {
-			setSqrPositions();
-		} else {
-			// setHexPositions();
-		}
 	}
 
 	/**
@@ -345,8 +343,6 @@ public class CPM {
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
 		
-//		attemptEigenRadiusChange(poly);
-		
 		do{
 			int choice = rand.nextInt(3);
 			switch (choice){
@@ -409,6 +405,7 @@ public class CPM {
 			double oldE, double newE, Vector v) {
 		int overlapCount = 0;
 		Stack<Nano> overlapNanos = new Stack<Nano>();
+		double p = 0;
 		
 		// check for negative eigenvalues
 		if(newE <= 0){
@@ -431,8 +428,15 @@ public class CPM {
 			}
 		}
 
-		double p = ( prob(newE, v) / prob(oldE, v) ) * Math.exp(-Ep*overlapCount);
-		
+		switch(v){
+		case x: p = (prob(newE, Vector.x) * prob(poly.geteY(), Vector.y) * prob(poly.geteZ(), Vector.z) ) / 
+				    (prob(oldE, Vector.x) * prob(poly.geteY(), Vector.y) * prob(poly.geteZ(), Vector.z) ) * Math.exp(-Ep*overlapCount);
+		case y: p = (prob(poly.geteX(), Vector.x) * prob(newE, Vector.y) * prob(poly.geteZ(), Vector.z) ) / 
+					(prob(poly.geteX(), Vector.x) * prob(oldE, Vector.y) * prob(poly.geteZ(), Vector.z) ) * Math.exp(-Ep*overlapCount);
+		case z: p = (prob(poly.geteX(), Vector.x) * prob(poly.geteY(), Vector.y) * prob(newE, Vector.z) ) / 
+					(prob(poly.geteX(), Vector.x) * prob(poly.geteY(), Vector.y) * prob(oldE, Vector.z) ) * Math.exp(-Ep*overlapCount);
+		}
+
 		// Acceptance probability
 		if (p > 1 || Math.random() < p) {		
 		 // Update the intersecting pairs
@@ -464,79 +468,6 @@ public class CPM {
 			}
 		}
 	}
-	
-	/**
-	 * Attempts a change on one of the radii eigenvalue of a polymer based on
-	 * the acceptance probability. The radius of the polymer changes
-	 * accordingly.
-	 * 
-	 * @param poly
-	 *            Polymer in question
-	 * @param oldE
-	 *            The old value of the radius eigenvalue
-	 * @param newE
-	 *            The new value of the radius eigenvalue
-	 * @param v
-	 *            enumeration representing the radius axis
-	 * @return true if the change succeeded, false otherwise
-	 */
-	public void attemptEigenRadiusChange(Polymer poly) {
-		int overlapCount = 0;
-		Stack<Nano> overlapNanos = new Stack<Nano>();
-		
-		double oldEX = poly.geteX();
-		double oldEY = poly.geteY();
-		double oldEZ = poly.geteZ();
-		
-		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
-		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
-		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
-		
-		poly.seteX(newEX);
-		poly.seteY(newEY);
-		poly.seteZ(newEZ);
-		
-		// Check for intersections with nanoparticles
-		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
-					overlapCount++;
-					overlapNanos.push(nanos[i]);
-			}
-		}
-
-		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
-				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) ) * Math.exp(-Ep*overlapCount);
-		// Acceptance probability
-		if (p > 1 || Math.random() < p) {		
-		 // Update the intersecting pairs
-			while(!overlapNanos.empty()){
-				overlapNanos.peek().intersectPairs.add(poly);
-				poly.intersectPairs.add(overlapNanos.pop());
-				totalIntersectCount++;
-			}
-		
-			// Since shape change was accepted, update possible intersections that were removed as a result.
-			for (int j = 0; j < nanos.length; j++) {
-				if (!poly.overlap(nanos[j])) { // particles that are no longer
-												// overlapping
-					if (poly.intersectPairs.remove(nanos[j])
-							&& nanos[j].intersectPairs.remove(poly)) // update the
-																		// intersecting
-																		// pairs and
-																		// count
-						totalIntersectCount--;
-				}
-			}
-			
-		} else {
-			poly.seteX(oldEX);
-			poly.seteY(oldEY);
-			poly.seteZ(oldEZ);
-		}
-	}
-
 	
 	
 	/**

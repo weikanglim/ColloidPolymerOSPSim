@@ -205,7 +205,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
 		control.setValue("Trial Moves to Shape Changes Ratio", 1);
-		control.setValue("Snapshot Interval", 1000);
+		control.setValue("Snapshot Interval", 0);
 		initialize();
 	}
 
