@@ -1,5 +1,7 @@
 package org.opensourcephysics.sip.CPM;
 
+import org.opensourcephysics.numerics.Matrix3DTransformation;
+
 public class Polymer extends Particle{
 	private static double tolerance;
 	private static double default_eX;
@@ -9,6 +11,8 @@ public class Polymer extends Particle{
 	private double eX;
 	private double eY;
     private double eZ;
+    private double axis[] = {0,0,1};
+    private double transformAxis[];
 
 
 	public Polymer(double x_, double y_, double z_, double tolerance_, double eX, double eY, double eZ, double q_){
@@ -50,9 +54,7 @@ public class Polymer extends Particle{
 		super.move(getTolerance());
 	}
 	
-	public static double getTolerance() {
-		return tolerance;
-	}
+
 
 	public static void setTolerance(double tolerance) {
 		Polymer.tolerance = tolerance;
@@ -65,32 +67,12 @@ public class Polymer extends Particle{
 	public static void setDefault_eX(double defaulteX_) {
 		Polymer.default_eX = defaulteX_;
 	}
-	
-	public static double getDefault_eY() {
-		return default_eY;
-	}
-
 	public static void setDefault_eY(double defaulteY_) {
 		Polymer.default_eY = defaulteY_;
 	}
-	
-	public static double getDefault_eZ() {
-		return default_eY;
-	}
-
 	public static void setDefault_eZ(double defaulteZ_) {
 		Polymer.default_eZ = defaulteZ_;
 	}
-	
-	public double getLX(){
-		return Math.pow(this.getrX(), 2);
-	}
-	
-	public double getLY(){
-		return Math.pow(this.getrY(), 2);
-	}
-	
-	
 	public void seteX(double eX_){
 		eX = eX_;
 		setrX(toRadius(eX));
@@ -105,6 +87,43 @@ public class Polymer extends Particle{
 		eZ = eZ_;
 		setrZ(toRadius(eZ));
 	}
+	public void setAxis(double [] axis){
+		if(axis.length == 3){
+			this.axis = axis;
+		}
+	}
+
+	public static void setQ(double q_){
+		Polymer.q = q_;
+	}
+
+	public Matrix3DTransformation getTransformation(){
+		return Matrix3DTransformation.createAlignmentTransformation(axis, transformAxis);
+	}
+
+	
+  public double[] getTransformAxis() {
+		return transformAxis;
+	}
+
+	public void setTransformAxis(double transformAxis[]) {
+		this.transformAxis = transformAxis;
+	}
+
+	// -------------------------------------
+  // Getter methods
+  // -------------------------------------
+	/**
+	 * 
+	 * @return
+	 */
+	public double getLX(){
+		return Math.pow(this.getrX(), 2);
+	}
+	
+	public double getLY(){
+		return Math.pow(this.getrY(), 2);
+	}
 	
 	public double geteX(){
 		return eX;
@@ -118,6 +137,26 @@ public class Polymer extends Particle{
 		return eZ;
 	}
 	
+	public double[] getAxis(){
+		double a[] = new double[axis.length];		
+		for(int i = 0; i < axis.length; i ++){
+			a[i] = axis[i];
+		}
+		return a;
+	}
+	public static double getQ(){
+		return Polymer.q;
+	}
+	public static double getDefault_eZ() {
+		return default_eY;
+	}
+	public static double getTolerance() {
+		return tolerance;
+	}
+	public static double getDefault_eY() {
+		return default_eY;
+	}
+	
 	/**
 	 * Converts radius eigenvalue to radius.
 	 * @param ei Eigenvalue
@@ -126,13 +165,5 @@ public class Polymer extends Particle{
 	 */
 	public double toRadius(double ei) {
 		return q / 2 * Math.sqrt(18 * ei);
-	}
-	
-	public static void setQ(double q_){
-		Polymer.q = q_;
-	}
-	
-	public static double getQ(){
-		return Polymer.q;
 	}
 }

@@ -2,6 +2,8 @@ package org.opensourcephysics.sip.CPM;
 
 import java.util.Stack;
 
+import org.opensourcephysics.numerics.VectorMath;
+
 /**
  * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
  * and polymers model.
@@ -58,6 +60,7 @@ public class CPM {
 	public double totalIntersectCount;
 	public double Ep; // Penetration Energy
 	public double mcs;
+	public double rotMagnitude;
 
 	// end declaration
 
@@ -75,7 +78,8 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
-		Ep = 3/q;
+//		Ep = 3/q;
+		Ep = 0;
 		
 		if (configuration.toUpperCase().equals("SQUARE")) {
 			setSqrPositions();
@@ -205,6 +209,11 @@ public class CPM {
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
 			polyTrialMove(polymers[i]);
+			
+			if(rotMagnitude > 0){
+				rotate(polymers[i]);
+			}
+			
 			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
 				shapeChange(polymers[i]);
 			}
@@ -427,5 +436,25 @@ public class CPM {
 		average = Math.sqrt(total / polymers.length);
 		ratio = average / Nano.getDefault_r();
 		return ratio;
+	}
+	
+	public void rotate(Polymer polymer){
+		double [] a = polymer.getAxis();
+		double [] v = new double[3];
+		for(int i = 0 ; i < v.length; i++){
+			v[i] = rotMagnitude * 2 * (Math.random() - 0.5);
+		}
+		
+		// normalize the newly generated vector
+		VectorMath.normalize(v);
+		
+		// addition of the old and new vector 
+		for(int i = 0; i < v.length; i++){
+			a[i] = a[i] + v[i];
+		}
+		
+		// normalize result
+		VectorMath.normalize(a);
+		polymer.setTransformAxis(a);
 	}
 }

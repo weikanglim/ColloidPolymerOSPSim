@@ -17,6 +17,7 @@ import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
+import org.opensourcephysics.numerics.Transformation;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
@@ -63,11 +64,12 @@ public class CPMApp extends AbstractSimulation {
 		np.nano_r = control.getDouble("Nanoparticle radius");
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
+		np.rotMagnitude = control.getDouble("Rotation magnitude");
 		np.moveToShapeRatio = control
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
 		np.initialize(configuration);
-		if(display3d != null) display3d.dispose();
+		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
 		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 		display3d.setSquareAspect(true);
@@ -159,6 +161,7 @@ public class CPMApp extends AbstractSimulation {
 					np.polymers[i].getZ());
 			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+			polySphere[i].setTransformation(np.polymers[i].getTransformation());
 		}
 
 		if (snapshotIntervals > 0 && np.mcs % snapshotIntervals == 0 && np.mcs >= 50000) {
@@ -204,6 +207,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
+		control.setValue("Rotation magnitude", 1);
 		control.setValue("Trial Moves to Shape Changes Ratio", 1);
 		control.setValue("Snapshot Interval", 0);
 		initialize();
@@ -213,8 +217,8 @@ public class CPMApp extends AbstractSimulation {
 		double averageIntersections = totalIntersections / np.mcs;
 		
 		double volSpheres = np.nP
-				* (4 / 3d * Math.PI * np.polymers[0].geteX()
-						* np.polymers[0].geteY() * np.polymers[0].geteZ())
+				* (4 / 3d * Math.PI * np.polymers[0].getrX()
+						* np.polymers[0].getrY() * np.polymers[0].getrZ())
 				* np.nN;
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
