@@ -1,3 +1,9 @@
+Update 12/11:
+- Added rotations.
+- TODO: Check for penetration energies for rotations.
+- 	Account for reflections of particles under PBC for overlaps. 
+	(Verify using simple toy model where Ep = 0.) 
+
 Version 1.0
 - Implemented shape changes.
 - Implemented simulation snapshots that writes text files to workspace/data to test shape changes.
