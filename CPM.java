@@ -78,8 +78,7 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
-//		Ep = 3/q;
-		Ep = 0;
+		Ep = 3/q;
 		
 		if (configuration.toUpperCase().equals("SQUARE")) {
 			setSqrPositions();
@@ -208,11 +207,10 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
-			polyTrialMove(polymers[i]);
-			
 			if(rotMagnitude > 0){
 				rotate(polymers[i]);
-			}
+			}		
+			polyTrialMove(polymers[i]);
 			
 			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
 				shapeChange(polymers[i]);
@@ -438,8 +436,12 @@ public class CPM {
 		return ratio;
 	}
 	
-	public void rotate(Polymer polymer){
-		double [] a = polymer.getAxis();
+	/**
+	 * Attempts a trial rotation of a polymer. The rotation magnitude is specified by the instance variable, rotMagnitude.
+	 * @param poly The polymer to be rotated.
+	 */
+	public void rotate(Polymer poly){
+		double [] a = poly.getAxis();
 		double [] v = new double[3];
 		for(int i = 0 ; i < v.length; i++){
 			v[i] = rotMagnitude * 2 * (Math.random() - 0.5);
@@ -455,6 +457,42 @@ public class CPM {
 		
 		// normalize result
 		VectorMath.normalize(a);
-		polymer.setTransformAxis(a);
+		poly.setTransformAxis(a);
+
+		// Check for overlaps
+		Stack<Nano> overlapNanos = new Stack<Nano>();
+		int overlapCount = 0;
+
+		// Check for intersections with nanoparticles
+		for (int i = 0; i < nanos.length; i++) {
+			if (poly.overlap(nanos[i]) 
+					&& !poly.intersectPairs.contains(nanos[i])
+						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+					overlapCount++;
+					overlapNanos.push(nanos[i]);
+			}
+		}
+		
+		// Acceptance probability
+		if (Math.random() < Math.exp(-Ep*overlapCount)) {		
+		 // Update the intersecting pairs
+			while(!overlapNanos.empty()){
+				overlapNanos.peek().intersectPairs.add(poly);
+				poly.intersectPairs.add(overlapNanos.pop());
+				totalIntersectCount++;
+			}
+		
+			// Remove particles that are no longer overlapping
+			for (int j = 0; j < nanos.length; j++) {
+				if (!poly.overlap(nanos[j]) &&
+						poly.intersectPairs.remove(nanos[j]) && 
+							nanos[j].intersectPairs.remove(poly)){ 
+						totalIntersectCount--;
+				}
+			}
+		} else {
+			poly.setTransformAxis(poly.getAxis());
+		}
+
 	}
 }

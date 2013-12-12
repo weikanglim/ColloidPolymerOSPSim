@@ -27,16 +27,17 @@ public abstract class Particle {
 	public abstract boolean overlap(Particle particle);
 	
 	public void move(double tolerance){
-		setX(PBC.position(getX() + tolerance*2.*(Math.random()-0.5), Lx));
-		setY(PBC.position(getY() + tolerance*2.*(Math.random()-0.5), Ly));
-		setZ(PBC.position(getZ() + tolerance*2.*(Math.random()-0.5), Lz));
+		setX(PBC.position(getX() + tolerance*2.*(Math.random()-0.5), getLx()));
+		setY(PBC.position(getY() + tolerance*2.*(Math.random()-0.5), getLy()));
+		setZ(PBC.position(getZ() + tolerance*2.*(Math.random()-0.5), getLz()));
 	}
 	
 	public static void setBoundaries(double Lx_, double Ly_, double Lz_){
-		Lx = Lx_;
-		Ly = Ly_;
-		Lz = Lz_;
+		setLx(Lx_);
+		setLy(Ly_);
+		setLz(Lz_);
 	}
+
 
 	
 	public void setrX(double rX_){
@@ -85,5 +86,29 @@ public abstract class Particle {
 	
 	public double getZ(){
 		return z;
+	}
+
+	public static double getLx() {
+		return Lx;
+	}
+
+	public static void setLx(double lx) {
+		Lx = lx;
+	}
+
+	public static double getLy() {
+		return Ly;
+	}
+
+	public static void setLy(double ly) {
+		Ly = ly;
+	}
+
+	public static double getLz() {
+		return Lz;
+	}
+
+	public static void setLz(double lz) {
+		Lz = lz;
 	}
 }

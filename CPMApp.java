@@ -9,6 +9,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.DecimalFormat;
 import java.util.Date;
 
 import org.opensourcephysics.controls.AbstractSimulation;
@@ -37,6 +38,7 @@ public class CPMApp extends AbstractSimulation {
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
 	boolean added = false;
+	boolean penetrationEnergyToggle;
 	BufferedWriter bw1;
 	BufferedWriter bw2;
 	BufferedWriter bw3;
@@ -68,6 +70,11 @@ public class CPMApp extends AbstractSimulation {
 		np.moveToShapeRatio = control
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
+		penetrationEnergyToggle =control.getBoolean("Penetration Energy");
+		if(!penetrationEnergyToggle){
+			System.out.println("Executed!");
+			np.Ep = 0;
+		}
 		np.initialize(configuration);
 		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
@@ -114,6 +121,7 @@ public class CPMApp extends AbstractSimulation {
 	 * Does a simulation step.
 	 */
 	public void doStep() {
+		// Initialize files for writing output data
 		if(np.mcs == 0 && snapshotIntervals > 0){
 			dir = Paths.get("data");
 			f1 = Paths.get("data/" + date + " x .dat");
@@ -124,7 +132,6 @@ public class CPMApp extends AbstractSimulation {
 				if (Files.notExists(dir, LinkOption.values())) {
 					Files.createDirectory(dir);
 				}
-				
 				Charset ascii = Charset.forName("US-ASCII");
 				StandardOpenOption append = StandardOpenOption.APPEND;
 				if(f1.toFile().exists()){
@@ -144,6 +151,31 @@ public class CPMApp extends AbstractSimulation {
 				} else{
 					bw3 = Files.newBufferedWriter(f3, ascii);
 				}
+				
+				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
+				String configurations = "# Number of Polymers:" + np.nP +
+						"\n# Number of Nanoparticles: "+np.nN +
+						"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
+						"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
+						"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
+						"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
+						"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
+						"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
+						"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
+						"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
+						"\n# Penetration Energy On: " + this.penetrationEnergyToggle
+						;
+				bw1.write(configurations);
+				bw2.write(configurations);
+				bw3.write(configurations);
+				bw1.newLine();
+				bw2.newLine();
+				bw3.newLine();		
+					bw1.flush();
+					bw2.flush();
+					bw3.flush();
+
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -161,7 +193,9 @@ public class CPMApp extends AbstractSimulation {
 					np.polymers[i].getZ());
 			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-			polySphere[i].setTransformation(np.polymers[i].getTransformation());
+			if(np.polymers[i].isRotated()){
+				polySphere[i].setTransformation(np.polymers[i].getTransformation());
+			}
 		}
 
 		if (snapshotIntervals > 0 && np.mcs % snapshotIntervals == 0 && np.mcs >= 50000) {
@@ -197,19 +231,20 @@ public class CPMApp extends AbstractSimulation {
 	public void reset() {
 		enableStepsPerDisplay(true);
 		control.setValue("N Polymers", 64);
-		control.setValue("N Nano", 0);
+		control.setValue("N Nano", 1);
 		control.setValue("tolerance", 0.1);
-		control.setValue("Shape Tolerance", 0.001);
-		control.setValue("Nanoparticle radius", 0.01);
+		control.setValue("Shape Tolerance", 0);
+		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
 		control.setValue("z", 0.005);
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
-		control.setValue("Rotation magnitude", 1);
-		control.setValue("Trial Moves to Shape Changes Ratio", 1);
+		control.setValue("Rotation magnitude", 0);
+		control.setValue("Trial Moves to Shape Changes Ratio", 0);
 		control.setValue("Snapshot Interval", 0);
+		control.setValue("Penetration Energy", false);
 		initialize();
 	}
 
