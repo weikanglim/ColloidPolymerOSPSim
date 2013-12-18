@@ -133,72 +133,8 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void doStep() {
 		// Initialize files for writing output data
-<<<<<<< Updated upstream
-		if(np.mcs == 0 && snapshotIntervals > 0){
-<<<<<<< Updated upstream
-			initializeWrite();
-=======
-			dir = Paths.get("data");
-			f1 = Paths.get("data/" + date + " x .dat");
-			f2 = Paths.get("data/" + date + " y .dat");
-			f3 = Paths.get("data/" + date + " z .dat");
-			
-			try {
-				if (Files.notExists(dir, LinkOption.values())) {
-					Files.createDirectory(dir);
-				}
-				Charset ascii = Charset.forName("US-ASCII");
-				StandardOpenOption append = StandardOpenOption.APPEND;
-				if(f1.toFile().exists()){
-					bw1 = Files.newBufferedWriter(f1, ascii, append);
-				} else{
-					bw1 = Files.newBufferedWriter(f1, ascii);
-				}
-				
-				if(f2.toFile().exists()){
-					bw2 = Files.newBufferedWriter(f2, ascii, append);
-				} else{
-					bw2 = Files.newBufferedWriter(f2, ascii);
-				}
-				
-				if(f3.toFile().exists()){
-					bw3 = Files.newBufferedWriter(f3, ascii, append);
-				} else{
-					bw3 = Files.newBufferedWriter(f3, ascii);
-				}
-				
-				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
-				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-				String configurations = "# Number of Polymers:" + np.nP +
-						"\n# Number of Nanoparticles: "+np.nN +
-						"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
-						"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-						"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
-						"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
-						"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
-						"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
-						"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
-						"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
-						"\n# Penetration Energy On: " + this.penetrationEnergyToggle
-						;
-				bw1.write(configurations);
-				bw2.write(configurations);
-				bw3.write(configurations);
-				bw1.newLine();
-				bw2.newLine();
-				bw3.newLine();		
-					bw1.flush();
-					bw2.flush();
-					bw3.flush();
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-=======
 		if(np.mcs == 0 && writeMode > 0){
 			initializeWrite();
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 		}
 		
 		np.step();
@@ -339,8 +275,6 @@ public class CPMApp extends AbstractSimulation {
 			}
 		}
 	}
-<<<<<<< Updated upstream
-=======
 	
 	public void initializeWrite(){
 		DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
@@ -459,70 +393,7 @@ public class CPMApp extends AbstractSimulation {
 				return;
 		}
 	}
-<<<<<<< Updated upstream
 	
-	public void initializeWrite(){
-			dir = Paths.get("data");
-			f1 = Paths.get("data/" + date + " x .dat");
-			f2 = Paths.get("data/" + date + " y .dat");
-			f3 = Paths.get("data/" + date + " z .dat");
-			
-			try {
-				if (Files.notExists(dir, LinkOption.values())) {
-					Files.createDirectory(dir);
-				}
-				Charset ascii = Charset.forName("US-ASCII");
-				StandardOpenOption append = StandardOpenOption.APPEND;
-				if(f1.toFile().exists()){
-					bw1 = Files.newBufferedWriter(f1, ascii, append);
-				} else{
-					bw1 = Files.newBufferedWriter(f1, ascii);
-				}
-				
-				if(f2.toFile().exists()){
-					bw2 = Files.newBufferedWriter(f2, ascii, append);
-				} else{
-					bw2 = Files.newBufferedWriter(f2, ascii);
-				}
-				
-				if(f3.toFile().exists()){
-					bw3 = Files.newBufferedWriter(f3, ascii, append);
-				} else{
-					bw3 = Files.newBufferedWriter(f3, ascii);
-				}
-				
-				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
-				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-				String configurations = "# Number of Polymers:" + np.nP +
-						"\n# Number of Nanoparticles: "+np.nN +
-						"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
-						"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-						"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
-						"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
-						"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
-						"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
-						"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
-						"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
-						"\n# Penetration Energy On: " + this.penetrationEnergyToggle
-						;
-				bw1.write(configurations);
-				bw2.write(configurations);
-				bw3.write(configurations);
-				bw1.newLine();
-				bw2.newLine();
-				bw3.newLine();		
-					bw1.flush();
-					bw2.flush();
-					bw3.flush();
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-	}
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
-
 	/**
 	 * Starts the Java application.
 	 * 
