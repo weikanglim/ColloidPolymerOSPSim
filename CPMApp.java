@@ -19,6 +19,7 @@ import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
 import org.opensourcephysics.numerics.Transformation;
+import org.opensourcephysics.numerics.VectorMath;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
@@ -35,6 +36,11 @@ public class CPMApp extends AbstractSimulation {
 			"Number of Intersections", "Number of Intersections");
 	double totalIntersections = 0;
 	double snapshotIntervals = 1;
+	double [] yzRefVector = {0,0,1};
+	double [] xyRefVector = {1,0,0};
+	double polar;
+	double azimuth;
+	int writeMode = 0;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
 	boolean added = false;
@@ -42,10 +48,14 @@ public class CPMApp extends AbstractSimulation {
 	BufferedWriter bw1;
 	BufferedWriter bw2;
 	BufferedWriter bw3;
+	BufferedWriter bw4;
+	BufferedWriter bw5;
 	Date date = new Date();
 	Path f1;
 	Path f2;
 	Path f3;
+	Path f4;
+	Path f5;
 	Path dir;
 
 
@@ -71,6 +81,7 @@ public class CPMApp extends AbstractSimulation {
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
 		penetrationEnergyToggle =control.getBoolean("Penetration Energy");
+		writeMode = control.getInt("Write Mode");
 		if(!penetrationEnergyToggle){
 			System.out.println("Executed!");
 			np.Ep = 0;
@@ -122,8 +133,72 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void doStep() {
 		// Initialize files for writing output data
+<<<<<<< Updated upstream
 		if(np.mcs == 0 && snapshotIntervals > 0){
+<<<<<<< Updated upstream
 			initializeWrite();
+=======
+			dir = Paths.get("data");
+			f1 = Paths.get("data/" + date + " x .dat");
+			f2 = Paths.get("data/" + date + " y .dat");
+			f3 = Paths.get("data/" + date + " z .dat");
+			
+			try {
+				if (Files.notExists(dir, LinkOption.values())) {
+					Files.createDirectory(dir);
+				}
+				Charset ascii = Charset.forName("US-ASCII");
+				StandardOpenOption append = StandardOpenOption.APPEND;
+				if(f1.toFile().exists()){
+					bw1 = Files.newBufferedWriter(f1, ascii, append);
+				} else{
+					bw1 = Files.newBufferedWriter(f1, ascii);
+				}
+				
+				if(f2.toFile().exists()){
+					bw2 = Files.newBufferedWriter(f2, ascii, append);
+				} else{
+					bw2 = Files.newBufferedWriter(f2, ascii);
+				}
+				
+				if(f3.toFile().exists()){
+					bw3 = Files.newBufferedWriter(f3, ascii, append);
+				} else{
+					bw3 = Files.newBufferedWriter(f3, ascii);
+				}
+				
+				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
+				String configurations = "# Number of Polymers:" + np.nP +
+						"\n# Number of Nanoparticles: "+np.nN +
+						"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
+						"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
+						"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
+						"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
+						"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
+						"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
+						"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
+						"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
+						"\n# Penetration Energy On: " + this.penetrationEnergyToggle
+						;
+				bw1.write(configurations);
+				bw2.write(configurations);
+				bw3.write(configurations);
+				bw1.newLine();
+				bw2.newLine();
+				bw3.newLine();		
+					bw1.flush();
+					bw2.flush();
+					bw3.flush();
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+=======
+		if(np.mcs == 0 && writeMode > 0){
+			initializeWrite();
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 		}
 		
 		np.step();
@@ -137,28 +212,63 @@ public class CPMApp extends AbstractSimulation {
 					np.polymers[i].getZ());
 			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-			if(np.polymers[i].isRotated()){
-				polySphere[i].setTransformation(np.polymers[i].getTransformation());
-			}
+//			if(np.polymers[i].isRotated()){
+//				polySphere[i].setTransformation(np.polymers[i].getTransformation());
+//			}
 		}
 
-		if (snapshotIntervals > 0 && np.mcs % snapshotIntervals == 0 && np.mcs >= 50000) {
+		if ((writeMode == 1 || writeMode == 3) && np.mcs % snapshotIntervals == 0 && np.mcs >= 50000) {
 			for (Polymer poly : np.polymers) {
 				try {
-					bw1.write(String.valueOf(poly.geteX()) + "\n");
-					bw2.write(String.valueOf(poly.geteY()) + "\n");
-					bw3.write(String.valueOf(poly.geteZ()) + "\n");
-				} catch (IOException e) {
+						bw1.write(String.valueOf(poly.geteX()) + "\n");
+						bw2.write(String.valueOf(poly.geteY()) + "\n");
+						bw3.write(String.valueOf(poly.geteZ()) + "\n");
+					}
+				 catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 		}
 		
-		if(snapshotIntervals > 0 && np.mcs % 100*snapshotIntervals == 0 && np.mcs >= 50000){
+		if ((writeMode == 2 || writeMode == 3) && np.mcs % snapshotIntervals == 0 && np.mcs > 1) {
+			for (Polymer poly : np.polymers) {
+				try {
+					double[] yzVector = {0, poly.getTransformAxis()[1],poly.getTransformAxis()[2]};
+					double[] xyVector = {poly.getTransformAxis()[0], poly.getTransformAxis()[1], 0};
+					yzVector = VectorMath.normalize(yzVector);
+					xyVector = VectorMath.normalize(xyVector);
+					polar = Math.acos(VectorMath.dot(yzRefVector, yzVector));
+					azimuth = Math.acos(VectorMath.dot(xyRefVector, xyVector));
+					bw4.write(String.valueOf(polar + "\n"));
+					bw5.write(String.valueOf(azimuth + "\n"));
+					}
+				 catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		
+		if(writeMode > 0 && np.mcs % 100*snapshotIntervals == 0){
 			try {
-				bw1.flush();
-				bw2.flush();
-				bw3.flush();
+				switch(writeMode){
+				case 1:
+					bw1.flush();
+					bw2.flush();
+					bw3.flush();
+					break;
+				case 2:
+					bw4.flush();
+					bw5.flush();
+					break;
+				case 3:
+					bw1.flush();
+					bw2.flush();
+					bw3.flush();
+					bw4.flush();
+					bw5.flush();
+					break;
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -175,9 +285,9 @@ public class CPMApp extends AbstractSimulation {
 	public void reset() {
 		enableStepsPerDisplay(true);
 		control.setValue("N Polymers", 64);
-		control.setValue("N Nano", 1);
+		control.setValue("N Nano", 0);
 		control.setValue("tolerance", 0.1);
-		control.setValue("Shape Tolerance", 0);
+		control.setValue("Shape Tolerance", 0.001);
 		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
@@ -185,10 +295,11 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
-		control.setValue("Rotation magnitude", 0);
-		control.setValue("Trial Moves to Shape Changes Ratio", 0);
-		control.setValue("Snapshot Interval", 0);
+		control.setValue("Rotation magnitude", 1);
+		control.setValue("Trial Moves to Shape Changes Ratio", 1);
+		control.setValue("Snapshot Interval", 1000);
 		control.setValue("Penetration Energy", false);
+		control.setValue("Write Mode", 2);
 		initialize();
 	}
 
@@ -203,16 +314,152 @@ public class CPMApp extends AbstractSimulation {
 		control.println("Average no. of Intersections: " + averageIntersections);
 		control.println("Vol fraction: " + volFract);
 		
-		if(snapshotIntervals > 0){
+		if(snapshotIntervals > 0 && writeMode > 0){
 			try {
-				bw1.close();
-				bw2.close();
-				bw3.close();
+				switch(writeMode){
+				case 1:
+					bw1.close();
+					bw2.close();
+					bw3.close();
+					break;
+				case 2:
+					bw4.close();
+					bw5.close();
+					break;
+				case 3: 
+					bw1.close();
+					bw2.close();
+					bw3.close();
+					bw4.close();
+					bw5.close();
+					break;
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
+<<<<<<< Updated upstream
+=======
+	
+	public void initializeWrite(){
+		DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+		DecimalFormat threeDecimal = new DecimalFormat("#0.###");
+		String configurations = "# Number of Polymers:" + np.nP +
+				"\n# Number of Nanoparticles: "+np.nN +
+				"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
+				"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
+				"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
+				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
+				"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
+				"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
+				"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
+				"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
+				"\n# Penetration Energy On: " + this.penetrationEnergyToggle
+				;
+
+		switch(writeMode){
+		case 1:
+			dir = Paths.get("data");
+			f1 = Paths.get("data/" + date + " x .dat");
+			f2 = Paths.get("data/" + date + " y .dat");
+			f3 = Paths.get("data/" + date + " z .dat");
+			
+			try {
+				if (Files.notExists(dir, LinkOption.values())) {
+					Files.createDirectory(dir);
+				}
+				Charset ascii = Charset.forName("US-ASCII");
+				bw1 = Files.newBufferedWriter(f1, ascii, f1.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+				bw2 = Files.newBufferedWriter(f2, ascii, f2.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+				bw3 = Files.newBufferedWriter(f3, ascii, f3.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+				
+				bw1.write(configurations);
+				bw2.write(configurations);
+				bw3.write(configurations);
+				
+				bw1.newLine();
+				bw2.newLine();
+				bw3.newLine();	
+				
+				bw1.flush();
+				bw2.flush();
+				bw3.flush();
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			break;
+		case 2:
+			dir = Paths.get("data");
+			f4 = Paths.get("data/" + date + " polar.dat");
+			f5 = Paths.get("data/" + date + " azimuth.dat");
+			try {
+				if (Files.notExists(dir, LinkOption.values())) {
+					Files.createDirectory(dir);
+				}
+				Charset ascii = Charset.forName("US-ASCII");
+				bw4 = Files.newBufferedWriter(f4, ascii, f4.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE );
+				bw5 = Files.newBufferedWriter(f5, ascii, f5.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE );
+				
+				bw4.write(configurations);
+				bw5.write(configurations);
+				
+				bw4.newLine();
+				bw5.newLine();
+				
+				bw4.flush();
+				bw5.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			break;
+		case 3:
+			dir = Paths.get("data");
+			f1 = Paths.get("data/" + date + " x .dat");
+			f2 = Paths.get("data/" + date + " y .dat");
+			f3 = Paths.get("data/" + date + " z .dat");
+			f4 = Paths.get("data/" + date + " polar.dat");
+			f5 = Paths.get("data/" + date + " azimuth.dat");
+
+			try {
+				if (Files.notExists(dir, LinkOption.values())) {
+					Files.createDirectory(dir);
+				}
+				Charset ascii = Charset.forName("US-ASCII");
+				bw1 = Files.newBufferedWriter(f1, ascii, f1.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+				bw2 = Files.newBufferedWriter(f2, ascii, f2.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+				bw3 = Files.newBufferedWriter(f3, ascii, f3.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE);
+				bw4 = Files.newBufferedWriter(f4, ascii, f4.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE );
+				bw5 = Files.newBufferedWriter(f5, ascii, f5.toFile().exists()? StandardOpenOption.APPEND : StandardOpenOption.CREATE );
+
+				bw1.write(configurations);
+				bw2.write(configurations);
+				bw3.write(configurations);
+				bw4.write(configurations);
+				bw5.write(configurations);
+				
+				bw1.newLine();
+				bw2.newLine();
+				bw3.newLine();		
+				bw4.newLine();
+				bw5.newLine();
+
+				bw1.flush();
+				bw2.flush();
+				bw3.flush();
+				bw4.flush();
+				bw5.flush();
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			break;
+			default:
+				return;
+		}
+	}
+<<<<<<< Updated upstream
 	
 	public void initializeWrite(){
 			dir = Paths.get("data");
@@ -272,6 +519,9 @@ public class CPMApp extends AbstractSimulation {
 				e.printStackTrace();
 			}
 	}
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 	/**
 	 * Starts the Java application.
