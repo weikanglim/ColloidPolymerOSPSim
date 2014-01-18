@@ -147,21 +147,19 @@ public class Polymer extends Particle{
 			};
 			 transform = new Matrix3DTransformation(identity);
 		} else{
-//		double [] origin = {this.getX(), this.getY(), this.getZ()};
 			transform = Matrix3DTransformation.createAlignmentTransformation(axis, transformAxis);
-//			double [] matrix = new double[16];
-//			transform.getFlatMatrix(matrix);
-//			System.out.println(String.format("(%e, %e, %e)", matrix[0],matrix[1],matrix[2]));
-//			System.out.println(String.format("(%e, %e, %e)", matrix[4],matrix[5],matrix[6]));
-//			System.out.println(String.format("(%e, %e, %e)", matrix[8],matrix[9],matrix[10]));
-//		transform.setOrigin(origin);
+			axis = getTransformAxis();
 		}
 		return transform;
 	}
 
 	
   public double[] getTransformAxis() {
-		return transformAxis;
+	  	double [] returnAxis = new double[transformAxis.length];
+	  	for(int i =0; i < transformAxis.length; i++){
+	  		returnAxis[i] = transformAxis[i];
+	  	}
+		return returnAxis;
 	}
 
 	public void setTransformAxis(double transformAxis[]) {
