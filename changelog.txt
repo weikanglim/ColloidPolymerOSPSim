@@ -1,3 +1,8 @@
+Update 18/11:
+- Rotations properly check for overlap.
+- Volume exclusions at boundaries are accounted for.
+- TODO: Verify unbiased rotations.
+
 Update 12/11:
 - Added rotations.
 - TODO: Check for penetration energies for rotations.
