@@ -443,6 +443,11 @@ public class CPM {
 	public void rotate(Polymer poly){
 		double [] a = poly.getAxis();
 		double [] v = new double[3];
+		
+		if(Math.abs( (Math.pow(a[0],2) + Math.pow(a[1],2) + Math.pow(a[2],2)) - 1) > 0.001){
+			System.out.println("Unnormalized axis" + a);
+		}
+		
 		for(int i = 0 ; i < v.length; i++){
 			v[i] = rotMagnitude * 2 * (Math.random() - 0.5);
 		}
