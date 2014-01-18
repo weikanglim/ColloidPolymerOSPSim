@@ -179,9 +179,9 @@ public class CPMApp extends AbstractSimulation {
 			case WRITE_SHAPES:
 				if(np.mcs > 50000){ // hardcoded 
 					for(Polymer poly: np.polymers){
-					dataFiles[0].record(String.valueOf(poly.geteX()) + "\n");
-					dataFiles[1].record(String.valueOf(poly.geteY()) + "\n");
-					dataFiles[2].record(String.valueOf(poly.geteZ()) + "\n");
+					dataFiles[0].record(String.valueOf(poly.geteX()));
+					dataFiles[1].record(String.valueOf(poly.geteY()));
+					dataFiles[2].record(String.valueOf(poly.geteZ()));
 					}
 				}
 				break;
@@ -191,22 +191,22 @@ public class CPMApp extends AbstractSimulation {
 				control.println("(" + ellipseAxis[0] + ", " + ellipseAxis[1] + ", " + ellipseAxis[2] + ")");
 				polar = ellipseAxis[2];
 				azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
-				dataFiles[0].record(String.valueOf(polar + "\n"));
-				dataFiles[1].record(String.valueOf(azimuth + "\n"));
+				dataFiles[0].record(String.valueOf(polar));
+				dataFiles[1].record(String.valueOf(azimuth));
 			} break;
 			case WRITE_ALL:
 					for(Polymer poly: np.polymers){
 						if(np.mcs > 50000){ // hardcoded 
-							dataFiles[0].record(String.valueOf(poly.geteX()) + "\n");
-							dataFiles[1].record(String.valueOf(poly.geteY()) + "\n");
-							dataFiles[2].record(String.valueOf(poly.geteZ()) + "\n");
+							dataFiles[0].record(String.valueOf(poly.geteX()));
+							dataFiles[1].record(String.valueOf(poly.geteY()));
+							dataFiles[2].record(String.valueOf(poly.geteZ()));
 						}
 						double[] ellipseAxis = poly.getTransformAxis();
 						control.println("(" + ellipseAxis[0] + ", " + ellipseAxis[1] + ", " + ellipseAxis[2] + ")");
 						polar = ellipseAxis[2];
 						azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
-						dataFiles[3].record(String.valueOf(polar + "\n"));
-						dataFiles[4].record(String.valueOf(azimuth + "\n"));
+						dataFiles[3].record(String.valueOf(polar));
+						dataFiles[4].record(String.valueOf(azimuth));
 					}
 			break;
 			default:break;
