@@ -446,10 +446,7 @@ public class CPM {
 		for(int i = 0 ; i < v.length; i++){
 			v[i] = rotMagnitude * 2 * (Math.random() - 0.5);
 		}
-		
-		// normalize the newly generated vector
-		VectorMath.normalize(v);
-		
+				
 		// addition of the old and new vector 
 		for(int i = 0; i < v.length; i++){
 			a[i] = a[i] + v[i];
