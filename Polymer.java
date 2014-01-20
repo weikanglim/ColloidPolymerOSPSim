@@ -11,8 +11,8 @@ public class Polymer extends Particle{
 	private double eX;
 	private double eY;
     private double eZ;
-    private double axis[] = {0,0,1};
-    private double transformAxis[] = {0,0,1}; // transformation axis
+    private double oldAxis[] = {0,0,1};
+    private double newAxis[] = {0,0,1}; // transformation axis
 
 
 	public Polymer(double x_, double y_, double z_, double tolerance_, double eX, double eY, double eZ, double q_){
@@ -49,11 +49,11 @@ public class Polymer extends Particle{
 
 			boolean normalAxis = true;
 			for(int i = 0; i < 3; i++){
-				normalAxis = normalAxis && (transformAxis[i] == originAxis[i]);
+				normalAxis = normalAxis && (newAxis[i] == originAxis[i]);
 			}
 			
 			if(!normalAxis ){
-				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,transformAxis);
+				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
 				for(int x = 0; x <= 2; x++){
 					for(int y = 0; y <= 2; y++){
 						for(int z = 0; z <= 2; z++){
@@ -127,16 +127,23 @@ public class Polymer extends Particle{
 		eZ = eZ_;
 		setrZ(toRadius(eZ));
 	}
-	public void setAxis(double [] axis){
+	public void setOldAxis(double [] axis){
 		if(axis.length == 3){
-			this.axis = axis;
+			this.oldAxis = axis;
 		}
 	}
 
 	public static void setQ(double q_){
 		Polymer.q = q_;
 	}
+	public void setNewAxis(double newAxis[]) {
+		this.newAxis = newAxis;
+	}
 
+
+	// -------------------------------------
+  // Getter methods
+  // -------------------------------------
 	public Matrix3DTransformation getTransformation(){
 		Matrix3DTransformation transform;
 		if(!isRotated()){
@@ -147,29 +154,21 @@ public class Polymer extends Particle{
 			};
 			 transform = new Matrix3DTransformation(identity);
 		} else{
-			transform = Matrix3DTransformation.createAlignmentTransformation(axis, transformAxis);
-			axis = getTransformAxis();
+			transform = Matrix3DTransformation.createAlignmentTransformation(oldAxis, newAxis);
 		}
 		return transform;
 	}
 
 	
-  public double[] getTransformAxis() {
-	  	double [] returnAxis = new double[transformAxis.length];
-	  	for(int i =0; i < transformAxis.length; i++){
-	  		returnAxis[i] = transformAxis[i];
+  public double[] getNewAxis() {
+	  	double [] returnAxis = new double[newAxis.length];
+	  	for(int i =0; i < newAxis.length; i++){
+	  		returnAxis[i] = newAxis[i];
 	  	}
 		return returnAxis;
 	}
 
-	public void setTransformAxis(double transformAxis[]) {
-		this.transformAxis = transformAxis;
-	}
 
-	// -------------------------------------
-  // Getter methods
-  // -------------------------------------
-	
 	public double geteX(){
 		return eX;
 	}
@@ -181,10 +180,10 @@ public class Polymer extends Particle{
 	public double geteZ(){
 		return eZ;
 	}
-	public double[] getAxis(){
-		double a[] = new double[axis.length];		
-		for(int i = 0; i < axis.length; i ++){
-			a[i] = axis[i];
+	public double[] getOldAxis(){
+		double a[] = new double[oldAxis.length];		
+		for(int i = 0; i < oldAxis.length; i ++){
+			a[i] = oldAxis[i];
 		}
 		return a;
 	}
@@ -212,8 +211,8 @@ public class Polymer extends Particle{
 	}
 	
 	public boolean isRotated(){
-		for(int i = 0; i < axis.length; i++){
-			if(axis[i] != transformAxis[i]) return true;
+		for(int i = 0; i < oldAxis.length; i++){
+			if(oldAxis[i] != newAxis[i]) return true;
 		}
 		return false;
 	}
