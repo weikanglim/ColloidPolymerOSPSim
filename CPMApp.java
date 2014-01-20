@@ -55,8 +55,8 @@ public class CPMApp extends AbstractSimulation {
 		np.nano_r = control.getDouble("Nanoparticle radius");
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
-		np.rotMagnitude = control.getDouble("Rotation magnitude");
-		visualizeOn = control.getBoolean("Visualization");
+		np.rotTolerance = control.getDouble("Rotation tolerance");
+		visualizeOn = control.getBoolean("Visualization on");
 		np.moveToShapeRatio = control
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
@@ -68,7 +68,7 @@ public class CPMApp extends AbstractSimulation {
 		case 3: writeMode = WriteModes.WRITE_ALL; break;
 		}
 		if(!penetrationEnergyToggle){
-			System.out.println("Executed!");
+			System.out.println("Penetration energy turned off.");
 			np.Ep = 0;
 		}
 		np.initialize(configuration);
@@ -128,7 +128,7 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
-					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
+					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
 					"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
 					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
@@ -159,18 +159,20 @@ public class CPMApp extends AbstractSimulation {
 		}
 		
 		np.step();
-
-		for (int i = 0; i < np.nN; i++) {
-			nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
-					np.nanos[i].getZ());
-		}
-		for (int i = 0; i < np.nP; i++) {
-			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
-					np.polymers[i].getZ());
-			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
-					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-			if(visualizeOn && np.polymers[i].isRotated()){
-				polySphere[i].setTransformation(np.polymers[i].getTransformation());
+		
+		if(visualizeOn){
+			for (int i = 0; i < np.nN; i++) {
+				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
+						np.nanos[i].getZ());
+			}
+			for (int i = 0; i < np.nP; i++) {
+				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
+						np.polymers[i].getZ());
+				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
+						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+				if(np.polymers[i].isRotated()){
+					polySphere[i].setTransformation(np.polymers[i].getTransformation());
+				}
 			}
 		}
 
@@ -187,8 +189,7 @@ public class CPMApp extends AbstractSimulation {
 				break;
 			case WRITE_ROTATIONS:
 			for (Polymer poly : np.polymers) {
-				double[] ellipseAxis = poly.getTransformAxis();
-				control.println("(" + ellipseAxis[0] + ", " + ellipseAxis[1] + ", " + ellipseAxis[2] + ")");
+				double[] ellipseAxis = poly.getNewAxis();
 				polar = ellipseAxis[2];
 				azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
 				dataFiles[0].record(String.valueOf(polar));
@@ -201,8 +202,7 @@ public class CPMApp extends AbstractSimulation {
 							dataFiles[1].record(String.valueOf(poly.geteY()));
 							dataFiles[2].record(String.valueOf(poly.geteZ()));
 						}
-						double[] ellipseAxis = poly.getTransformAxis();
-						control.println("(" + ellipseAxis[0] + ", " + ellipseAxis[1] + ", " + ellipseAxis[2] + ")");
+						double[] ellipseAxis = poly.getNewAxis();
 						polar = ellipseAxis[2];
 						azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
 						dataFiles[3].record(String.valueOf(polar));
@@ -241,9 +241,9 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
-		control.setValue("Rotation magnitude", 5);
+		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Trial Moves to Shape Changes Ratio", 1);
-		control.setAdjustableValue("Visualization", false);
+		control.setAdjustableValue("Visualization on", false);
 		control.setValue("Snapshot Interval", 1000);
 		control.setValue("Penetration Energy", false);
 		control.setValue("Write Mode", 2);
