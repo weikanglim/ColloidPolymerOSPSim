@@ -60,7 +60,7 @@ public class CPM {
 	public double totalIntersectCount;
 	public double Ep; // Penetration Energy
 	public double mcs;
-	public double rotMagnitude;
+	public double rotTolerance;
 
 	// end declaration
 
@@ -207,7 +207,7 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
-			if(rotMagnitude > 0){
+			if(rotTolerance > 0){
 				rotate(polymers[i]);
 			}		
 			polyTrialMove(polymers[i]);
@@ -441,26 +441,38 @@ public class CPM {
 	 * @param poly The polymer to be rotated.
 	 */
 	public void rotate(Polymer poly){
-		double [] a = poly.getAxis();
+		double [] oldAxis = poly.getOldAxis();
+		double [] oldTransformAxis = poly.getNewAxis();
+		poly.setOldAxis(poly.getNewAxis());
+		double [] a = poly.getOldAxis();
 		double [] v = new double[3];
-		
-		if(Math.abs( (Math.pow(a[0],2) + Math.pow(a[1],2) + Math.pow(a[2],2)) - 1) > 0.001){
-			System.out.println("Unnormalized axis" + a);
-		}
-		
+
+		// generate randomly oriented vector v 
 		for(int i = 0 ; i < v.length; i++){
-			v[i] = rotMagnitude * 2 * (Math.random() - 0.5);
+			v[i] = Math.random() - 0.5;
 		}
+
+		// normalize new (randomly oriented) vector v 
+		VectorMath.normalize(v);
+
+//		// Alternative way to generate v:
+//		v[2] = 2.*(Math.random() - 0.5);
+//		double sintheta = Math.signum(v[2])*Math.sqrt(1.-v[2]*v[2]);
+//		double phi = 2.*(Math.random() - 0.5)*Math.PI;
+//		v[0] = sintheta*Math.cos(phi);
+//		v[1] = sintheta*Math.sin(phi);
+//		//
 				
 		// addition of the old and new vector 
+		// Note: rotTolerance, which replaces rotMagnitude, should be << 1 (e.g. 0.1)
 		for(int i = 0; i < v.length; i++){
-			a[i] = a[i] + v[i];
+			a[i] = a[i] + rotTolerance*v[i];
 		}
-		
+
 		// normalize result
 		VectorMath.normalize(a);
-		poly.setTransformAxis(a);
-
+		poly.setNewAxis(a);
+		
 		// Check for overlaps
 		Stack<Nano> overlapNanos = new Stack<Nano>();
 		int overlapCount = 0;
@@ -493,7 +505,8 @@ public class CPM {
 				}
 			}
 		} else {
-			poly.setTransformAxis(poly.getAxis());
+			poly.setOldAxis(oldAxis);
+			poly.setNewAxis(oldTransformAxis);
 		}
 
 	}
