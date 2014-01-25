@@ -12,7 +12,7 @@ public class Polymer extends Particle{
 	private double eY;
     private double eZ;
     private double oldAxis[] = {0,0,1};
-    private double newAxis[] = {0,0,1}; // transformation axis
+    private double newAxis[] = {0,1,0}; // transformation axis
 
 
 	public Polymer(double x_, double y_, double z_, double tolerance_, double eX, double eY, double eZ, double q_){
@@ -146,6 +146,7 @@ public class Polymer extends Particle{
   // -------------------------------------
 	public Matrix3DTransformation getTransformation(){
 		Matrix3DTransformation transform;
+		System.out.println(this);
 		if(!isRotated()){
 			double [][] identity = {
 					{1, 0, 0},
@@ -154,7 +155,8 @@ public class Polymer extends Particle{
 			};
 			 transform = new Matrix3DTransformation(identity);
 		} else{
-			transform = Matrix3DTransformation.createAlignmentTransformation(oldAxis, newAxis);
+			double [] originAxis = {0,0,1};
+			transform = Matrix3DTransformation.createAlignmentTransformation(originAxis, newAxis);
 		}
 		return transform;
 	}
@@ -217,4 +219,8 @@ public class Polymer extends Particle{
 		return false;
 	}
 	
+	public String toString(){
+		return "oldAxis: " + oldAxis[0] + ", " + oldAxis[1] + ", " + oldAxis[2] + "\n" +
+			   "newAxis: " + newAxis[0] + ", " + newAxis[1] + ", " + newAxis[2];
+	}
 }
