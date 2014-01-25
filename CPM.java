@@ -441,12 +441,13 @@ public class CPM {
 	 * @param poly The polymer to be rotated.
 	 */
 	public void rotate(Polymer poly){
-		double [] oldAxis = poly.getOldAxis();
-		double [] oldTransformAxis = poly.getNewAxis();
+		double [] initialOldAxis = poly.getOldAxis();
+		double [] initialNewAxis = poly.getNewAxis();
 		poly.setOldAxis(poly.getNewAxis());
 		double [] a = poly.getOldAxis();
 		double [] v = new double[3];
-
+		//System.out.println("a:" + a[0] + ", " + a[1] + ", " + a[2] + ")");
+		
 		// generate randomly oriented vector v 
 		for(int i = 0 ; i < v.length; i++){
 			v[i] = Math.random() - 0.5;
@@ -505,8 +506,8 @@ public class CPM {
 				}
 			}
 		} else {
-			poly.setOldAxis(oldAxis);
-			poly.setNewAxis(oldTransformAxis);
+			poly.setOldAxis(initialOldAxis);
+			poly.setNewAxis(initialNewAxis);
 		}
 
 	}
