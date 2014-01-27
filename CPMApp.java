@@ -108,6 +108,10 @@ public class CPMApp extends AbstractSimulation {
 			polySphere[i].getStyle().setFillColor(Color.RED);
 			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 					np.polymers[i].getZ());
+                                if(np.polymers[i].isRotated()){
+                                        polySphere[i].setTransformation(np.polymers[i].getTransformation());
+//                                      System.out.println(np.polymers[i] + "\n"$
+                                }
 		}
 
 		plotframe.append(0, np.mcs, np.totalIntersectCount);
@@ -172,6 +176,7 @@ public class CPMApp extends AbstractSimulation {
 						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
 				if(np.polymers[i].isRotated()){
 					polySphere[i].setTransformation(np.polymers[i].getTransformation());
+//					System.out.println(np.polymers[i] + "\n");
 				}
 			}
 		}
@@ -230,23 +235,23 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 64);
+		control.setValue("N Polymers", 1);
 		control.setValue("N Nano", 0);
 		control.setValue("tolerance", 0);
 		control.setValue("Shape Tolerance", 0);
 		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
-		control.setValue("z", 0.005);
+		control.setValue("z", 0.05);
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 10);
 		control.setValue("initial configuration", "square");
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Trial Moves to Shape Changes Ratio", 1);
-		control.setAdjustableValue("Visualization on", false);
+		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot Interval", 1000);
 		control.setValue("Penetration Energy", false);
-		control.setValue("Write Mode", 2);
+		control.setValue("Write Mode", 0);
 		initialize();
 	}
 
