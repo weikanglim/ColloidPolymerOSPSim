@@ -79,11 +79,6 @@ public class CPM {
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
 		Ep = 3/q;
-		
-		if (configuration.toUpperCase().equals("SQUARE")) {
-			setSqrPositions();
-		} 
-
 		Particle.setBoundaries(Lx, Ly, Lz);
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
@@ -92,6 +87,12 @@ public class CPM {
 		Polymer.setDefault_eX(init_eX);
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
+
+		
+		if (configuration.toUpperCase().equals("SQUARE")) {
+			setSqrPositions();
+		} 
+
 		totalIntersectCount = 0;
 	}
 
