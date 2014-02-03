@@ -10,6 +10,18 @@ import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
 
+package org.opensourcephysics.sip.CPM;
+
+import java.awt.Color;
+import java.text.DecimalFormat;
+
+import org.opensourcephysics.controls.AbstractSimulation;
+import org.opensourcephysics.controls.SimulationControl;
+import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
+import org.opensourcephysics.display3d.simple3d.ElementSphere;
+import org.opensourcephysics.frames.Display3DFrame;
+import org.opensourcephysics.frames.PlotFrame;
+
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
  * colloids(nanoparticles) and polymers model.
@@ -67,17 +79,20 @@ public class CPMApp extends AbstractSimulation {
 		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
 		case 3: writeMode = WriteModes.WRITE_ALL; break;
 		}
-		if(!penetrationEnergyToggle){
-			System.out.println("Penetration energy turned off.");
+		
+		if(!penetrationEnergyToggle){ 
+			System.out.println("Penetration energy turned off.");// warning for user
 			np.Ep = 0;
 		}
+		
 		np.initialize(configuration);
 		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
 		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 		display3d.setSquareAspect(true);
-
-		if (!added) {
+		
+		// add simple3d.Element particles to the arrays 
+		if (!added) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
 			nanoSphere = new ElementSphere[np.nN];
 			polySphere = new ElementEllipsoid[np.nP];
 
@@ -90,10 +105,10 @@ public class CPMApp extends AbstractSimulation {
 				polySphere[i] = new ElementEllipsoid();
 				display3d.addElement(polySphere[i]);
 			}
-
-			added = true;
+			added = true; 
 		}
-
+		
+		// Initialize visualization elements for nano particles
 		for (int i = 0; i < np.nN; i++) {
 			nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
 					2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
@@ -102,16 +117,16 @@ public class CPMApp extends AbstractSimulation {
 					np.nanos[i].getZ());
 		}
 
+		// Initialize visualization elements for polymer particles
 		for (int i = 0; i < np.nP; i++) {
 			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
 			polySphere[i].getStyle().setFillColor(Color.RED);
 			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 					np.polymers[i].getZ());
-                                if(np.polymers[i].isRotated()){
-                                        polySphere[i].setTransformation(np.polymers[i].getTransformation());
-//                                      System.out.println(np.polymers[i] + "\n"$
-                                }
+            if(np.polymers[i].isRotated()){ 
+                    polySphere[i].setTransformation(np.polymers[i].getTransformation());
+            }
 		}
 
 		plotframe.append(0, np.mcs, np.totalIntersectCount);
@@ -121,7 +136,8 @@ public class CPMApp extends AbstractSimulation {
 	 * Does a simulation step.
 	 */
 	public void doStep() {
-		// Initialize files for writing output data
+		// Initialize files for writing output data during the first step
+		// This code is being ran here 
 		if(np.mcs == 0 && writeMode != WriteModes.WRITE_NONE){
 			DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 			DecimalFormat threeDecimal = new DecimalFormat("#0.###");
@@ -162,25 +178,39 @@ public class CPMApp extends AbstractSimulation {
 			}
 		}
 		
+		// logical step in the CPM class
 		np.step();
 		
+		// update intersect count and mcs step
+		plotframe.append(0, np.mcs, np.totalIntersectCount);
+		totalIntersections += np.totalIntersectCount;
+		display3d.setMessage("Number of mcs steps: " + np.mcs);
+
+		// Visualization updates
 		if(visualizeOn){
+			// nanoparticle visualization updates
 			for (int i = 0; i < np.nN; i++) {
+				if(np.nanos[i].intersectPairs.isEmpty()){
+					nanoSphere[i].getStyle().setFillColor(Color.BLACK);
+				}else{
+					nanoSphere[i].getStyle().setFillColor(Color.GREEN);
+				}
 				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
 						np.nanos[i].getZ());
 			}
+			// polymer visualization updates
 			for (int i = 0; i < np.nP; i++) {
 				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 						np.polymers[i].getZ());
 				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-				if(np.polymers[i].isRotated()){
+				if(np.polymers[i].isRotated()){ // this is done to save computation
 					polySphere[i].setTransformation(np.polymers[i].getTransformation());
-//					System.out.println(np.polymers[i] + "\n");
 				}
 			}
 		}
-
+		
+		// writing of data
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs % snapshotIntervals == 0) {
 			switch(writeMode){
 			case WRITE_SHAPES:
@@ -218,16 +248,12 @@ public class CPMApp extends AbstractSimulation {
 			}
 		}
 		
-		// write data out when there's 100 data values
+		// write data onto harddisk for every 100 data values
 		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (100*snapshotIntervals) == 0){
 			for(DataFile df : dataFiles){
 				df.write();
 			}
 		}
-
-		plotframe.append(0, np.mcs, np.totalIntersectCount);
-		totalIntersections += np.totalIntersectCount;
-		display3d.setMessage("Number of mcs steps: " + np.mcs);
 	}
 
 	/**
@@ -236,22 +262,22 @@ public class CPMApp extends AbstractSimulation {
 	public void reset() {
 		enableStepsPerDisplay(true);
 		control.setValue("N Polymers", 1);
-		control.setValue("N Nano", 0);
-		control.setValue("tolerance", 0);
-		control.setValue("Shape Tolerance", 0);
+		control.setValue("N Nano", 27);
+		control.setValue("tolerance", 0.1);
+		control.setValue("Shape Tolerance", 0.1);
 		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
 		control.setValue("z", 0.05);
 		control.setValue("Polymer Colloid Ratio", 5);
-		control.setValue("Lattice constant", 10);
+		control.setValue("Lattice constant", 2);
 		control.setValue("initial configuration", "square");
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Trial Moves to Shape Changes Ratio", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot Interval", 1000);
-		control.setValue("Penetration Energy", false);
-		control.setValue("Write Mode", 0);
+		control.setValue("Penetration Energy", true);
+		control.setValue("Write Mode", 1);
 		initialize();
 	}
 
@@ -264,8 +290,9 @@ public class CPMApp extends AbstractSimulation {
 				* np.nN;
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
-		control.println("Vol fraction: " + volFract);
+		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
 		
+		// close streams
 		if(writeMode != WriteModes.WRITE_NONE){
 			for(DataFile df : dataFiles){
 				df.close();

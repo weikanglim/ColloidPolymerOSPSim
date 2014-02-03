@@ -4,6 +4,12 @@ import java.util.Stack;
 
 import org.opensourcephysics.numerics.VectorMath;
 
+package org.opensourcephysics.sip.CPM;
+
+import java.util.Stack;
+
+import org.opensourcephysics.numerics.VectorMath;
+
 /**
  * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
  * and polymers model.
@@ -72,6 +78,7 @@ public class CPM {
 	 *            the initial lattice structure of the model
 	 */
 	public void initialize(String configuration) {
+		// set-up variables
 		totalIntersectCount = 0;
 		mcs = 0;
 		steps = 0;
@@ -88,12 +95,10 @@ public class CPM {
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
 
-		
+		// initialize positions
 		if (configuration.toUpperCase().equals("SQUARE")) {
 			setSqrPositions();
 		} 
-
-		totalIntersectCount = 0;
 	}
 
 	/**
@@ -200,6 +205,9 @@ public class CPM {
 		trialMoves();
 	}
 
+	/**
+	 * Attempts trial moves, rotations, and shape changes.
+	 */
 	public void trialMoves() {
 		// Nanoparticles Trial Moves
 		for (int i = 0; i < nanos.length; ++i) {
@@ -208,11 +216,15 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
+			// Trial Rotation
 			if(rotTolerance > 0){
 				rotate(polymers[i]);
 			}		
+			
+			// Trial Displacement
 			polyTrialMove(polymers[i]);
 			
+			// Trial Shape Changes
 			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
 				shapeChange(polymers[i]);
 			}
@@ -513,3 +525,4 @@ public class CPM {
 
 	}
 }
+
