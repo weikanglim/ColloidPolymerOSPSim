@@ -10,18 +10,6 @@ import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
 
-package org.opensourcephysics.sip.CPM;
-
-import java.awt.Color;
-import java.text.DecimalFormat;
-
-import org.opensourcephysics.controls.AbstractSimulation;
-import org.opensourcephysics.controls.SimulationControl;
-import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
-import org.opensourcephysics.display3d.simple3d.ElementSphere;
-import org.opensourcephysics.frames.Display3DFrame;
-import org.opensourcephysics.frames.PlotFrame;
-
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
  * colloids(nanoparticles) and polymers model.
@@ -47,7 +35,6 @@ public class CPMApp extends AbstractSimulation {
 	ElementEllipsoid polySphere[];
 	boolean added = false;
 	boolean penetrationEnergyToggle;
-	boolean visualizeOn = true;
 	DataFile [] dataFiles;
 
 	/**
@@ -68,7 +55,6 @@ public class CPMApp extends AbstractSimulation {
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
 		np.rotTolerance = control.getDouble("Rotation tolerance");
-		visualizeOn = control.getBoolean("Visualization on");
 		np.moveToShapeRatio = control
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
@@ -187,7 +173,7 @@ public class CPMApp extends AbstractSimulation {
 		display3d.setMessage("Number of mcs steps: " + np.mcs);
 
 		// Visualization updates
-		if(visualizeOn){
+		if(control.getBoolean("Visualization on")){
 			// nanoparticle visualization updates
 			for (int i = 0; i < np.nN; i++) {
 				if(np.nanos[i].intersectPairs.isEmpty()){
@@ -261,10 +247,10 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 1);
+		control.setValue("N Polymers", 27);
 		control.setValue("N Nano", 27);
 		control.setValue("tolerance", 0.1);
-		control.setValue("Shape Tolerance", 0.1);
+		control.setValue("Shape Tolerance", 0.001);
 		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
@@ -278,6 +264,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Snapshot Interval", 1000);
 		control.setValue("Penetration Energy", true);
 		control.setValue("Write Mode", 1);
+		control.setAdjustableValue("Save", false);
 		initialize();
 	}
 
@@ -293,9 +280,11 @@ public class CPMApp extends AbstractSimulation {
 		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
 		
 		// close streams
-		if(writeMode != WriteModes.WRITE_NONE){
-			for(DataFile df : dataFiles){
-				df.close();
+		if(control.getBoolean("Save")){
+			if(writeMode != WriteModes.WRITE_NONE){
+				for(DataFile df : dataFiles){
+					df.close();
+				}
 			}
 		}
 	}
