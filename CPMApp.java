@@ -1,16 +1,7 @@
 package org.opensourcephysics.sip.CPM;
 
 import java.awt.Color;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
-import java.util.Date;
 
 import org.opensourcephysics.controls.AbstractSimulation;
 import org.opensourcephysics.controls.SimulationControl;
@@ -18,7 +9,6 @@ import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
-import org.opensourcephysics.numerics.Transformation;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
@@ -29,25 +19,23 @@ import org.opensourcephysics.numerics.Transformation;
  * 
  */
 public class CPMApp extends AbstractSimulation {
+	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_ALL};
 	CPM np = new CPM();
 	Display3DFrame display3d = new Display3DFrame("3D Frame");
 	PlotFrame plotframe = new PlotFrame("Monte Carlo Steps",
 			"Number of Intersections", "Number of Intersections");
 	double totalIntersections = 0;
 	double snapshotIntervals = 1;
+	double [] zAxis = {0,0,1};
+	double [] xAxis = {1,0,0};
+	double polar;
+	double azimuth;
+	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
 	boolean added = false;
 	boolean penetrationEnergyToggle;
-	BufferedWriter bw1;
-	BufferedWriter bw2;
-	BufferedWriter bw3;
-	Date date = new Date();
-	Path f1;
-	Path f2;
-	Path f3;
-	Path dir;
-
+	DataFile [] dataFiles;
 
 	/**
 	 * Initializes the model.
@@ -66,22 +54,31 @@ public class CPMApp extends AbstractSimulation {
 		np.nano_r = control.getDouble("Nanoparticle radius");
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
-		np.rotMagnitude = control.getDouble("Rotation magnitude");
+		np.rotTolerance = control.getDouble("Rotation tolerance");
 		np.moveToShapeRatio = control
 				.getInt("Trial Moves to Shape Changes Ratio");
 		snapshotIntervals = control.getInt("Snapshot Interval");
 		penetrationEnergyToggle =control.getBoolean("Penetration Energy");
-		if(!penetrationEnergyToggle){
-			System.out.println("Executed!");
+		switch(control.getInt("Write Mode")){
+		case 0: writeMode = WriteModes.WRITE_NONE; break;
+		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
+		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
+		case 3: writeMode = WriteModes.WRITE_ALL; break;
+		}
+		
+		if(!penetrationEnergyToggle){ 
+			System.out.println("Penetration energy turned off.");// warning for user
 			np.Ep = 0;
 		}
+		
 		np.initialize(configuration);
 		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
 		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 		display3d.setSquareAspect(true);
-
-		if (!added) {
+		
+		// add simple3d.Element particles to the arrays 
+		if (!added) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
 			nanoSphere = new ElementSphere[np.nN];
 			polySphere = new ElementEllipsoid[np.nP];
 
@@ -94,10 +91,10 @@ public class CPMApp extends AbstractSimulation {
 				polySphere[i] = new ElementEllipsoid();
 				display3d.addElement(polySphere[i]);
 			}
-
-			added = true;
+			added = true; 
 		}
-
+		
+		// Initialize visualization elements for nano particles
 		for (int i = 0; i < np.nN; i++) {
 			nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
 					2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
@@ -106,12 +103,16 @@ public class CPMApp extends AbstractSimulation {
 					np.nanos[i].getZ());
 		}
 
+		// Initialize visualization elements for polymer particles
 		for (int i = 0; i < np.nP; i++) {
 			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
 			polySphere[i].getStyle().setFillColor(Color.RED);
 			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 					np.polymers[i].getZ());
+            if(np.polymers[i].isRotated()){ 
+                    polySphere[i].setTransformation(np.polymers[i].getTransformation());
+            }
 		}
 
 		plotframe.append(0, np.mcs, np.totalIntersectCount);
@@ -121,52 +122,124 @@ public class CPMApp extends AbstractSimulation {
 	 * Does a simulation step.
 	 */
 	public void doStep() {
-		// Initialize files for writing output data
-		if(np.mcs == 0 && snapshotIntervals > 0){
-			initializeWrite();
-		}
-		
-		np.step();
-
-		for (int i = 0; i < np.nN; i++) {
-			nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
-					np.nanos[i].getZ());
-		}
-		for (int i = 0; i < np.nP; i++) {
-			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
-					np.polymers[i].getZ());
-			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
-					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-			if(np.polymers[i].isRotated()){
-				polySphere[i].setTransformation(np.polymers[i].getTransformation());
+		// Initialize files for writing output data during the first step
+		// This code is being ran here 
+		if(np.mcs == 0 && writeMode != WriteModes.WRITE_NONE){
+			DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+			DecimalFormat threeDecimal = new DecimalFormat("#0.###");
+			String configurations = "# Number of Polymers:" + np.nP +
+					"\n# Number of Nanoparticles: "+np.nN +
+					"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
+					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
+					"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
+					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
+					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
+					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
+					"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
+					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
+					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
+					;
+			switch(writeMode){
+			case WRITE_SHAPES:
+				dataFiles = new DataFile[3];
+				dataFiles[0] = new DataFile("eX", configurations);
+				dataFiles[1] = new DataFile("eY", configurations);
+				dataFiles[2] = new DataFile("eZ", configurations);
+				break;
+			case WRITE_ROTATIONS:
+				dataFiles = new DataFile[2];
+				dataFiles[0] = new DataFile("polar", configurations);
+				dataFiles[1] = new DataFile("azimuth", configurations);
+				break;
+			case WRITE_ALL:
+				dataFiles = new DataFile[5];
+				dataFiles[0] = new DataFile("eX", configurations);
+				dataFiles[1] = new DataFile("eY", configurations);
+				dataFiles[2] = new DataFile("eZ", configurations);
+				dataFiles[3] = new DataFile("polar", configurations);
+				dataFiles[4] = new DataFile("azimuth", configurations);
+				break;
+			default:
+				break;
 			}
 		}
+		
+		// logical step in the CPM class
+		np.step();
+		
+		// update intersect count and mcs step
+		plotframe.append(0, np.mcs, np.totalIntersectCount);
+		totalIntersections += np.totalIntersectCount;
+		display3d.setMessage("Number of mcs steps: " + np.mcs);
 
-		if (snapshotIntervals > 0 && np.mcs % snapshotIntervals == 0 && np.mcs >= 50000) {
-			for (Polymer poly : np.polymers) {
-				try {
-					bw1.write(String.valueOf(poly.geteX()) + "\n");
-					bw2.write(String.valueOf(poly.geteY()) + "\n");
-					bw3.write(String.valueOf(poly.geteZ()) + "\n");
-				} catch (IOException e) {
-					e.printStackTrace();
+		// Visualization updates
+		if(control.getBoolean("Visualization on")){
+			// nanoparticle visualization updates
+			for (int i = 0; i < np.nN; i++) {
+				if(np.nanos[i].intersectPairs.isEmpty()){
+					nanoSphere[i].getStyle().setFillColor(Color.BLACK);
+				}else{
+					nanoSphere[i].getStyle().setFillColor(Color.GREEN);
+				}
+				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
+						np.nanos[i].getZ());
+			}
+			// polymer visualization updates
+			for (int i = 0; i < np.nP; i++) {
+				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
+						np.polymers[i].getZ());
+				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
+						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+				if(np.polymers[i].isRotated()){ // this is done to save computation
+					polySphere[i].setTransformation(np.polymers[i].getTransformation());
 				}
 			}
 		}
 		
-		if(snapshotIntervals > 0 && np.mcs % 100*snapshotIntervals == 0 && np.mcs >= 50000){
-			try {
-				bw1.flush();
-				bw2.flush();
-				bw3.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
+		// writing of data
+		if (writeMode != WriteModes.WRITE_NONE && np.mcs % snapshotIntervals == 0) {
+			switch(writeMode){
+			case WRITE_SHAPES:
+				if(np.mcs > 50000){ // hardcoded 
+					for(Polymer poly: np.polymers){
+					dataFiles[0].record(String.valueOf(poly.geteX()));
+					dataFiles[1].record(String.valueOf(poly.geteY()));
+					dataFiles[2].record(String.valueOf(poly.geteZ()));
+					}
+				}
+				break;
+			case WRITE_ROTATIONS:
+			for (Polymer poly : np.polymers) {
+				double[] ellipseAxis = poly.getNewAxis();
+				polar = ellipseAxis[2];
+				azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
+				dataFiles[0].record(String.valueOf(polar));
+				dataFiles[1].record(String.valueOf(azimuth));
+			} break;
+			case WRITE_ALL:
+					for(Polymer poly: np.polymers){
+						if(np.mcs > 50000){ // hardcoded 
+							dataFiles[0].record(String.valueOf(poly.geteX()));
+							dataFiles[1].record(String.valueOf(poly.geteY()));
+							dataFiles[2].record(String.valueOf(poly.geteZ()));
+						}
+						double[] ellipseAxis = poly.getNewAxis();
+						polar = ellipseAxis[2];
+						azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
+						dataFiles[3].record(String.valueOf(polar));
+						dataFiles[4].record(String.valueOf(azimuth));
+					}
+			break;
+			default:break;
 			}
 		}
-
-		plotframe.append(0, np.mcs, np.totalIntersectCount);
-		totalIntersections += np.totalIntersectCount;
-		display3d.setMessage("Number of mcs steps: " + np.mcs);
+		
+		// write data onto harddisk for every 100 data values
+		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (100*snapshotIntervals) == 0){
+			for(DataFile df : dataFiles){
+				df.write();
+			}
+		}
 	}
 
 	/**
@@ -174,21 +247,24 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 64);
-		control.setValue("N Nano", 1);
+		control.setValue("N Polymers", 27);
+		control.setValue("N Nano", 27);
 		control.setValue("tolerance", 0.1);
-		control.setValue("Shape Tolerance", 0);
+		control.setValue("Shape Tolerance", 0.001);
 		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
-		control.setValue("z", 0.005);
+		control.setValue("z", 0.05);
 		control.setValue("Polymer Colloid Ratio", 5);
-		control.setValue("Lattice constant", 10);
+		control.setValue("Lattice constant", 2);
 		control.setValue("initial configuration", "square");
-		control.setValue("Rotation magnitude", 0);
-		control.setValue("Trial Moves to Shape Changes Ratio", 0);
-		control.setValue("Snapshot Interval", 0);
-		control.setValue("Penetration Energy", false);
+		control.setValue("Rotation tolerance", 0.1);
+		control.setValue("Trial Moves to Shape Changes Ratio", 1);
+		control.setAdjustableValue("Visualization on", true);
+		control.setValue("Snapshot Interval", 1000);
+		control.setValue("Penetration Energy", true);
+		control.setValue("Write Mode", 1);
+		control.setAdjustableValue("Save", false);
 		initialize();
 	}
 
@@ -201,78 +277,18 @@ public class CPMApp extends AbstractSimulation {
 				* np.nN;
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
-		control.println("Vol fraction: " + volFract);
+		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
 		
-		if(snapshotIntervals > 0){
-			try {
-				bw1.close();
-				bw2.close();
-				bw3.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+		// close streams
+		if(control.getBoolean("Save")){
+			if(writeMode != WriteModes.WRITE_NONE){
+				for(DataFile df : dataFiles){
+					df.close();
+				}
 			}
 		}
 	}
 	
-	public void initializeWrite(){
-			dir = Paths.get("data");
-			f1 = Paths.get("data/" + date + " x .dat");
-			f2 = Paths.get("data/" + date + " y .dat");
-			f3 = Paths.get("data/" + date + " z .dat");
-			
-			try {
-				if (Files.notExists(dir, LinkOption.values())) {
-					Files.createDirectory(dir);
-				}
-				Charset ascii = Charset.forName("US-ASCII");
-				StandardOpenOption append = StandardOpenOption.APPEND;
-				if(f1.toFile().exists()){
-					bw1 = Files.newBufferedWriter(f1, ascii, append);
-				} else{
-					bw1 = Files.newBufferedWriter(f1, ascii);
-				}
-				
-				if(f2.toFile().exists()){
-					bw2 = Files.newBufferedWriter(f2, ascii, append);
-				} else{
-					bw2 = Files.newBufferedWriter(f2, ascii);
-				}
-				
-				if(f3.toFile().exists()){
-					bw3 = Files.newBufferedWriter(f3, ascii, append);
-				} else{
-					bw3 = Files.newBufferedWriter(f3, ascii);
-				}
-				
-				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
-				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-				String configurations = "# Number of Polymers:" + np.nP +
-						"\n# Number of Nanoparticles: "+np.nN +
-						"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
-						"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-						"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
-						"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
-						"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
-						"\n# Rotation Tolerance: "+threeDecimal.format(np.rotMagnitude)+
-						"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
-						"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
-						"\n# Penetration Energy On: " + this.penetrationEnergyToggle
-						;
-				bw1.write(configurations);
-				bw2.write(configurations);
-				bw3.write(configurations);
-				bw1.newLine();
-				bw2.newLine();
-				bw3.newLine();		
-					bw1.flush();
-					bw2.flush();
-					bw3.flush();
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-	}
-
 	/**
 	 * Starts the Java application.
 	 * 

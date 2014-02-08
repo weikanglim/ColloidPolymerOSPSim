@@ -60,7 +60,7 @@ public class CPM {
 	public double totalIntersectCount;
 	public double Ep; // Penetration Energy
 	public double mcs;
-	public double rotMagnitude;
+	public double rotTolerance;
 
 	// end declaration
 
@@ -72,6 +72,7 @@ public class CPM {
 	 *            the initial lattice structure of the model
 	 */
 	public void initialize(String configuration) {
+		// set-up variables
 		totalIntersectCount = 0;
 		mcs = 0;
 		steps = 0;
@@ -79,12 +80,6 @@ public class CPM {
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
 		Ep = 3/q;
-		
-		if (configuration.toUpperCase().equals("SQUARE")) {
-			setSqrPositions();
-		} 
-
-		Particle.setBoundaries(Lx, Ly, Lz);
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
@@ -92,7 +87,12 @@ public class CPM {
 		Polymer.setDefault_eX(init_eX);
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
-		totalIntersectCount = 0;
+
+		// initialize positions
+		if (configuration.toUpperCase().equals("SQUARE")) {
+			setSqrPositions();
+		} 
+		Particle.setBoundaries(Lx, Ly, Lz);
 	}
 
 	/**
@@ -199,6 +199,9 @@ public class CPM {
 		trialMoves();
 	}
 
+	/**
+	 * Attempts trial moves, rotations, and shape changes.
+	 */
 	public void trialMoves() {
 		// Nanoparticles Trial Moves
 		for (int i = 0; i < nanos.length; ++i) {
@@ -207,11 +210,15 @@ public class CPM {
 
 		// Polymer Trial Moves
 		for (int i = 0; i < polymers.length; ++i) {
-			if(rotMagnitude > 0){
+			// Trial Rotation
+			if(rotTolerance > 0){
 				rotate(polymers[i]);
 			}		
+			
+			// Trial Displacement
 			polyTrialMove(polymers[i]);
 			
+			// Trial Shape Changes
 			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
 				shapeChange(polymers[i]);
 			}
@@ -344,6 +351,11 @@ public class CPM {
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
 		
+		// Reject changes for negative radii eigenvalue immediately
+		if(newEY < 0 || newEY < 0 || newEZ < 0){
+			return;
+		}
+		
 		poly.seteX(newEX);
 		poly.seteY(newEY);
 		poly.seteZ(newEZ);
@@ -441,24 +453,39 @@ public class CPM {
 	 * @param poly The polymer to be rotated.
 	 */
 	public void rotate(Polymer poly){
-		double [] a = poly.getAxis();
+		double [] initialOldAxis = poly.getOldAxis();
+		double [] initialNewAxis = poly.getNewAxis();
+		poly.setOldAxis(poly.getNewAxis());
+		double [] a = poly.getOldAxis();
 		double [] v = new double[3];
+		//System.out.println("a:" + a[0] + ", " + a[1] + ", " + a[2] + ")");
+		
+		// generate randomly oriented vector v 
 		for(int i = 0 ; i < v.length; i++){
-			v[i] = rotMagnitude * 2 * (Math.random() - 0.5);
+			v[i] = Math.random() - 0.5;
 		}
-		
-		// normalize the newly generated vector
+
+		// normalize new (randomly oriented) vector v 
 		VectorMath.normalize(v);
-		
+
+//		// Alternative way to generate v:
+//		v[2] = 2.*(Math.random() - 0.5);
+//		double sintheta = Math.signum(v[2])*Math.sqrt(1.-v[2]*v[2]);
+//		double phi = 2.*(Math.random() - 0.5)*Math.PI;
+//		v[0] = sintheta*Math.cos(phi);
+//		v[1] = sintheta*Math.sin(phi);
+//		//
+				
 		// addition of the old and new vector 
+		// Note: rotTolerance, which replaces rotMagnitude, should be << 1 (e.g. 0.1)
 		for(int i = 0; i < v.length; i++){
-			a[i] = a[i] + v[i];
+			a[i] = a[i] + rotTolerance*v[i];
 		}
-		
+
 		// normalize result
 		VectorMath.normalize(a);
-		poly.setTransformAxis(a);
-
+		poly.setNewAxis(a);
+		
 		// Check for overlaps
 		Stack<Nano> overlapNanos = new Stack<Nano>();
 		int overlapCount = 0;
@@ -491,8 +518,10 @@ public class CPM {
 				}
 			}
 		} else {
-			poly.setTransformAxis(poly.getAxis());
+			poly.setOldAxis(initialOldAxis);
+			poly.setNewAxis(initialNewAxis);
 		}
 
 	}
 }
+
