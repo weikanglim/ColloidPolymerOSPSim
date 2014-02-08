@@ -146,7 +146,6 @@ public class Polymer extends Particle{
   // -------------------------------------
 	public Matrix3DTransformation getTransformation(){
 		Matrix3DTransformation transform;
-		System.out.println(this);
 		if(!isRotated()){
 			double [][] identity = {
 					{1, 0, 0},
