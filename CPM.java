@@ -4,12 +4,6 @@ import java.util.Stack;
 
 import org.opensourcephysics.numerics.VectorMath;
 
-package org.opensourcephysics.sip.CPM;
-
-import java.util.Stack;
-
-import org.opensourcephysics.numerics.VectorMath;
-
 /**
  * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
  * and polymers model.
@@ -86,7 +80,6 @@ public class CPM {
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
 		Ep = 3/q;
-		Particle.setBoundaries(Lx, Ly, Lz);
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
@@ -99,6 +92,7 @@ public class CPM {
 		if (configuration.toUpperCase().equals("SQUARE")) {
 			setSqrPositions();
 		} 
+		Particle.setBoundaries(Lx, Ly, Lz);
 	}
 
 	/**
@@ -356,6 +350,11 @@ public class CPM {
 		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
+		
+		// Reject changes for negative radii eigenvalue immediately
+		if(newEY < 0 || newEY < 0 || newEZ < 0){
+			return;
+		}
 		
 		poly.seteX(newEX);
 		poly.seteY(newEY);
