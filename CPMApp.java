@@ -116,8 +116,8 @@ public class CPMApp extends AbstractSimulation {
 		}
 
 		plotframe.append(0, np.mcs, np.totalIntersectCount);
-	}
-
+		}
+	
 	/**
 	 * Does a simulation step.
 	 */
@@ -135,7 +135,7 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
 					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
-					"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+
+					"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+ // !TODO
 					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
 					;
@@ -163,7 +163,7 @@ public class CPMApp extends AbstractSimulation {
 				break;
 			}
 		}
-		
+
 		// logical step in the CPM class
 		np.step();
 		

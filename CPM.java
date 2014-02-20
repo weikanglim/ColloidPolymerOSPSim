@@ -45,6 +45,9 @@ public class CPM {
 	public double sigmaY;
 	public double nano_r;
 	public double q;
+	public int mcsPerTrialRotation;
+	public int mcsPerTrialShapeChange;
+	public int mcsPerTrialDisplacement;
 	public int moveToShapeRatio;
 	public double lc; // lattice constant, defined as lc = d / sigN, where d is
 						// defined below.
@@ -203,24 +206,31 @@ public class CPM {
 	 * Attempts trial moves, rotations, and shape changes.
 	 */
 	public void trialMoves() {
-		// Nanoparticles Trial Moves
-		for (int i = 0; i < nanos.length; ++i) {
-			nanoTrialMove(nanos[i]);
+		if(mcs % mcsPerTrialDisplacement == 0 && mcsPerTrialDisplacement != 0){
+			// Nanoparticles Trial Displacements
+			for (int i = 0; i < nanos.length; ++i) {
+				nanoTrialMove(nanos[i]);
+			}
+			// Polymer Trial Displacements
+			for (int i = 0; i < polymers.length; ++i) {
+				polyTrialMove(polymers[i]);
+			}
 		}
-
-		// Polymer Trial Moves
-		for (int i = 0; i < polymers.length; ++i) {
-			// Trial Rotation
-			if(rotTolerance > 0){
-				rotate(polymers[i]);
-			}		
-			
-			// Trial Displacement
-			polyTrialMove(polymers[i]);
-			
-			// Trial Shape Changes
-			if(moveToShapeRatio > 0 && mcs % moveToShapeRatio == 0){
-				shapeChange(polymers[i]);
+		
+		// Polymer Trial Rotations
+		if(mcs % mcsPerTrialRotation == 0 && mcsPerTrialRotation != 0){
+			for (int i = 0; i < polymers.length; ++i) {
+				// Trial Rotation
+				if(rotTolerance > 0){
+					rotate(polymers[i]);
+				}		
+			}
+		}
+		
+		// Polymer Trial Shape Changes
+		if(mcs % mcsPerTrialShapeChange == 0 && mcsPerTrialShapeChange != 0){
+			for (int i = 0; i < polymers.length; ++i) {
+					shapeChange(polymers[i]);
 			}
 		}
 	}
