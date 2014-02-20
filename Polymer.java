@@ -1,27 +1,20 @@
 package org.opensourcephysics.sip.CPM;
 
-import org.opensourcephysics.numerics.Matrix3DTransformation;
 
 public class Polymer extends Particle{
 	private static double tolerance;
-	private static double default_eX;
-	private static double default_eY;
-	private static double default_eZ;
+	private static double default_U;
 	private static double q;
-	private double eX;
-	private double eY;
-    private double eZ;
+	public double u;
     private double oldAxis[] = {0,0,1};
     private double newAxis[] = {0,1,0}; // transformation axis
 
 
-	public Polymer(double x_, double y_, double z_, double tolerance_, double eX, double eY, double eZ, double q_){
+	public Polymer(double x_, double y_, double z_, double tolerance_, double u, double q_){
 		setX(x_);
 		setY(y_);
 		setZ(z_);
-		seteX(eX);
-		seteY(eY);
-		seteZ(eZ);
+		setU(u);
 		tolerance = tolerance_;
 	}
 	
@@ -29,9 +22,8 @@ public class Polymer extends Particle{
 		setX(x_);
 		setY(y_);
 		setZ(z_);
-		seteX(default_eX);
-		seteY(default_eY);
-		seteZ(default_eZ);
+		setU(default_U);
+
 	}
 	
 	@Override
@@ -42,47 +34,19 @@ public class Polymer extends Particle{
 			return false;
 		} else{
 			Nano nano = (Nano) particle;
-			double [] originAxis = {0,0,1};
 			double [] start = {this.getX() - Particle.getLx(), this.getY() - Particle.getLy(), this.getZ() - Particle.getLz()};
 			double [] boundary = {Particle.getLx(), Particle.getLy(), Particle.getLz()};
 			double [] dist = new double[3];
 
-			boolean normalAxis = true;
-			for(int i = 0; i < 3; i++){
-				normalAxis = normalAxis && (newAxis[i] == originAxis[i]);
-			}
-			
-			if(!normalAxis ){
-				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
-				for(int x = 0; x <= 2; x++){
-					for(int y = 0; y <= 2; y++){
-						for(int z = 0; z <= 2; z++){
-							double polymer[] = {start[0] + boundary[0]*x, start[1] + boundary[1]*y, start[2] + boundary[2]*z};
-							double [] point = {nano.getX(), nano.getY(), nano.getZ()};
-							if(!normalAxis ){
-								transformation.setOrigin(polymer[0], polymer[1], polymer[2]);
-								point = transformation.direct(point);
-							}
-							dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
-							dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
-							dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
-							if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
-								return true;
-							}
-						}
-					}
-				}
-			} else {
-				double [] point = {nano.getX(), nano.getY(), nano.getZ()};
-				for(int x = 0; x <= 2; x++){
-					for(int y = 0; y <= 2; y++){
-						for(int z = 0; z <= 2; z++){
-							dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
-							dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
-							dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
-							if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
-								return true;
-							}
+			double [] point = {nano.getX(), nano.getY(), nano.getZ()};
+			for(int x = 0; x <= 2; x++){
+				for(int y = 0; y <= 2; y++){
+					for(int z = 0; z <= 2; z++){
+						dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
+						dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
+						dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
+						if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
+							return true;
 						}
 					}
 				}
@@ -100,124 +64,44 @@ public class Polymer extends Particle{
 		Polymer.tolerance = tolerance;
 	}
 	
-	public static double getDefault_eX() {
-		return default_eX;
+	public static void setDefault_U(double defaultU_) {
+		Polymer.default_U = defaultU_;
 	}
-
-	public static void setDefault_eX(double defaulteX_) {
-		Polymer.default_eX = defaulteX_;
-	}
-	public static void setDefault_eY(double defaulteY_) {
-		Polymer.default_eY = defaulteY_;
-	}
-	public static void setDefault_eZ(double defaulteZ_) {
-		Polymer.default_eZ = defaulteZ_;
-	}
-	public void seteX(double eX_){
-		eX = eX_;
-		setrX(toRadius(eX));
-	}
-	
-	public void seteY(double eY_){
-		eY = eY_;
-		setrY(toRadius(eY));
-	}
-	
-	public void seteZ(double eZ_){
-		eZ = eZ_;
-		setrZ(toRadius(eZ));
-	}
-	public void setOldAxis(double [] axis){
-		if(axis.length == 3){
-			this.oldAxis = axis;
-		}
-	}
-
 	public static void setQ(double q_){
 		Polymer.q = q_;
 	}
-	public void setNewAxis(double newAxis[]) {
-		this.newAxis = newAxis;
+	public void setU(double u){
+		this.u = u;
+		setrX(toRadius(u));
+		setrY(toRadius(u));
+		setrZ(toRadius(u));
 	}
-
 
 	// -------------------------------------
   // Getter methods
-  // -------------------------------------
-	public Matrix3DTransformation getTransformation(){
-		Matrix3DTransformation transform;
-		if(!isRotated()){
-			double [][] identity = {
-					{1, 0, 0},
-					{0, 1, 0},
-					{0, 0, 1}
-			};
-			 transform = new Matrix3DTransformation(identity);
-		} else{
-			double [] originAxis = {0,0,1};
-			transform = Matrix3DTransformation.createAlignmentTransformation(originAxis, newAxis);
-		}
-		return transform;
-	}
-
-	
-  public double[] getNewAxis() {
-	  	double [] returnAxis = new double[newAxis.length];
-	  	for(int i =0; i < newAxis.length; i++){
-	  		returnAxis[i] = newAxis[i];
-	  	}
-		return returnAxis;
-	}
-
-
-	public double geteX(){
-		return eX;
-	}
-	
-	public double geteY(){
-		return eY;
-	}
-	
-	public double geteZ(){
-		return eZ;
-	}
-	public double[] getOldAxis(){
-		double a[] = new double[oldAxis.length];		
-		for(int i = 0; i < oldAxis.length; i ++){
-			a[i] = oldAxis[i];
-		}
-		return a;
+  // -------------------------------------	
+	public double getU(){
+		return u;
 	}
 	public static double getQ(){
 		return Polymer.q;
 	}
-	public static double getDefault_eZ() {
-		return default_eY;
+	public static double getDefault_U() {
+		return default_U;
 	}
 	public static double getTolerance() {
 		return tolerance;
-	}
-	public static double getDefault_eY() {
-		return default_eY;
-	}
-	
+	}	
 	/**
 	 * Converts radius eigenvalue to radius.
 	 * @param ei Eigenvalue
 	 * @param v enumeration representing the radius axis
 	 * @return The radius
 	 */
-	public double toRadius(double ei) {
-		return q / 2 * Math.sqrt(18 * ei);
+	public double toRadius(double u) {
+		return q / 2 * Math.sqrt(6 * u);
 	}
-	
-	public boolean isRotated(){
-		for(int i = 0; i < oldAxis.length; i++){
-			if(oldAxis[i] != newAxis[i]) return true;
-		}
-		return false;
-	}
-	
+		
 	public String toString(){
 		return "oldAxis: " + oldAxis[0] + ", " + oldAxis[1] + ", " + oldAxis[2] + "\n" +
 			   "newAxis: " + newAxis[0] + ", " + newAxis[1] + ", " + newAxis[2];

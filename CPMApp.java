@@ -26,8 +26,6 @@ public class CPMApp extends AbstractSimulation {
 			"Number of Intersections", "Number of Intersections");
 	double totalIntersections = 0;
 	double snapshotIntervals = 1;
-	double [] zAxis = {0,0,1};
-	double [] xAxis = {1,0,0};
 	double polar;
 	double azimuth;
 	WriteModes writeMode;
@@ -35,7 +33,7 @@ public class CPMApp extends AbstractSimulation {
 	ElementEllipsoid polySphere[];
 	boolean added = false;
 	boolean penetrationEnergyToggle;
-	DataFile [] dataFiles;
+	DataFile dataFile;
 
 	/**
 	 * Initializes the model.
@@ -48,9 +46,7 @@ public class CPMApp extends AbstractSimulation {
 		np.tolerance = control.getDouble("tolerance");
 		np.shapeTolerance = control.getDouble("Shape Tolerance");
 		np.q = control.getDouble("Polymer Colloid Ratio");
-		np.init_eX = control.getDouble("x");
-		np.init_eY = control.getDouble("y");
-		np.init_eZ = control.getDouble("z");
+		np.init_U = control.getDouble("u");
 		np.nano_r = control.getDouble("Nanoparticle radius");
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
@@ -110,9 +106,6 @@ public class CPMApp extends AbstractSimulation {
 			polySphere[i].getStyle().setFillColor(Color.RED);
 			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 					np.polymers[i].getZ());
-            if(np.polymers[i].isRotated()){ 
-                    polySphere[i].setTransformation(np.polymers[i].getTransformation());
-            }
 		}
 
 		plotframe.append(0, np.mcs, np.totalIntersectCount);
@@ -141,23 +134,10 @@ public class CPMApp extends AbstractSimulation {
 					;
 			switch(writeMode){
 			case WRITE_SHAPES:
-				dataFiles = new DataFile[3];
-				dataFiles[0] = new DataFile("eX", configurations);
-				dataFiles[1] = new DataFile("eY", configurations);
-				dataFiles[2] = new DataFile("eZ", configurations);
-				break;
-			case WRITE_ROTATIONS:
-				dataFiles = new DataFile[2];
-				dataFiles[0] = new DataFile("polar", configurations);
-				dataFiles[1] = new DataFile("azimuth", configurations);
+				dataFile = new DataFile("u", configurations);
 				break;
 			case WRITE_ALL:
-				dataFiles = new DataFile[5];
-				dataFiles[0] = new DataFile("eX", configurations);
-				dataFiles[1] = new DataFile("eY", configurations);
-				dataFiles[2] = new DataFile("eZ", configurations);
-				dataFiles[3] = new DataFile("polar", configurations);
-				dataFiles[4] = new DataFile("azimuth", configurations);
+				dataFile = new DataFile("u", configurations);
 				break;
 			default:
 				break;
@@ -190,9 +170,6 @@ public class CPMApp extends AbstractSimulation {
 						np.polymers[i].getZ());
 				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-				if(np.polymers[i].isRotated()){ // this is done to save computation
-					polySphere[i].setTransformation(np.polymers[i].getTransformation());
-				}
 			}
 		}
 		
@@ -202,32 +179,15 @@ public class CPMApp extends AbstractSimulation {
 			case WRITE_SHAPES:
 				if(np.mcs > 50000){ // hardcoded 
 					for(Polymer poly: np.polymers){
-					dataFiles[0].record(String.valueOf(poly.geteX()));
-					dataFiles[1].record(String.valueOf(poly.geteY()));
-					dataFiles[2].record(String.valueOf(poly.geteZ()));
+					dataFile.record(String.valueOf(poly.getU()));
 					}
 				}
 				break;
-			case WRITE_ROTATIONS:
-			for (Polymer poly : np.polymers) {
-				double[] ellipseAxis = poly.getNewAxis();
-				polar = ellipseAxis[2];
-				azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
-				dataFiles[0].record(String.valueOf(polar));
-				dataFiles[1].record(String.valueOf(azimuth));
-			} break;
 			case WRITE_ALL:
 					for(Polymer poly: np.polymers){
 						if(np.mcs > 50000){ // hardcoded 
-							dataFiles[0].record(String.valueOf(poly.geteX()));
-							dataFiles[1].record(String.valueOf(poly.geteY()));
-							dataFiles[2].record(String.valueOf(poly.geteZ()));
+							dataFile.record(String.valueOf(poly.getU()));
 						}
-						double[] ellipseAxis = poly.getNewAxis();
-						polar = ellipseAxis[2];
-						azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
-						dataFiles[3].record(String.valueOf(polar));
-						dataFiles[4].record(String.valueOf(azimuth));
 					}
 			break;
 			default:break;
@@ -236,9 +196,7 @@ public class CPMApp extends AbstractSimulation {
 		
 		// write data onto harddisk for every 100 data values
 		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (100*snapshotIntervals) == 0){
-			for(DataFile df : dataFiles){
-				df.write();
-			}
+				dataFile.write();
 		}
 	}
 
@@ -252,9 +210,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("tolerance", 0.1);
 		control.setValue("Shape Tolerance", 0.001);
 		control.setValue("Nanoparticle radius", 0.1);
-		control.setValue("x", 0.005);
-		control.setValue("y", 0.005);
-		control.setValue("z", 0.05);
+		control.setValue("u", 0.005);
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 2);
 		control.setValue("initial configuration", "square");
@@ -282,9 +238,7 @@ public class CPMApp extends AbstractSimulation {
 		// close streams
 		if(control.getBoolean("Save")){
 			if(writeMode != WriteModes.WRITE_NONE){
-				for(DataFile df : dataFiles){
-					df.close();
-				}
+					dataFile.close();
 			}
 		}
 	}

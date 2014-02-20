@@ -15,21 +15,9 @@ public class CPM {
 	public enum Vector {x, y, z};
 	
 	// constants
-	public final double NX = 0.5;
-	public final double NY = 2.5;
-	public final double NZ = 4.0;
-
-	public final double AX = 0.08065;
-	public final double AY = 0.01813;
-	public final double AZ = 0.006031;
-
-	public final double DX = 1.096;
-	public final double DY = 1.998;
-	public final double DZ = 2.684;
-
-	public final double KX = 0.094551;
-	public final double KY = 0.0144146;
-	public final double KZ = 0.0052767;
+	public final double K = 0.015923;
+	public final double a = 0.0802;
+	public final double D = 1.842;
 	// end constants
 
 	public Polymer polymers[];
@@ -38,9 +26,7 @@ public class CPM {
 							// number of columns and rows
 	// public double rho; // Ratio of polymer diameter to nanoparticle (colloid)
 	// diameter, sigP/sigN
-	public double init_eX;
-	public double init_eY;
-	public double init_eZ;
+	public double init_U;
 	public double sigmaX;
 	public double sigmaY;
 	public double nano_r;
@@ -87,9 +73,7 @@ public class CPM {
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
 		Nano.setDefault_r(nano_r);
-		Polymer.setDefault_eX(init_eX);
-		Polymer.setDefault_eY(init_eY);
-		Polymer.setDefault_eZ(init_eZ);
+		Polymer.setDefault_U(init_U);
 
 		// initialize positions
 		if (configuration.toUpperCase().equals("SQUARE")) {
@@ -206,7 +190,7 @@ public class CPM {
 	 * Attempts trial moves, rotations, and shape changes.
 	 */
 	public void trialMoves() {
-		if(mcs % mcsPerTrialDisplacement == 0 && mcsPerTrialDisplacement != 0){
+//		if(mcs % mcsPerTrialDisplacement == 0){
 			// Nanoparticles Trial Displacements
 			for (int i = 0; i < nanos.length; ++i) {
 				nanoTrialMove(nanos[i]);
@@ -215,24 +199,24 @@ public class CPM {
 			for (int i = 0; i < polymers.length; ++i) {
 				polyTrialMove(polymers[i]);
 			}
-		}
+//		}
 		
-		// Polymer Trial Rotations
-		if(mcs % mcsPerTrialRotation == 0 && mcsPerTrialRotation != 0){
-			for (int i = 0; i < polymers.length; ++i) {
-				// Trial Rotation
-				if(rotTolerance > 0){
-					rotate(polymers[i]);
-				}		
-			}
-		}
+//		// Polymer Trial Rotations
+//		if(mcs % mcsPerTrialRotation == 0 && mcsPerTrialRotation != 0){
+//			for (int i = 0; i < polymers.length; ++i) {
+//				// Trial Rotation
+//				if(rotTolerance > 0){
+//					rotate(polymers[i]);
+//				}		
+//			}
+//		}
 		
-		// Polymer Trial Shape Changes
-		if(mcs % mcsPerTrialShapeChange == 0 && mcsPerTrialShapeChange != 0){
+//		// Polymer Trial Shape Changes
+//		if(mcs % mcsPerTrialShapeChange == 0){
 			for (int i = 0; i < polymers.length; ++i) {
 					shapeChange(polymers[i]);
 			}
-		}
+//		}
 	}
 
 	/**
@@ -352,23 +336,17 @@ public class CPM {
 		int overlapCount = 0;
 		Stack<Nano> overlapNanos = new Stack<Nano>();
 		
-		double oldEX = poly.geteX();
-		double oldEY = poly.geteY();
-		double oldEZ = poly.geteZ();
+		double oldU = poly.getU();
 
 		// trial shape changes
-		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
-		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
-		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
+		double newU = oldU + shapeTolerance * 2. * (Math.random() - 0.5);
 		
 		// Reject changes for negative radii eigenvalue immediately
-		if(newEY < 0 || newEY < 0 || newEZ < 0){
+		if(newU < 0){
 			return;
 		}
 		
-		poly.seteX(newEX);
-		poly.seteY(newEY);
-		poly.seteZ(newEZ);
+		poly.setU(newU);
 		
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
@@ -380,8 +358,8 @@ public class CPM {
 			}
 		}
 
-		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
-				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  * Math.exp(-Ep*overlapCount);
+		double p = (prob(newU)  ) / 
+				   (prob(oldU)  )  * Math.exp(-Ep*overlapCount);
 		
 		// Acceptance probability
 		if (p > 1 || Math.random() < p) {		
@@ -406,9 +384,7 @@ public class CPM {
 			}
 			
 		} else {
-			poly.seteX(oldEX);
-			poly.seteY(oldEY);
-			poly.seteZ(oldEZ);
+			poly.setU(oldU);
 		}
 	}
 
@@ -417,23 +393,10 @@ public class CPM {
 	 * 
 	 * @param ei
 	 *            The eigenvalue of the radius axis
-	 * @param v
-	 *            Enumeration representing the radius axis.
 	 * @return Polymer shape probability.
 	 */
-	public double prob(double ei, Vector v) {
-		switch (v) {
-		case x:
-			return (Math.pow(ei, -NX) * Math.pow(AX * DX, NX - 1) / (2 * KX))
-					* Math.exp(-ei / AX - DX * DX * AX / ei);
-		case y:
-			return (Math.pow(ei, -NY) * Math.pow( (AY * DY), (NY - 1)) / (2 * KY))
-					* Math.exp( (-ei / AY) - (DY * DY * AY / ei));
-		case z:
-			return (Math.pow(ei, -NZ) * Math.pow(AZ * DZ, NZ - 1) / (2 * KZ))
-					* Math.exp(-ei / AZ - DZ * DZ * AZ / ei);
-		}
-		return 0;
+	public double prob(double u) {
+		return 1 / (2 * K * u) * Math.exp(-u/a - D*D*a/u);
 	}
 
 	
@@ -450,7 +413,7 @@ public class CPM {
 		double ratio = 0;
 
 		for (Polymer poly : polymers) {
-			total += poly.geteX() + poly.geteY() + poly.geteZ();
+			total += poly.getrX() + poly.getrY() + poly.getrZ();
 		}
 
 		average = Math.sqrt(total / polymers.length);
@@ -458,80 +421,5 @@ public class CPM {
 		return ratio;
 	}
 	
-	/**
-	 * Attempts a trial rotation of a polymer. The rotation magnitude is specified by the instance variable, rotMagnitude.
-	 * @param poly The polymer to be rotated.
-	 */
-	public void rotate(Polymer poly){
-		double [] initialOldAxis = poly.getOldAxis();
-		double [] initialNewAxis = poly.getNewAxis();
-		poly.setOldAxis(poly.getNewAxis());
-		double [] a = poly.getOldAxis();
-		double [] v = new double[3];
-		//System.out.println("a:" + a[0] + ", " + a[1] + ", " + a[2] + ")");
-		
-		// generate randomly oriented vector v 
-		for(int i = 0 ; i < v.length; i++){
-			v[i] = Math.random() - 0.5;
-		}
-
-		// normalize new (randomly oriented) vector v 
-		VectorMath.normalize(v);
-
-//		// Alternative way to generate v:
-//		v[2] = 2.*(Math.random() - 0.5);
-//		double sintheta = Math.signum(v[2])*Math.sqrt(1.-v[2]*v[2]);
-//		double phi = 2.*(Math.random() - 0.5)*Math.PI;
-//		v[0] = sintheta*Math.cos(phi);
-//		v[1] = sintheta*Math.sin(phi);
-//		//
-				
-		// addition of the old and new vector 
-		// Note: rotTolerance, which replaces rotMagnitude, should be << 1 (e.g. 0.1)
-		for(int i = 0; i < v.length; i++){
-			a[i] = a[i] + rotTolerance*v[i];
-		}
-
-		// normalize result
-		VectorMath.normalize(a);
-		poly.setNewAxis(a);
-		
-		// Check for overlaps
-		Stack<Nano> overlapNanos = new Stack<Nano>();
-		int overlapCount = 0;
-
-		// Check for intersections with nanoparticles
-		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
-					overlapCount++;
-					overlapNanos.push(nanos[i]);
-			}
-		}
-		
-		// Acceptance probability
-		if (Math.random() < Math.exp(-Ep*overlapCount)) {		
-		 // Update the intersecting pairs
-			while(!overlapNanos.empty()){
-				overlapNanos.peek().intersectPairs.add(poly);
-				poly.intersectPairs.add(overlapNanos.pop());
-				totalIntersectCount++;
-			}
-		
-			// Remove particles that are no longer overlapping
-			for (int j = 0; j < nanos.length; j++) {
-				if (!poly.overlap(nanos[j]) &&
-						poly.intersectPairs.remove(nanos[j]) && 
-							nanos[j].intersectPairs.remove(poly)){ 
-						totalIntersectCount--;
-				}
-			}
-		} else {
-			poly.setOldAxis(initialOldAxis);
-			poly.setNewAxis(initialNewAxis);
-		}
-
-	}
 }
 
