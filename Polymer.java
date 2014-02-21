@@ -42,6 +42,7 @@ public class Polymer extends Particle{
 			return false;
 		} else{
 			Nano nano = (Nano) particle;
+			Matrix3DTransformation transformation = null;
 			double [] originAxis = {0,0,1};
 			double [] start = {this.getX() - Particle.getLx(), this.getY() - Particle.getLy(), this.getZ() - Particle.getLz()};
 			double [] boundary = {Particle.getLx(), Particle.getLy(), Particle.getLz()};
@@ -51,38 +52,23 @@ public class Polymer extends Particle{
 			for(int i = 0; i < 3; i++){
 				normalAxis = normalAxis && (newAxis[i] == originAxis[i]);
 			}
-			
-			if(!normalAxis ){
-				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
-				for(int x = 0; x <= 2; x++){
-					for(int y = 0; y <= 2; y++){
-						for(int z = 0; z <= 2; z++){
-							double polymer[] = {start[0] + boundary[0]*x, start[1] + boundary[1]*y, start[2] + boundary[2]*z};
-							double [] point = {nano.getX(), nano.getY(), nano.getZ()};
-							if(!normalAxis ){
-								transformation.setOrigin(polymer[0], polymer[1], polymer[2]);
-								point = transformation.direct(point);
-							}
-							dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
-							dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
-							dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
-							if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
-								return true;
-							}
+			if(!normalAxis){
+				transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
+			}
+			for(int x = 0; x <= 2; x++){
+				for(int y = 0; y <= 2; y++){
+					for(int z = 0; z <= 2; z++){
+						double polymer[] = {start[0] + boundary[0]*x, start[1] + boundary[1]*y, start[2] + boundary[2]*z};
+						double [] point = {nano.getX(), nano.getY(), nano.getZ()};
+						if(!normalAxis ){
+							transformation.setOrigin(polymer[0], polymer[1], polymer[2]);
+							point = transformation.direct(point);
 						}
-					}
-				}
-			} else {
-				double [] point = {nano.getX(), nano.getY(), nano.getZ()};
-				for(int x = 0; x <= 2; x++){
-					for(int y = 0; y <= 2; y++){
-						for(int z = 0; z <= 2; z++){
-							dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
-							dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
-							dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
-							if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
-								return true;
-							}
+						dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
+						dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
+						dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
+						if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
+							return true;
 						}
 					}
 				}
