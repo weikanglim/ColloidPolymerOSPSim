@@ -51,7 +51,6 @@ public class Polymer extends Particle{
 			for(int i = 0; i < 3; i++){
 				normalAxis = normalAxis && (newAxis[i] == originAxis[i]);
 			}
-			
 			if(!normalAxis ){
 				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
 				for(int x = 0; x <= 2; x++){
