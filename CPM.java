@@ -257,6 +257,13 @@ public class CPM {
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
 			}
+// start of Alan's addition:
+			else if (poly.intersectPairs.contains(nanos[i])
+						|| nanos[i].intersectPairs.contains(poly)) { // Check for loss of previous overlap
+					overlapCount--;
+			                while(!overlapNanos.empty()){overlapNanos.pop();}
+			}
+// end of Alan's addition
 		}
 		
 		// Acceptance probability
@@ -315,6 +322,13 @@ public class CPM {
 						overlapCount++;
 						overlapPolymers.push(polymers[i]);
 			}
+// start of Alan's addition:
+			else if (nano.intersectPairs.contains(polymers[i])
+						|| polymers[i].intersectPairs.contains(nano)) { // Check for loss of previous overlap
+						overlapCount--;
+				                while(!overlapPolymers.isEmpty()){overlapPolymers.pop();}
+			}
+// end of Alan's addition
 		}
 		
 		// Acceptance probability
@@ -378,6 +392,13 @@ public class CPM {
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
 			}
+// start of Alan's addition:
+			else if (poly.intersectPairs.contains(nanos[i])
+						|| nanos[i].intersectPairs.contains(poly)) { // Check for loss of previous overlap
+					overlapCount--;
+			                while(!overlapNanos.empty()){overlapNanos.pop();}
+			}
+// end of Alan's addition
 		}
 
 		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
@@ -507,6 +528,13 @@ public class CPM {
 						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
+                        }
+// start of Alan's addition:
+			else if (poly.intersectPairs.contains(nanos[i])
+						|| nanos[i].intersectPairs.contains(poly)) { // Check for loss of previous overlap
+					overlapCount--;
+			                while(!overlapNanos.empty()){overlapNanos.pop();}
+// end of Alan's addition
 			}
 		}
 		
