@@ -2,7 +2,6 @@ package org.opensourcephysics.sip.CPM;
 
 import java.util.Stack;
 
-import org.opensourcephysics.numerics.VectorMath;
 
 /**
  * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
@@ -29,11 +28,9 @@ public class CPM {
 	public double init_U;
 	public double sigmaX;
 	public double sigmaY;
-	public double nano_r;
 	public double q;
-	public int mcsPerTrialRotation;
-	public int mcsPerTrialShapeChange;
-	public int mcsPerTrialDisplacement;
+	public int trialShapeChangePerMcs;
+	public int trialDisplacementPerMcs;
 	public int moveToShapeRatio;
 	public double lc; // lattice constant, defined as lc = d / sigN, where d is
 						// defined below.
@@ -49,7 +46,7 @@ public class CPM {
 	public double totalIntersectCount;
 	public double Ep; // Penetration Energy
 	public double mcs;
-	public double rotTolerance;
+//	public double rotTolerance;
 
 	// end declaration
 
@@ -72,14 +69,13 @@ public class CPM {
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
-		Nano.setDefault_r(nano_r);
+		Nano.setDefault_r(0.5);
 		Polymer.setDefault_U(init_U);
 
 		// initialize positions
 		if (configuration.toUpperCase().equals("SQUARE")) {
 			setSqrPositions();
 		} 
-		Particle.setBoundaries(Lx, Ly, Lz);
 	}
 
 	/**
@@ -95,6 +91,7 @@ public class CPM {
 				nx++; // N is not a perfect cube
 			}
 			Lx = Ly = Lz = d * nx;
+			Particle.setBoundaries(Lx, Ly, Lz);
 
 			// place nano particles
 			int i = 0;
@@ -146,7 +143,8 @@ public class CPM {
 				nx++; // N is not a perfect cube
 			}
 			Lx = Ly = Lz = d * nx;
-			
+			Particle.setBoundaries(Lx, Ly, Lz);
+
 			// place polymers
 			int i = 0;
 			for (iy = 0; iy < nx; iy++) {
@@ -190,8 +188,7 @@ public class CPM {
 	 * Attempts trial moves, rotations, and shape changes.
 	 */
 	public void trialMoves() {
-//		if(mcs % mcsPerTrialDisplacement == 0){
-			// Nanoparticles Trial Displacements
+		for(int x = 1; x <= trialDisplacementPerMcs; x++){
 			for (int i = 0; i < nanos.length; ++i) {
 				nanoTrialMove(nanos[i]);
 			}
@@ -199,24 +196,14 @@ public class CPM {
 			for (int i = 0; i < polymers.length; ++i) {
 				polyTrialMove(polymers[i]);
 			}
-//		}
-		
-//		// Polymer Trial Rotations
-//		if(mcs % mcsPerTrialRotation == 0 && mcsPerTrialRotation != 0){
-//			for (int i = 0; i < polymers.length; ++i) {
-//				// Trial Rotation
-//				if(rotTolerance > 0){
-//					rotate(polymers[i]);
-//				}		
-//			}
-//		}
-		
-//		// Polymer Trial Shape Changes
-//		if(mcs % mcsPerTrialShapeChange == 0){
+		}
+				
+		// Polymer Trial Shape Changes
+		for(int x = 1; x <= trialShapeChangePerMcs; x++){
 			for (int i = 0; i < polymers.length; ++i) {
 					shapeChange(polymers[i]);
 			}
-//		}
+		}
 	}
 
 	/**
@@ -235,11 +222,15 @@ public class CPM {
 
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || 
+					nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
+			}
+			else if(!overlap && wasOverlapping) { // Check for loss of previous overlap
+				overlapCount--;
 			}
 		}
 		
@@ -293,11 +284,15 @@ public class CPM {
 
 		// Count number of intersections
 		for (int i = 0; i < polymers.length; i++) {
-			if (nano.overlap(polymers[i]) &&
-					!nano.intersectPairs.contains(polymers[i])
-						&& !polymers[i].intersectPairs.contains(nano)) { 
-						overlapCount++;
-						overlapPolymers.push(polymers[i]);
+			boolean overlap = nano.overlap(polymers[i]);
+			boolean wasOverlapping = polymers[i].intersectPairs.contains(nano) || 
+					nano.intersectPairs.contains(polymers[i]);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
+					overlapCount++;
+					overlapPolymers.push(polymers[i]);
+			}
+			else if(!overlap && wasOverlapping) { // Check for loss of previous overlap
+				overlapCount--;
 			}
 		}
 		
@@ -350,11 +345,15 @@ public class CPM {
 		
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || 
+					nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
+			}
+			else if(!overlap && wasOverlapping) { // Check for loss of previous overlap
+				overlapCount--;
 			}
 		}
 
