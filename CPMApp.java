@@ -47,12 +47,10 @@ public class CPMApp extends AbstractSimulation {
 		np.shapeTolerance = control.getDouble("Shape Tolerance");
 		np.q = control.getDouble("Polymer Colloid Ratio");
 		np.init_U = control.getDouble("u");
-		np.nano_r = control.getDouble("Nanoparticle radius");
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
-		np.rotTolerance = control.getDouble("Rotation tolerance");
-		np.moveToShapeRatio = control
-				.getInt("Trial Moves to Shape Changes Ratio");
+		np.trialDisplacementPerMcs = control.getInt("Trial Disp Per Mcs");
+		np.trialShapeChangePerMcs = control.getInt("Trial Shape Change Per Mcs");
 		snapshotIntervals = control.getInt("Snapshot Interval");
 		penetrationEnergyToggle =control.getBoolean("Penetration Energy");
 		switch(control.getInt("Write Mode")){
@@ -124,10 +122,9 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Number of Nanoparticles: "+np.nN +
 					"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-					"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
+					"\n# Nanoparticle Radius :"+threeDecimal.format(Nano.getDefault_r()) + 
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
-					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
 					"\n# Trial Moves to Attempt Shape Change Ratio: "+np.moveToShapeRatio+ // !TODO
 					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
@@ -209,13 +206,12 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("N Nano", 27);
 		control.setValue("tolerance", 0.1);
 		control.setValue("Shape Tolerance", 0.001);
-		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("u", 0.005);
 		control.setValue("Polymer Colloid Ratio", 5);
 		control.setValue("Lattice constant", 2);
 		control.setValue("initial configuration", "square");
-		control.setValue("Rotation tolerance", 0.1);
-		control.setValue("Trial Moves to Shape Changes Ratio", 1);
+		control.setValue("Trial Disp Per Mcs", 1);
+		control.setValue("Trial Shape Change Per Mcs", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot Interval", 1000);
 		control.setValue("Penetration Energy", true);
