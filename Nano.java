@@ -23,7 +23,8 @@ public class Nano extends Particle{
 	@Override
 	public boolean overlap(Particle particle) {
 		if(particle instanceof Nano){
-			return separation(particle) < Math.pow(getrX(), 2);
+			System.out.println(getrX());
+			return separation(particle) < Math.pow(2*getrX(), 2);
 		} else if(this.equals(particle)){
 			return false;
 		} else{
