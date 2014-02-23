@@ -60,12 +60,13 @@ public class CPMApp extends AbstractSimulation {
 		case 3: writeMode = WriteModes.WRITE_ALL; break;
 		}
 		
+		np.initialize(configuration);
 		if(!penetrationEnergyToggle){ 
 			System.out.println("Penetration energy turned off.");// warning for user
 			np.Ep = 0;
 		}
 		
-		np.initialize(configuration);
+	
 		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
 		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
