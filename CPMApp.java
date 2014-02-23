@@ -60,10 +60,9 @@ public class CPMApp extends AbstractSimulation {
 		case 3: writeMode = WriteModes.WRITE_ALL; break;
 		}
 		
-		np.initialize(configuration);
+		np.initialize(configuration, penetrationEnergyToggle);
 		if(!penetrationEnergyToggle){ 
-			System.out.println("Penetration energy turned off.");// warning for user
-			np.Ep = 0;
+			control.println("Penetration energy turned off.");// warning for user
 		}
 		
 	
