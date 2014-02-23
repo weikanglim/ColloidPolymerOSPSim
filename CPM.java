@@ -57,7 +57,7 @@ public class CPM {
 	 * @param configuration
 	 *            the initial lattice structure of the model
 	 */
-	public void initialize(String configuration) {
+	public void initialize(String configuration, boolean epOn) {
 		// set-up variables
 		totalIntersectCount = 0;
 		mcs = 0;
@@ -65,7 +65,12 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
-		Ep = 3/q;
+		if(epOn){
+			Ep = 3/q;
+		} else {
+			Ep = 0;
+			System.out.println("Penetration energy turned off.");
+		}
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
