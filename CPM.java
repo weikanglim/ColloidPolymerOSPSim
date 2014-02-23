@@ -36,15 +36,12 @@ public class CPM {
 	public Nano nanos[];
 	public int nN, nP, nx; // number of nanoparticles, number of polymers,
 							// number of columns and rows
-	// public double rho; // Ratio of polymer diameter to nanoparticle (colloid)
-	// diameter, sigP/sigN
 	public double init_eX;
 	public double init_eY;
 	public double init_eZ;
 	public double sigmaX;
 	public double sigmaY;
-	public double nano_r;
-	public double q;
+	public double q; // Rp / Rc
 	public int trialRotationPerMcs;
 	public int trialShapeChangePerMcs;
 	public int trialDisplacementPerMcs;
@@ -85,7 +82,7 @@ public class CPM {
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
-		Nano.setDefault_r(nano_r);
+		Nano.setDefault_r(0.5); // hardcoded default value
 		Polymer.setDefault_eX(init_eX);
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
@@ -251,19 +248,15 @@ public class CPM {
 
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
 			}
-// start of Alan's addition:
-			else if (poly.intersectPairs.contains(nanos[i])
-						|| nanos[i].intersectPairs.contains(poly)) { // Check for loss of previous overlap
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
 					overlapCount--;
-			                while(!overlapNanos.empty()){overlapNanos.pop();}
 			}
-// end of Alan's addition
 		}
 		
 		// Acceptance probability
@@ -316,19 +309,15 @@ public class CPM {
 
 		// Count number of intersections
 		for (int i = 0; i < polymers.length; i++) {
-			if (nano.overlap(polymers[i]) &&
-					!nano.intersectPairs.contains(polymers[i])
-						&& !polymers[i].intersectPairs.contains(nano)) { 
+			boolean overlap = nano.overlap(polymers[i]);
+			boolean wasOverlapping = nano.intersectPairs.contains(polymers[i]) || polymers[i].intersectPairs.contains(nano);
+			if (overlap && !wasOverlapping) { // Check for gain in overlaps
 						overlapCount++;
 						overlapPolymers.push(polymers[i]);
 			}
-// start of Alan's addition:
-			else if (nano.intersectPairs.contains(polymers[i])
-						|| polymers[i].intersectPairs.contains(nano)) { // Check for loss of previous overlap
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
 						overlapCount--;
-				                while(!overlapPolymers.isEmpty()){overlapPolymers.pop();}
 			}
-// end of Alan's addition
 		}
 		
 		// Acceptance probability
@@ -386,19 +375,15 @@ public class CPM {
 		
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
 			}
-// start of Alan's addition:
-			else if (poly.intersectPairs.contains(nanos[i])
-						|| nanos[i].intersectPairs.contains(poly)) { // Check for loss of previous overlap
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
 					overlapCount--;
-			                while(!overlapNanos.empty()){overlapNanos.pop();}
 			}
-// end of Alan's addition
 		}
 
 		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
@@ -523,18 +508,14 @@ public class CPM {
 
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
-                        }
-// start of Alan's addition:
-			else if (poly.intersectPairs.contains(nanos[i])
-						|| nanos[i].intersectPairs.contains(poly)) { // Check for loss of previous overlap
+			}
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
 					overlapCount--;
-			                while(!overlapNanos.empty()){overlapNanos.pop();}
-// end of Alan's addition
 			}
 		}
 		

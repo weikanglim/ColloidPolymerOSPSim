@@ -51,7 +51,6 @@ public class CPMApp extends AbstractSimulation {
 		np.init_eX = control.getDouble("x");
 		np.init_eY = control.getDouble("y");
 		np.init_eZ = control.getDouble("z");
-		np.nano_r = control.getDouble("Nanoparticle radius");
 		np.lc = control.getDouble("Lattice constant");
 		String configuration = control.getString("initial configuration");
 		np.rotTolerance = control.getDouble("Rotation tolerance");
@@ -134,7 +133,7 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Number of Nanoparticles: "+np.nN +
 					"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-					"\n# Nanoparticle Radius :"+threeDecimal.format(np.nano_r) + 
+					"\n# Nanoparticle Radius :"+threeDecimal.format(Nano.getDefault_r()) + 
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
 					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
@@ -256,7 +255,6 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("N Nano", 27);
 		control.setValue("tolerance", 0.1);
 		control.setValue("Shape Tolerance", 0.001);
-		control.setValue("Nanoparticle radius", 0.1);
 		control.setValue("x", 0.005);
 		control.setValue("y", 0.005);
 		control.setValue("z", 0.005);
