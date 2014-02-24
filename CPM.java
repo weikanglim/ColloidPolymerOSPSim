@@ -36,15 +36,13 @@ public class CPM {
 	public Nano nanos[];
 	public int nN, nP, nx; // number of nanoparticles, number of polymers,
 							// number of columns and rows
-	// public double rho; // Ratio of polymer diameter to nanoparticle (colloid)
-	// diameter, sigP/sigN
 	public double init_eX;
 	public double init_eY;
 	public double init_eZ;
 	public double sigmaX;
 	public double sigmaY;
 	public double nano_r;
-	public double q;
+	public double q; // Rp / Rc
 	public int trialRotationPerMcs;
 	public int trialShapeChangePerMcs;
 	public int trialDisplacementPerMcs;
@@ -73,7 +71,7 @@ public class CPM {
 	 * @param configuration
 	 *            the initial lattice structure of the model
 	 */
-	public void initialize(String configuration) {
+	public void initialize(String configuration, boolean penetrationEnergy) {
 		// set-up variables
 		totalIntersectCount = 0;
 		mcs = 0;
@@ -81,11 +79,16 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
-		Ep = 3/q;
+		if(penetrationEnergy){
+			Ep = 3./q;
+		}else{
+			Ep = 0;
+			System.out.println("Penetration energy turned off.");
+		}
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
-		Nano.setDefault_r(nano_r);
+		Nano.setDefault_r(nano_r); // hardcoded default value
 		Polymer.setDefault_eX(init_eX);
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
@@ -251,11 +254,14 @@ public class CPM {
 
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
+			}
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
+					overlapCount--;
 			}
 		}
 		
@@ -309,11 +315,14 @@ public class CPM {
 
 		// Count number of intersections
 		for (int i = 0; i < polymers.length; i++) {
-			if (nano.overlap(polymers[i]) &&
-					!nano.intersectPairs.contains(polymers[i])
-						&& !polymers[i].intersectPairs.contains(nano)) { 
+			boolean overlap = nano.overlap(polymers[i]);
+			boolean wasOverlapping = nano.intersectPairs.contains(polymers[i]) || polymers[i].intersectPairs.contains(nano);
+			if (overlap && !wasOverlapping) { // Check for gain in overlaps
 						overlapCount++;
 						overlapPolymers.push(polymers[i]);
+			}
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
+						overlapCount--;
 			}
 		}
 		
@@ -372,11 +381,14 @@ public class CPM {
 		
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
+			}
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
+					overlapCount--;
 			}
 		}
 
@@ -394,8 +406,7 @@ public class CPM {
 		
 			// Since shape change was accepted, update possible intersections that were removed as a result.
 			for (int j = 0; j < nanos.length; j++) {
-				if (!poly.overlap(nanos[j])) { // particles that are no longer
-												// overlapping
+				if (!poly.overlap(nanos[j])) { // particles that are no longer overlapping
 					if (poly.intersectPairs.remove(nanos[j])
 							&& nanos[j].intersectPairs.remove(poly)) // update the
 																		// intersecting
@@ -502,11 +513,14 @@ public class CPM {
 
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
-			if (poly.overlap(nanos[i]) 
-					&& !poly.intersectPairs.contains(nanos[i])
-						&& !nanos[i].intersectPairs.contains(poly)) { // Check for previous overlap
+			boolean overlap = poly.overlap(nanos[i]);
+			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
+			if (overlap && !wasOverlapping) { // Check for gain in overlap
 					overlapCount++;
 					overlapNanos.push(nanos[i]);
+			}
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
+					overlapCount--;
 			}
 		}
 		
@@ -534,4 +548,3 @@ public class CPM {
 
 	}
 }
-

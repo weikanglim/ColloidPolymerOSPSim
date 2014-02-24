@@ -10,9 +10,9 @@ public class Polymer extends Particle{
 	private static double q;
 	private double eX;
 	private double eY;
-    private double eZ;
-    private double oldAxis[] = {0,0,1};
-    private double newAxis[] = {0,1,0}; // transformation axis
+        private double eZ;
+        private double oldAxis[] = {0,0,1};
+        private double newAxis[] = {0,1,0}; // transformation axis
 
 
 	public Polymer(double x_, double y_, double z_, double tolerance_, double eX, double eY, double eZ, double q_){
@@ -42,7 +42,8 @@ public class Polymer extends Particle{
 			return false;
 		} else{
 			Nano nano = (Nano) particle;
-			double [] originAxis = {0,0,1};
+			double [] originAxis = {0,1,0}; // AD
+			//double [] originAxis = {0,0,1};
 			double [] start = {this.getX() - Particle.getLx(), this.getY() - Particle.getLy(), this.getZ() - Particle.getLz()};
 			double [] boundary = {Particle.getLx(), Particle.getLy(), Particle.getLz()};
 			double [] dist = new double[3];
@@ -53,6 +54,7 @@ public class Polymer extends Particle{
 			}
 			if(!normalAxis ){
 				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
+				System.out.println("Rotation!");
 				for(int x = 0; x <= 2; x++){
 					for(int y = 0; y <= 2; y++){
 						for(int z = 0; z <= 2; z++){
@@ -65,7 +67,8 @@ public class Polymer extends Particle{
 							dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
 							dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
 							dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
-							if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
+							if(Math.pow(dist[0]/(this.getrX()+nano.getrX()),2) + Math.pow(dist[1]/(this.getrY()+nano.getrY()),2) + Math.pow(dist[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
+							//if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
 								return true;
 							}
 						}
@@ -79,7 +82,8 @@ public class Polymer extends Particle{
 							dist[0] = Math.abs(point[0]-(start[0] + boundary[0]*x) );
 							dist[1] = Math.abs(point[1]-(start[1] + boundary[1]*y) );
 							dist[2] = Math.abs(point[2]-(start[2] + boundary[2]*z) );
-							if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
+							if(Math.pow(dist[0]/(this.getrX()+nano.getrX()),2) + Math.pow(dist[1]/(this.getrY()+nano.getrY()), 2) + Math.pow(dist[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
+							//if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
 								return true;
 							}
 						}
@@ -140,7 +144,7 @@ public class Polymer extends Particle{
 	}
 
 
-	// -------------------------------------
+  // -------------------------------------
   // Getter methods
   // -------------------------------------
 	public Matrix3DTransformation getTransformation(){
@@ -191,7 +195,7 @@ public class Polymer extends Particle{
 		return Polymer.q;
 	}
 	public static double getDefault_eZ() {
-		return default_eY;
+		return default_eZ; // AD: eY --> eZ
 	}
 	public static double getTolerance() {
 		return tolerance;
@@ -207,7 +211,7 @@ public class Polymer extends Particle{
 	 * @return The radius
 	 */
 	public double toRadius(double ei) {
-		return q / 2 * Math.sqrt(18 * ei);
+		return (q/2.) * Math.sqrt(18. * ei);
 	}
 	
 	public boolean isRotated(){
