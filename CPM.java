@@ -52,6 +52,7 @@ public class CPM {
 	public double Ly; // dimension of the boundary (along y)
 	public double Lz; // dimension of the boundary (along z)
 	public double steps; // number of monte carlo steps
+	public double volFraction;
 	public double tolerance;
 	public double shapeTolerance;
 	public double d; // the center-to-center distance between particles of same
@@ -98,6 +99,7 @@ public class CPM {
 			setSqrPositions();
 		} 
 		Particle.setBoundaries(Lx, Ly, Lz);
+		volFraction = nN * (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3);
 	}
 
 	/**
