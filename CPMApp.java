@@ -30,6 +30,7 @@ public class CPMApp extends AbstractSimulation {
 	double [] xAxis = {1,0,0};
 	double polar;
 	double azimuth;
+	double volFraction;
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
@@ -70,7 +71,7 @@ public class CPMApp extends AbstractSimulation {
 		}
 		
 		np.initialize(configuration, penetrationEnergyToggle);
-		
+
 		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
 		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
@@ -130,7 +131,7 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Number of Nanoparticles: "+np.nN +
 					"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-					"\n# Nanoparticle Radius :"+threeDecimal.format(Nano.getDefault_r()) + 
+					"\n# Nanoparticle Volume Fraction :"+threeDecimal.format(np.volFraction) + 
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
 					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
