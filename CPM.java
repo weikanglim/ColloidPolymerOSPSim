@@ -41,6 +41,7 @@ public class CPM {
 	public double init_eZ;
 	public double sigmaX;
 	public double sigmaY;
+	public double nano_r;
 	public double q; // Rp / Rc
 	public int trialRotationPerMcs;
 	public int trialShapeChangePerMcs;
@@ -70,7 +71,7 @@ public class CPM {
 	 * @param configuration
 	 *            the initial lattice structure of the model
 	 */
-	public void initialize(String configuration) {
+	public void initialize(String configuration, boolean penetrationEnergy) {
 		// set-up variables
 		totalIntersectCount = 0;
 		mcs = 0;
@@ -78,11 +79,16 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		d = lc; // distance between two nanoparticles
-		Ep = 3/q;
+		if(penetrationEnergy){
+			Ep = 3./q;
+		}else{
+			Ep = 0;
+			System.out.println("Penetration energy turned off.");
+		}
 		Nano.setTolerance(tolerance);
 		Polymer.setTolerance(tolerance);
 		Polymer.setQ(q);
-		Nano.setDefault_r(0.5); // hardcoded default value
+		Nano.setDefault_r(nano_r); // hardcoded default value
 		Polymer.setDefault_eX(init_eX);
 		Polymer.setDefault_eY(init_eY);
 		Polymer.setDefault_eZ(init_eZ);
@@ -400,8 +406,7 @@ public class CPM {
 		
 			// Since shape change was accepted, update possible intersections that were removed as a result.
 			for (int j = 0; j < nanos.length; j++) {
-				if (!poly.overlap(nanos[j])) { // particles that are no longer
-												// overlapping
+				if (!poly.overlap(nanos[j])) { // particles that are no longer overlapping
 					if (poly.intersectPairs.remove(nanos[j])
 							&& nanos[j].intersectPairs.remove(poly)) // update the
 																		// intersecting
@@ -543,4 +548,3 @@ public class CPM {
 
 	}
 }
-

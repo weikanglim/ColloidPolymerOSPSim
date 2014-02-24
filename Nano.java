@@ -2,9 +2,10 @@ package org.opensourcephysics.sip.CPM;
 
 public class Nano extends Particle{
 	private static double tolerance;
-	private static double default_r = 0.01;
+	private static double default_r; // AD: overridden by setDefault_r !
 	private boolean intersect;
 
+// AD: Note that first constructor is not used!
 	public Nano(double x_, double y_, double z_, double tolerance_, double d){
 		setX(x_);
 		setY(y_);
@@ -23,7 +24,7 @@ public class Nano extends Particle{
 	@Override
 	public boolean overlap(Particle particle) {
 		if(particle instanceof Nano){
-			return separation(particle) < Math.pow(2*getrX(), 2); // overlap if center-to-center distance is less than particle diameter
+			return separation(particle) < Math.pow(2.*getrX(), 2); // overlap if center-to-center distance is less than particle diameter
 		} else if(this.equals(particle)){
 			return false;
 		} else{

@@ -45,20 +45,23 @@ public class CPMApp extends AbstractSimulation {
 		totalIntersections = 0;
 		np.nP = control.getInt("N Polymers");
 		np.nN = control.getInt("N Nano");
-		np.tolerance = control.getDouble("tolerance");
-		np.shapeTolerance = control.getDouble("Shape Tolerance");
-		np.q = control.getDouble("Polymer Colloid Ratio");
+		np.q = control.getDouble("Polymer colloid ratio");
+		np.lc = control.getDouble("Lattice constant");
+		//np.nano_r = 0.;
+		//np.nano_r = control.getDouble("Nanoparticle radius");
+		np.nano_r = 0.5;
 		np.init_eX = control.getDouble("x");
 		np.init_eY = control.getDouble("y");
 		np.init_eZ = control.getDouble("z");
-		np.lc = control.getDouble("Lattice constant");
-		String configuration = control.getString("initial configuration");
+		String configuration = control.getString("Initial configuration");
+		np.tolerance = control.getDouble("Tolerance");
 		np.rotTolerance = control.getDouble("Rotation tolerance");
-		np.trialDisplacementPerMcs = control.getInt("Trial Disp Per Mcs");
-		np.trialRotationPerMcs = control.getInt("Trial Rotation Per Mcs");
-		np.trialShapeChangePerMcs = control.getInt("Trial Shape Change Per Mcs");
-		snapshotIntervals = control.getInt("Snapshot Interval");
-		penetrationEnergyToggle =control.getBoolean("Penetration Energy");
+		np.shapeTolerance = control.getDouble("Shape tolerance");
+		np.trialDisplacementPerMcs = control.getInt("Trial disp per MCS");
+		np.trialRotationPerMcs = control.getInt("Trial rotation per MCS");
+		np.trialShapeChangePerMcs = control.getInt("Trial shape change per MCS");
+		snapshotIntervals = control.getInt("Snapshot interval");
+		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
@@ -66,13 +69,7 @@ public class CPMApp extends AbstractSimulation {
 		case 3: writeMode = WriteModes.WRITE_ALL; break;
 		}
 		
-		np.initialize(configuration);
-
-		
-		if(!penetrationEnergyToggle){ 
-//			System.out.println("Penetration energy turned off.");// warning for user
-			np.Ep = 0;
-		}
+		np.initialize(configuration, penetrationEnergyToggle);
 		
 		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
 		display3d = new Display3DFrame("3D Frame");
@@ -253,21 +250,21 @@ public class CPMApp extends AbstractSimulation {
 		enableStepsPerDisplay(true);
 		control.setValue("N Polymers", 1);
 		control.setValue("N Nano", 27);
-		control.setValue("tolerance", 0.1);
-		control.setValue("Shape Tolerance", 0.001);
-		control.setValue("x", 0.005);
-		control.setValue("y", 0.005);
-		control.setValue("z", 0.005);
-		control.setValue("Polymer Colloid Ratio", 5);
-		control.setValue("Lattice constant", 2);
-		control.setValue("initial configuration", "square");
-		control.setValue("Rotation tolerance", 01);
-		control.setValue("Trial Disp Per Mcs", 1);
-		control.setValue("Trial Rotation Per Mcs", 0);
-		control.setValue("Trial Shape Change Per Mcs", 0);
+		control.setValue("Polymer colloid ratio", 5);
+		control.setValue("Lattice constant", 1);
+		control.setValue("x", 0.01);
+		control.setValue("y", 0.01);
+		control.setValue("z", 0.01);
+		control.setValue("Tolerance", 0.1);
+		control.setValue("Rotation tolerance", 0.1);
+		control.setValue("Shape tolerance", 0.001);
+		control.setValue("Initial configuration", "square");
+		control.setValue("Trial disp per MCS", 1);
+		control.setValue("Trial rotation per MCS", 1);
+		control.setValue("Trial shape change per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
-		control.setValue("Snapshot Interval", 1000);
-		control.setValue("Penetration Energy", false);
+		control.setValue("Snapshot interval", 1000);
+		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 0);
 		control.setAdjustableValue("Save", false);
 		initialize();
@@ -275,12 +272,14 @@ public class CPMApp extends AbstractSimulation {
 
 	public void stop() {
 		double averageIntersections = totalIntersections / np.mcs;
+		double volSpheres = np.nP * (4./3.) * Math.PI * np.polymers[0].getrX() * np.polymers[0].getrY() * np.polymers[0].getrZ() * np.nN;
+/*
 		double volPolymers = 0;
 		for(Polymer poly : np.polymers){
-			volPolymers += 4/3d * Math.PI * poly.getrX()
-					* poly.getrY() * poly.getrZ();
+			volPolymers += (4./3.) * Math.PI * poly.getrX() * poly.getrY() * poly.getrZ();
 		}
 		double volSpheres = volPolymers * np.nN;
+*/
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
 		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
