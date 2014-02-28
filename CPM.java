@@ -368,8 +368,8 @@ public class CPM {
 		double oldEZ = poly.geteZ();
 
 		// trial shape changes
-		double newEX = oldEX + shapeTolerance * 2. * (Math.random() - 0.5);
-		double newEY = oldEY + shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEX = oldEX + 10 * shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEY = oldEY + 3 * shapeTolerance * 2. * (Math.random() - 0.5);
 		double newEZ = oldEZ + shapeTolerance * 2. * (Math.random() - 0.5);
 		
 		// Reject changes for negative radii eigenvalue immediately

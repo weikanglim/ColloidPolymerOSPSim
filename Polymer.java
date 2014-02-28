@@ -54,7 +54,6 @@ public class Polymer extends Particle{
 			}
 			if(!normalAxis ){
 				Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
-				System.out.println("Rotation!");
 				for(int x = 0; x <= 2; x++){
 					for(int y = 0; y <= 2; y++){
 						for(int z = 0; z <= 2; z++){
