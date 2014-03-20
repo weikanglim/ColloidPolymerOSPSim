@@ -44,9 +44,7 @@ public class CPM {
 	public double sigmaY;
 	public double nano_r;
 	public double q; // Rp / Rc
-	public int trialRotationPerMcs;
-	public int trialShapeChangePerMcs;
-	public int trialDisplacementPerMcs;
+	public int trialMovesPerMcs;
 	public double lc; // lattice constant, defined as lc = d / sigN, where d is
 						// defined below.
 	public double Lx; // dimension of the boundary (along x)
@@ -214,7 +212,7 @@ public class CPM {
 	 */
 	public void trialMoves() {
 		
-		for(int x = 1; x <= trialDisplacementPerMcs; x++){
+		for(int x = 1; x <= trialMovesPerMcs; x++){
 		// Nanoparticles Trial Displacements
 			for (int i = 0; i < nanos.length; ++i) {
 				nanoTrialMove(nanos[i]);
