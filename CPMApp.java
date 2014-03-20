@@ -58,9 +58,7 @@ public class CPMApp extends AbstractSimulation {
 		np.tolerance = control.getDouble("Tolerance");
 		np.rotTolerance = control.getDouble("Rotation tolerance");
 		np.shapeTolerance = control.getDouble("Shape tolerance");
-		np.trialDisplacementPerMcs = control.getInt("Trial disp per MCS");
-		np.trialRotationPerMcs = control.getInt("Trial rotation per MCS");
-		np.trialShapeChangePerMcs = control.getInt("Trial shape change per MCS");
+		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
 		snapshotIntervals = control.getInt("Snapshot interval");
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		switch(control.getInt("Write Mode")){
@@ -135,9 +133,7 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
 					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
-					"\n# Trial Displacements Per Mcs: "+np.trialDisplacementPerMcs+
-					"\n# Trial Rotations Per Mcs: "+np.trialRotationPerMcs+ 
-					"\n# Trial Shape Changes Per Mcs: "+np.trialShapeChangePerMcs+ 
+					"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
 					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
 					;
@@ -260,9 +256,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Initial configuration", "square");
-		control.setValue("Trial disp per MCS", 1);
-		control.setValue("Trial rotation per MCS", 1);
-		control.setValue("Trial shape change per MCS", 1);
+		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
 		control.setValue("Penetration energy", true);

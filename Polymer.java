@@ -1,9 +1,12 @@
 package org.opensourcephysics.sip.CPM;
 
 import org.opensourcephysics.numerics.Matrix3DTransformation;
+import org.opensourcephysics.numerics.VectorMath;
 
 public class Polymer extends Particle{
 	private static double tolerance;
+	private static double shapeTolerance;
+	private static double rotTolerance;
 	private static double default_eX;
 	private static double default_eY;
 	private static double default_eZ;
@@ -13,6 +16,7 @@ public class Polymer extends Particle{
         private double eZ;
         private double oldAxis[] = {0,0,1};
         private double newAxis[] = {0,1,0}; // transformation axis
+
 
 
 	public Polymer(double x_, double y_, double z_, double tolerance_, double eX, double eY, double eZ, double q_){
@@ -92,8 +96,56 @@ public class Polymer extends Particle{
 			return false;	
 		}
 	}
-
 	
+	/** Performs a shape change
+	 * 
+	 */
+	public void shapeChange(){
+		double newEX = this.geteX() + 10 * shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEY = this.geteY() + 3 * shapeTolerance * 2. * (Math.random() - 0.5);
+		double newEZ = this.geteZ() + shapeTolerance * 2. * (Math.random() - 0.5);
+		
+		// Reject changes for negative radii eigenvalue immediately
+		if(newEY < 0 || newEY < 0 || newEZ < 0){
+			return;
+		}
+		
+		this.seteX(newEX);
+		this.seteY(newEY);
+		this.seteZ(newEZ);
+	}
+	
+	/**
+	 * Performs a rotation on the polymer.
+	 */
+	public void rotate(){
+		this.setOldAxis(this.getNewAxis());
+		double [] a = this.getOldAxis();
+		double [] v = new double[3];
+		
+		// generate randomly oriented vector v 
+		for(int i = 0 ; i < v.length; i++){
+			v[i] = Math.random() - 0.5;
+		}
+
+		// normalize new (randomly oriented) vector v 
+		VectorMath.normalize(v);
+				
+		// addition of the old and new vector 
+		// Note: rotTolerance, which replaces rotMagnitude, should be << 1 (e.g. 0.1)
+		for(int i = 0; i < v.length; i++){
+			a[i] = a[i] + rotTolerance*v[i];
+		}
+
+		// normalize result
+		VectorMath.normalize(a);
+		this.setNewAxis(a);
+
+	}
+	
+	/**
+	 * Moves the polymer with the tolerance specified by Polymer.tolerance.
+	 */
 	public void move(){
 		super.move(getTolerance());
 	}
@@ -220,6 +272,22 @@ public class Polymer extends Particle{
 		return false;
 	}
 	
+	public static double getRotTolerance() {
+		return rotTolerance;
+	}
+
+	public static void setRotTolerance(double rotTolerance) {
+		Polymer.rotTolerance = rotTolerance;
+	}
+	
+	public static double getShapeTolerance() {
+		return shapeTolerance;
+	}
+
+	public static void setShapeTolerance(double shapeTolerance) {
+		Polymer.shapeTolerance = shapeTolerance;
+	}
+
 	public String toString(){
 		return "oldAxis: " + oldAxis[0] + ", " + oldAxis[1] + ", " + oldAxis[2] + "\n" +
 			   "newAxis: " + newAxis[0] + ", " + newAxis[1] + ", " + newAxis[2];
