@@ -215,7 +215,8 @@ public class CPM {
 		for(int x = 1; x <= trialMovesPerMcs; x++){
 		// Nanoparticles Trial Displacements
 			for (int i = 0; i < nanos.length; ++i) {
-				nanoTrialMove(nanos[i]);
+				int j = (int) (Math.random()*nanos.length);
+				nanoTrialMove(nanos[j]);
 			}
 			// Polymer Trial Displacements
 			for (int i = 0; i < polymers.length; ++i) {
