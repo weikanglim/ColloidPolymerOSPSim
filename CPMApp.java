@@ -230,7 +230,7 @@ public class CPMApp extends AbstractSimulation {
 				dataFiles[1].record(String.valueOf(azimuth));
 			} break;
 			case WRITE_RADIAL:
-				rdf.update();
+				if(np.mcs > 50000) rdf.update();
 				break;
 			case WRITE_ALL:
 					for(Polymer poly: np.polymers){
@@ -238,6 +238,7 @@ public class CPMApp extends AbstractSimulation {
 							dataFiles[0].record(String.valueOf(poly.geteX()));
 							dataFiles[1].record(String.valueOf(poly.geteY()));
 							dataFiles[2].record(String.valueOf(poly.geteZ()));
+							rdf.update();
 						}
 						double[] ellipseAxis = poly.getNewAxis();
 						polar = ellipseAxis[2];
@@ -245,7 +246,6 @@ public class CPMApp extends AbstractSimulation {
 						dataFiles[3].record(String.valueOf(polar));
 						dataFiles[4].record(String.valueOf(azimuth));
 					}
-					rdf.update();
 			break;
 			default:break;
 			}
