@@ -9,6 +9,7 @@ import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
+import org.opensourcephysics.numerics.PBC;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
@@ -19,7 +20,7 @@ import org.opensourcephysics.frames.PlotFrame;
  * 
  */
 public class CPMApp extends AbstractSimulation {
-	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_ALL};
+	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_ALL;};
 	CPM np = new CPM();
 	Display3DFrame display3d = new Display3DFrame("3D Frame");
 	PlotFrame plotframe = new PlotFrame("Monte Carlo Steps",
@@ -28,6 +29,7 @@ public class CPMApp extends AbstractSimulation {
 	double snapshotIntervals = 1;
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
+	RDF rdf;
 	double polar;
 	double azimuth;
 	double volFraction;
@@ -65,7 +67,8 @@ public class CPMApp extends AbstractSimulation {
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
 		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
-		case 3: writeMode = WriteModes.WRITE_ALL; break;
+		case 3: writeMode = WriteModes.WRITE_RADIAL; break;
+		case 4: writeMode = WriteModes.WRITE_ALL; break;
 		}
 		
 		np.initialize(configuration, penetrationEnergyToggle);
@@ -149,16 +152,28 @@ public class CPMApp extends AbstractSimulation {
 				dataFiles[0] = new DataFile("polar", configurations);
 				dataFiles[1] = new DataFile("azimuth", configurations);
 				break;
+			case WRITE_RADIAL:
+				dataFiles = new DataFile[1]; 
+				dataFiles[0] = new DataFile("radial", configurations);
+				rdf = new RDF(np.nanos, np.Lx);
+				break;
 			case WRITE_ALL:
-				dataFiles = new DataFile[5];
+				dataFiles = new DataFile[6];
 				dataFiles[0] = new DataFile("eX", configurations);
 				dataFiles[1] = new DataFile("eY", configurations);
 				dataFiles[2] = new DataFile("eZ", configurations);
 				dataFiles[3] = new DataFile("polar", configurations);
 				dataFiles[4] = new DataFile("azimuth", configurations);
+				dataFiles[5] = new DataFile("radial", configurations);
+				rdf = new RDF(np.nanos, np.Lx);
 				break;
 			default:
 				break;
+			}
+			
+			// Write out the initialization data
+			for(DataFile df : dataFiles){
+				df.write();
 			}
 		}
 
@@ -214,6 +229,9 @@ public class CPMApp extends AbstractSimulation {
 				dataFiles[0].record(String.valueOf(polar));
 				dataFiles[1].record(String.valueOf(azimuth));
 			} break;
+			case WRITE_RADIAL:
+				rdf.update();
+				break;
 			case WRITE_ALL:
 					for(Polymer poly: np.polymers){
 						if(np.mcs > 50000){ // hardcoded 
@@ -227,6 +245,7 @@ public class CPMApp extends AbstractSimulation {
 						dataFiles[3].record(String.valueOf(polar));
 						dataFiles[4].record(String.valueOf(azimuth));
 					}
+					rdf.update();
 			break;
 			default:break;
 			}
@@ -245,10 +264,10 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 1);
-		control.setValue("N Nano", 27);
+		control.setValue("N Polymers", 0);
+		control.setValue("N Nano", 216);
 		control.setValue("Polymer colloid ratio", 5);
-		control.setValue("Lattice constant", 1);
+		control.setValue("Lattice constant", 2);
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
@@ -260,14 +279,19 @@ public class CPMApp extends AbstractSimulation {
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
 		control.setValue("Penetration energy", true);
-		control.setValue("Write Mode", 0);
+		control.setValue("Write Mode", 3);
 		control.setAdjustableValue("Save", false);
 		initialize();
 	}
 
 	public void stop() {
 		double averageIntersections = totalIntersections / np.mcs;
+		if(control.getInt("N Polymers")> 0){
 		double volSpheres = np.nP * (4./3.) * Math.PI * np.polymers[0].getrX() * np.polymers[0].getrY() * np.polymers[0].getrZ() * np.nN;
+		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
+		control.println("Average no. of Intersections: " + averageIntersections);
+		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
+		}
 /*
 		double volPolymers = 0;
 		for(Polymer poly : np.polymers){
@@ -275,13 +299,23 @@ public class CPMApp extends AbstractSimulation {
 		}
 		double volSpheres = volPolymers * np.nN;
 */
-		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
-		control.println("Average no. of Intersections: " + averageIntersections);
-		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
 		
 		// close streams
 		if(control.getBoolean("Save")){
 			if(writeMode != WriteModes.WRITE_NONE){
+				
+				if(writeMode == WriteModes.WRITE_RADIAL){ // Radial Distribution Function 
+					dataFiles[0].record(rdf.distributionData());
+					System.out.println(rdf.nrData());
+					dataFiles[0].write();
+				}
+				
+				if(writeMode == WriteModes.WRITE_ALL){ // Radial Distribution Function 
+					dataFiles[0].record(rdf.distributionData());
+					System.out.println(rdf.nrData());
+					dataFiles[5].write();
+				}
+				
 				for(DataFile df : dataFiles){
 					df.close();
 				}
