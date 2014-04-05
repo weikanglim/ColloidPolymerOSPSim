@@ -18,9 +18,9 @@ public abstract class Particle {
 
 	
 	public double separation(Particle particle){
-		double dx = this.x-particle.x;
-		double dy = this.y-particle.y;
-		double dz = this.z-particle.z;
+		double dx = PBC.separation(this.x-particle.x, Lx);
+		double dy = PBC.separation(this.y-particle.y, Ly);
+		double dz = PBC.separation(this.z-particle.z, Lz);
 		return dx*dx+dy*dy+dz*dz;
 	}
 	
