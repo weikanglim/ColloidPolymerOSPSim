@@ -33,6 +33,8 @@ public class CPMApp extends AbstractSimulation {
 	double polar;
 	double azimuth;
 	double volFraction;
+	int dataPoints;
+	int maxDataPoints;
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
@@ -62,6 +64,7 @@ public class CPMApp extends AbstractSimulation {
 		np.shapeTolerance = control.getDouble("Shape tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
 		snapshotIntervals = control.getInt("Snapshot interval");
+		maxDataPoints = control.getInt("Number of datapoints");
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
@@ -158,13 +161,11 @@ public class CPMApp extends AbstractSimulation {
 				rdf = new RDF(np.nanos, np.Lx);
 				break;
 			case WRITE_ALL:
-				dataFiles = new DataFile[6];
+				dataFiles = new DataFile[4];
 				dataFiles[0] = new DataFile("eX", configurations);
 				dataFiles[1] = new DataFile("eY", configurations);
 				dataFiles[2] = new DataFile("eZ", configurations);
-				dataFiles[3] = new DataFile("polar", configurations);
-				dataFiles[4] = new DataFile("azimuth", configurations);
-				dataFiles[5] = new DataFile("radial", configurations);
+				dataFiles[3] = new DataFile("radial", configurations);
 				rdf = new RDF(np.nanos, np.Lx);
 				break;
 			default:
@@ -211,43 +212,50 @@ public class CPMApp extends AbstractSimulation {
 		
 		// writing of data
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs % snapshotIntervals == 0) {
-			switch(writeMode){
-			case WRITE_SHAPES:
-				if(np.mcs > 50000){ // hardcoded 
-					for(Polymer poly: np.polymers){
-					dataFiles[0].record(String.valueOf(poly.geteX()));
-					dataFiles[1].record(String.valueOf(poly.geteY()));
-					dataFiles[2].record(String.valueOf(poly.geteZ()));
-					}
-				}
-				break;
-			case WRITE_ROTATIONS:
-			for (Polymer poly : np.polymers) {
-				double[] ellipseAxis = poly.getNewAxis();
-				polar = ellipseAxis[2];
-				azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
-				dataFiles[0].record(String.valueOf(polar));
-				dataFiles[1].record(String.valueOf(azimuth));
-			} break;
-			case WRITE_RADIAL:
-				if(np.mcs > 50000) rdf.update();
-				break;
-			case WRITE_ALL:
-					for(Polymer poly: np.polymers){
+			if(dataPoints >= maxDataPoints){
+				control.setAdjustableValue("Save", true);
+				this.stopAnimation();
+			} else{
+				switch(writeMode){
+					case WRITE_SHAPES:
 						if(np.mcs > 50000){ // hardcoded 
+							for(Polymer poly: np.polymers){
 							dataFiles[0].record(String.valueOf(poly.geteX()));
 							dataFiles[1].record(String.valueOf(poly.geteY()));
 							dataFiles[2].record(String.valueOf(poly.geteZ()));
-							rdf.update();
+							}
+							dataPoints++;
 						}
+						break;
+					case WRITE_ROTATIONS:
+					for (Polymer poly : np.polymers) {
 						double[] ellipseAxis = poly.getNewAxis();
 						polar = ellipseAxis[2];
 						azimuth = Math.atan(ellipseAxis[1]/ ellipseAxis[0]);
-						dataFiles[3].record(String.valueOf(polar));
-						dataFiles[4].record(String.valueOf(azimuth));
-					}
-			break;
-			default:break;
+						dataFiles[0].record(String.valueOf(polar));
+						dataFiles[1].record(String.valueOf(azimuth));
+					} 
+					dataPoints++;
+					break;
+					case WRITE_RADIAL:
+						if(np.mcs > 50000){
+							rdf.update();
+							dataPoints++;
+						}
+						break;
+					case WRITE_ALL:
+						if(np.mcs > 50000){ // hardcoded 
+							for(Polymer poly: np.polymers){
+									dataFiles[0].record(String.valueOf(poly.geteX()));
+									dataFiles[1].record(String.valueOf(poly.geteY()));
+									dataFiles[2].record(String.valueOf(poly.geteZ()));
+							}
+							rdf.update();
+							dataPoints++;
+						}
+					break;
+					default:break;
+				}
 			}
 		}
 		
@@ -278,6 +286,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
+		control.setValue("Number of datapoints", 10000);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 3);
 		control.setAdjustableValue("Save", false);
@@ -311,12 +320,13 @@ public class CPMApp extends AbstractSimulation {
 				}
 				
 				if(writeMode == WriteModes.WRITE_ALL){ // Radial Distribution Function 
-					dataFiles[0].record(rdf.distributionData());
+					dataFiles[3].record(rdf.distributionData());
 					System.out.println(rdf.nrData());
-					dataFiles[5].write();
+					dataFiles[3].write();
 				}
 				
 				for(DataFile df : dataFiles){
+					df.record("#Number of data points: " + dataPoints);
 					df.close();
 				}
 			}
