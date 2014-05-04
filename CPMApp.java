@@ -35,6 +35,9 @@ public class CPMApp extends AbstractSimulation {
 	double volFraction;
 	int dataPoints;
 	int maxDataPoints;
+	int runs;
+	int currentRun =  1;
+	int i =0;
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
@@ -42,12 +45,18 @@ public class CPMApp extends AbstractSimulation {
 	boolean penetrationEnergyToggle;
 	DataFile [] dataFiles;
 
+	public CPMApp(){
+		if(display3d != null) display3d.dispose();
+		display3d = new Display3DFrame("3D Frame");
+
+	}
 	/**
 	 * Initializes the model.
 	 */
 	public void initialize() {
-		added = false;
+		i++;
 		totalIntersections = 0;
+		dataPoints = 0;
 		np.nP = control.getInt("N Polymers");
 		np.nN = control.getInt("N Nano");
 		np.q = control.getDouble("Polymer colloid ratio");
@@ -65,6 +74,7 @@ public class CPMApp extends AbstractSimulation {
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxDataPoints = control.getInt("Number of datapoints");
+		runs = control.getInt("Number of runs");
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
@@ -75,14 +85,9 @@ public class CPMApp extends AbstractSimulation {
 		}
 		
 		np.initialize(configuration, penetrationEnergyToggle);
-
-		if(display3d != null) display3d.dispose(); // closes an old simulation frame is present
-		display3d = new Display3DFrame("3D Frame");
-		display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
-		display3d.setSquareAspect(true);
 		
 		// add simple3d.Element particles to the arrays 
-		if (!added) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
+		if (i == 2) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
 			nanoSphere = new ElementSphere[np.nN];
 			polySphere = new ElementEllipsoid[np.nP];
 
@@ -96,31 +101,33 @@ public class CPMApp extends AbstractSimulation {
 				display3d.addElement(polySphere[i]);
 			}
 			added = true; 
-		}
-		
-		// Initialize visualization elements for nano particles
-		for (int i = 0; i < np.nN; i++) {
-			nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
-					2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
-			nanoSphere[i].getStyle().setFillColor(Color.BLACK);
-			nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
-					np.nanos[i].getZ());
-		}
+			
+			// Initialize visualization elements for nano particles
+			for (int i = 0; i < np.nN; i++) {
+				nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
+						2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
+				nanoSphere[i].getStyle().setFillColor(Color.BLACK);
+				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
+						np.nanos[i].getZ());
+			}
 
-		// Initialize visualization elements for polymer particles
-		for (int i = 0; i < np.nP; i++) {
-			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
-					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-			polySphere[i].getStyle().setFillColor(Color.RED);
-			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
-					np.polymers[i].getZ());
-            if(np.polymers[i].isRotated()){ 
-                    polySphere[i].setTransformation(np.polymers[i].getTransformation());
-            }
-		}
+			// Initialize visualization elements for polymer particles
+			for (int i = 0; i < np.nP; i++) {
+				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
+						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+				polySphere[i].getStyle().setFillColor(Color.RED);
+				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
+						np.polymers[i].getZ());
+	            if(np.polymers[i].isRotated()){ 
+	                    polySphere[i].setTransformation(np.polymers[i].getTransformation());
+	            }
+			}
 
-		plotframe.append(0, np.mcs, np.totalIntersectCount);
-		}
+			plotframe.append(0, np.mcs, np.totalIntersectCount);
+			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
+			display3d.setSquareAspect(true);
+		}		
+	}
 	
 	/**
 	 * Does a simulation step.
@@ -131,16 +138,18 @@ public class CPMApp extends AbstractSimulation {
 		if(np.mcs == 0 && writeMode != WriteModes.WRITE_NONE){
 			DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 			DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-			String configurations = "# Number of Polymers:" + np.nP +
+			String configurations = "# Number of Polymers: " + np.nP +
 					"\n# Number of Nanoparticles: "+np.nN +
 					"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-					"\n# Nanoparticle Volume Fraction :"+threeDecimal.format(np.volFraction) + 
+					"\n# Nanoparticle Volume Fraction: "+threeDecimal.format(np.volFraction) + 
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
 					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
 					"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
 					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
+					"\n# Number of Data Points: " + maxDataPoints +
+					"\n# Run Number: " + currentRun + 
 					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
 					;
 			switch(writeMode){
@@ -213,8 +222,32 @@ public class CPMApp extends AbstractSimulation {
 		// writing of data
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs % snapshotIntervals == 0) {
 			if(dataPoints >= maxDataPoints){
-				control.setAdjustableValue("Save", true);
-				this.stopAnimation();
+				if(currentRun < runs){
+					if(writeMode != WriteModes.WRITE_NONE){
+						if(writeMode == WriteModes.WRITE_RADIAL){ // Radial Distribution Function 
+							dataFiles[0].record(rdf.distributionData());
+							System.out.println(rdf.nrData());
+							dataFiles[0].write();
+						}
+						
+						if(writeMode == WriteModes.WRITE_ALL){ // Radial Distribution Function 
+							dataFiles[3].record(rdf.distributionData());
+							System.out.println(rdf.nrData());
+							dataFiles[3].write();
+						}
+						
+						for(DataFile df : dataFiles){
+							df.close();
+						}
+					}
+					this.initialize();
+					currentRun++;
+					return;
+				} else {
+					control.setAdjustableValue("Save", true);
+					this.stopAnimation();
+					return;
+				}
 			} else{
 				switch(writeMode){
 					case WRITE_SHAPES:
@@ -273,9 +306,9 @@ public class CPMApp extends AbstractSimulation {
 	public void reset() {
 		enableStepsPerDisplay(true);
 		control.setValue("N Polymers", 0);
-		control.setValue("N Nano", 216);
+		control.setValue("N Nano", 27);
 		control.setValue("Polymer colloid ratio", 5);
-		control.setValue("Lattice constant", 2);
+		control.setValue("Lattice constant", 1.736);
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
@@ -286,9 +319,10 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
-		control.setValue("Number of datapoints", 10000);
+		control.setValue("Number of datapoints", 5);
+		control.setValue("Number of runs", 5);
 		control.setValue("Penetration energy", true);
-		control.setValue("Write Mode", 3);
+		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);
 		initialize();
 	}
@@ -300,6 +334,7 @@ public class CPMApp extends AbstractSimulation {
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
 		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
+		
 		}
 /*
 		double volPolymers = 0;
@@ -312,7 +347,7 @@ public class CPMApp extends AbstractSimulation {
 		// close streams
 		if(control.getBoolean("Save")){
 			if(writeMode != WriteModes.WRITE_NONE){
-				
+				control.setAdjustableValue("Save", false);
 				if(writeMode == WriteModes.WRITE_RADIAL){ // Radial Distribution Function 
 					dataFiles[0].record(rdf.distributionData());
 					System.out.println(rdf.nrData());

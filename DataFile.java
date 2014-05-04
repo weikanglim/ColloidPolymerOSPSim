@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Calendar;
+import java.util.Scanner;
 
 public class DataFile {
 	private static Calendar calendar;
@@ -23,12 +24,26 @@ public class DataFile {
 		if(DataFile.calendar == null){
 			calendar = Calendar.getInstance();
 		}
-		String creationDate = calendar.get(Calendar.DAY_OF_MONTH) + " " + 
-							  (calendar.get(Calendar.MONTH) + 1) + " " + // calendar.MONTH starts counting at 0
-							  calendar.get(Calendar.YEAR);
+		Scanner scan = new Scanner(configurations);
+		String phiN = "";
+		String runNumber = "";
+		while(scan.hasNext()){
+			String token = scan.next();
+			if(token.equals("Fraction:")){
+				phiN = scan.next();
+			}
+			
+			if(token.equals("Number:")){
+				runNumber = scan.next();
+			}
+		}
+		scan.close();
 		String creationTime = calendar.get(Calendar.HOUR_OF_DAY) + ":" + 
 							  calendar.get(Calendar.MINUTE);
-		Path dir = Paths.get(DataFile.baseDir + "/" + creationDate);
+		String creationDate = calendar.get(Calendar.DAY_OF_MONTH) + "-" + 
+				  (calendar.get(Calendar.MONTH) + 1) + "-" + // calendar.MONTH starts counting at 0
+				  calendar.get(Calendar.YEAR) + " " + creationTime;
+		Path dir = Paths.get(DataFile.baseDir + "/" +  "phiN=" + phiN + "   " + creationDate + "/" + runNumber);
 		
 		// create directory to store datafiles, categorized by date if it doesn't exist
 		try {
@@ -37,7 +52,7 @@ public class DataFile {
 			e.printStackTrace();
 		}
 
-		filePath = Paths.get(dir + "/" + creationTime + " " + name + ".dat");
+		filePath = Paths.get(dir + "/" + "phiN=" + phiN + " " + name + ".dat");
 		
 		try {
 			bw = Files.newBufferedWriter(filePath, 
