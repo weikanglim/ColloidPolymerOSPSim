@@ -305,8 +305,8 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 0);
-		control.setValue("N Nano", 27);
+		control.setValue("N Polymers", 1);
+		control.setValue("N Nano", 216);
 		control.setValue("Polymer colloid ratio", 5);
 		control.setValue("Lattice constant", 1.736);
 		control.setValue("x", 0.01);
@@ -319,7 +319,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
-		control.setValue("Number of datapoints", 5);
+		control.setValue("Number of datapoints", 10000);
 		control.setValue("Number of runs", 5);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
