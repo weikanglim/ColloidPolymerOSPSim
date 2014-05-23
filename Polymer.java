@@ -292,4 +292,22 @@ public class Polymer extends Particle{
 		return "oldAxis: " + oldAxis[0] + ", " + oldAxis[1] + ", " + oldAxis[2] + "\n" +
 			   "newAxis: " + newAxis[0] + ", " + newAxis[1] + ", " + newAxis[2];
 	}
+	
+	public String toPovray(){
+		double [] oldAxis = this.getOldAxis();
+		double [] newAxis = this.getNewAxis();
+		String pString = String.format("sphere{\n"
+				+ "\t<%.3f, %.3f, %.3f>, 1\n"
+				+ "\tscale <%.3f, %.3f, %.3f>\n"
+				+ "\ttexture {\n"
+				+ "\t		pigment { color Red }\n"
+				+ "\t}\n"
+				+ "Reorient_Trans(<%.3f, %.3f, %.3f>, <%.3f, %.3f, %.3f>)"
+				+ "}", 
+				this.getX(), this.getY(), this.getZ(),
+				this.getrX(), this.getrY(), this.getrZ(),
+				oldAxis[0], oldAxis[1], oldAxis[2],
+				newAxis[0], newAxis[1], newAxis[2]);
+		return pString;
+	}
 }

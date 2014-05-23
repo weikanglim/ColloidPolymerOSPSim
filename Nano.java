@@ -70,4 +70,18 @@ public class Nano extends Particle{
 	public static void setDefault_r(double defaultD) {
 		Nano.default_r = defaultD;
 	}
+	
+	
+	public String toPovray(){
+		String pString = String.format("sphere{\n"
+				+ "\t<%.3f, %.3f, %.3f>, 1\n"
+				+ "\tscale <%.3f, %.3f, %.3f>\n"
+				+ "\ttexture {\n"
+				+ "\t		pigment { color Black }\n"
+				+ "\t}\n"
+				+ "}", 
+				this.getX(), this.getY(), this.getZ(),
+				this.getrX(), this.getrY(), this.getrZ());
+		return pString;
+	}
 }

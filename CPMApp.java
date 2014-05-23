@@ -106,7 +106,8 @@ public class CPMApp extends AbstractSimulation {
 			for (int i = 0; i < np.nN; i++) {
 				nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
 						2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
-				nanoSphere[i].getStyle().setFillColor(Color.BLACK);
+				nanoSphere[i].getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
+				nanoSphere[i].getStyle().setLineColor(new Color(92, 146, 237, 100));
 				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
 						np.nanos[i].getZ());
 			}
@@ -116,6 +117,7 @@ public class CPMApp extends AbstractSimulation {
 				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
 				polySphere[i].getStyle().setFillColor(Color.RED);
+				polySphere[i].getStyle().setLineColor(Color.RED);
 				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 						np.polymers[i].getZ());
 	            if(np.polymers[i].isRotated()){ 
@@ -199,11 +201,13 @@ public class CPMApp extends AbstractSimulation {
 		if(control.getBoolean("Visualization on")){
 			// nanoparticle visualization updates
 			for (int i = 0; i < np.nN; i++) {
-				if(np.nanos[i].intersectPairs.isEmpty()){
-					nanoSphere[i].getStyle().setFillColor(Color.BLACK);
-				}else{
-					nanoSphere[i].getStyle().setFillColor(Color.GREEN);
-				}
+//				if(np.nanos[i].intersectPairs.isEmpty()){
+//					nanoSphere[i].getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
+//					nanoSphere[i].getStyle().setLineColor(new Color(92, 146, 237, 100));
+//				}else{
+//					nanoSphere[i].getStyle().setFillColor(new Color(0, 255, 0, 100));  // light blue with half transparency
+//					nanoSphere[i].getStyle().setLineColor(new Color(0, 255, 0, 100));
+//				}
 				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
 						np.nanos[i].getZ());
 			}
@@ -365,6 +369,14 @@ public class CPMApp extends AbstractSimulation {
 					df.close();
 				}
 			}
+		}
+		
+		for(Polymer p : np.polymers){
+			System.out.println(p.toPovray());
+		}
+		
+		for(Nano n : np.nanos){
+			System.out.println(n.toPovray());
 		}
 	}
 	

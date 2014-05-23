@@ -134,13 +134,13 @@ public class CPM {
 
 			// place polymer particles
 			i = 0;
-			for (iy = 0; iy < nx; iy++) {
-				for (ix = 0; ix < nx; ix++) {
-					for (iz = 0; iz < nx; iz++) {
+			for (iy = nx/2; iy < nx; iy++) {
+				for (ix = nx/2; ix < nx; ix++) {
+					for (iz = nx/2; iz < nx; iz++) {
 						if (i < polymers.length) { // checks for remaining
 													// particles
-							polymers[i] = new Polymer(ix * d + d / 2, iy * d
-									+ d / 2, iz * d + d / 2);
+							polymers[i] = new Polymer(ix * d , iy * d
+									, iz * d );
 							i++;
 
 							if ((ix + 1) * d + d / 2 > Lx
