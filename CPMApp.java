@@ -35,6 +35,8 @@ public class CPMApp extends AbstractSimulation {
 	double volFraction;
 	final double RADIAL_START = 0.9; 
 	final double RADIAL_END = 2.6;
+	double sumVolume;
+	double volumeSnapshots;
 	double sumDistribution;
 	int conformations;
 	int maxConformations;
@@ -246,6 +248,12 @@ public class CPMApp extends AbstractSimulation {
 				sumDistribution = 0;
 			}
 			
+			// record volume fraction
+			for(Polymer poly : np.polymers){
+				sumVolume += (4./3.) * Math.PI * poly.getrX() * poly.getrY() * poly.getrZ();
+			}		
+			volumeSnapshots++;
+			
 			double e_delU = np.nanoTrialPlacement(RADIAL_START+dataPoints*steps);
 			sumDistribution += e_delU;
 			plotframe.append(0, np.mcs, e_delU);
@@ -286,11 +294,8 @@ public class CPMApp extends AbstractSimulation {
 	public void stop() {
 		double averageIntersections = totalIntersections / np.mcs;
 		if(control.getInt("N Polymers")> 0){
-		double volPolymers = 0;
-		for(Polymer poly : np.polymers){
-			volPolymers += (4./3.) * Math.PI * poly.getrX() * poly.getrY() * poly.getrZ();
-		}		
-		double volFract = volPolymers / (np.Lx * np.Ly * np.Lz);
+			
+		double volFract = sumVolume / (volumeSnapshots* np.Lx * np.Ly * np.Lz);
 		control.println("Volume fraction of nanoparticles: " + Math.PI/(6 * np.Lx * np.Ly * np.Lz));
 		control.println("Volume fraction of polymers: " + volFract);
 		control.println("Average no. of Intersections: " + averageIntersections);
