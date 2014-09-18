@@ -33,8 +33,8 @@ public class CPMApp extends AbstractSimulation {
 	double polar;
 	double azimuth;
 	double volFraction;
-	final double RADIAL_START = 0.9; 
-	final double RADIAL_END = 2.6;
+	final double RADIAL_START = 1; 
+	final double RADIAL_END = 10;
 	double sumVolume;
 	double volumeSnapshots;
 	double sumDistribution;
@@ -270,9 +270,9 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 13);
-		control.setValue("Polymer colloid ratio", 2);
-		control.setValue("Lattice length", 3.74);
+		control.setValue("N Polymers", 8);
+		control.setValue("Polymer colloid ratio", 5);
+		control.setValue("Lattice length", 8.06);
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
@@ -283,8 +283,8 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
-		control.setValue("Number of datapoints", 50);
-		control.setValue("Number of conformations", 100);
+		control.setValue("Number of datapoints", 10);
+		control.setValue("Number of conformations", 2000);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);
