@@ -38,10 +38,13 @@ public class CPMApp extends AbstractSimulation {
 	double sumVolume;
 	double volumeSnapshots;
 	double sumDistribution;
+	double sumSquaredDistribution;
+	long timeStarted;
 	int conformations;
 	int maxConformations;
 	int dataPoints;
 	int maxDataPoints;
+	double totalMCS;
 	double steps;
 	int i =0;
 	WriteModes writeMode;
@@ -49,6 +52,7 @@ public class CPMApp extends AbstractSimulation {
 	ElementEllipsoid polySphere[];
 	boolean added = false;
 	boolean penetrationEnergyToggle;
+	String minuteInfo = "";
 	DataFile [] dataFiles;
 
 	public CPMApp(){
@@ -82,7 +86,8 @@ public class CPMApp extends AbstractSimulation {
 		maxConformations = control.getInt("Number of conformations");
 		maxDataPoints = control.getInt("Number of datapoints");
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
-		steps = (RADIAL_END-RADIAL_START) / (maxDataPoints - 1);
+		steps = (RADIAL_END-RADIAL_START) / maxDataPoints;
+		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
@@ -199,6 +204,8 @@ public class CPMApp extends AbstractSimulation {
 			for(DataFile df : dataFiles){
 				df.write();
 			}
+			
+			timeStarted = System.currentTimeMillis();
 		}
 
 		// logical step in the CPM class
@@ -237,7 +244,9 @@ public class CPMApp extends AbstractSimulation {
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % snapshotIntervals == 0) {
 			if(conformations > maxConformations){
 				double avgDistribution = sumDistribution / maxConformations;
-				dataFiles[0].record(RADIAL_START+dataPoints*steps + " " + avgDistribution);
+				double avgSquaredDistribution = sumSquaredDistribution / maxConformations;
+				double uncertainty = avgSquaredDistribution - Math.pow(avgDistribution,2);
+				dataFiles[0].record(RADIAL_START+dataPoints*steps + " " + avgDistribution + " " + uncertainty);
 				dataPoints++;
 				if(dataPoints > maxDataPoints){
 					control.setAdjustableValue("Save", true);
@@ -248,20 +257,41 @@ public class CPMApp extends AbstractSimulation {
 				sumDistribution = 0;
 			}
 			
-			// record volume fraction
-			for(Polymer poly : np.polymers){
-				sumVolume += (4./3.) * Math.PI * poly.getrX() * poly.getrY() * poly.getrZ();
-			}		
-			volumeSnapshots++;
+//			// record volume fraction
+//			for(Polymer poly : np.polymers){
+//				sumVolume += (4./3.) * Math.PI * poly.getrX() * poly.getrY() * poly.getrZ();
+//			}		
+//			volumeSnapshots++;
 			
 			double e_delU = np.nanoTrialPlacement(RADIAL_START+dataPoints*steps);
 			sumDistribution += e_delU;
+			sumSquaredDistribution += Math.pow(e_delU, 2);
 			plotframe.append(0, np.mcs, e_delU);
 			conformations++;
 		}		
 		
 		if(writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % (snapshotIntervals*100) == 0){
 			dataFiles[0].write();
+		}
+		
+		long timeElapsed = System.currentTimeMillis() - timeStarted;
+		if(timeElapsed % 1000 == 0){
+			control.clearMessages();
+			int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+			int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
+			String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
+			control.println("Time Elapsed: " + formatTimeElapsed);
+			control.println(minuteInfo);
+			
+			if(timeElapsed % 60000 == 0){
+				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+				double mcsPerMinute = 60000* np.mcs / timeElapsed;
+				double timeRemain = (totalMCS - np.mcs) / mcsPerMinute;
+				int minutes = (int) Math.floor(timeRemain);
+				int seconds = (int) Math.round((timeRemain - minutes) * 60); 
+				minuteInfo = "MCS per minute: " + largeDecimal.format(mcsPerMinute)
+						+"\nTime remaining: " + minutes + "m " + seconds + "s";
+			}
 		}
 	}
 
