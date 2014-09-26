@@ -33,8 +33,8 @@ public class CPMApp extends AbstractSimulation {
 	double polar;
 	double azimuth;
 	double volFraction;
-	final double RADIAL_START = 1; 
-	final double RADIAL_END = 10;
+	double radialStart; 
+	double radialEnd;
 	double sumVolume;
 	double volumeSnapshots;
 	double sumDistribution;
@@ -84,10 +84,12 @@ public class CPMApp extends AbstractSimulation {
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxConformations = control.getInt("Number of conformations");
-		maxDataPoints = control.getInt("Number of datapoints");
+		maxDataPoints = control.getInt("Number of datapoints") + 1; // added one for inserting at origin to get U at Infinity
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
-		steps = (RADIAL_END-RADIAL_START) / maxDataPoints;
+		steps = (radialEnd-radialStart) / maxDataPoints;
 		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
+		radialStart = 1;
+		radialEnd = np.Lx/2;
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
@@ -239,31 +241,30 @@ public class CPMApp extends AbstractSimulation {
 				}
 			}
 		}
-		
+
 		// perform insertion algorithm and record the data
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % snapshotIntervals == 0) {
+			double placementPosition = dataPoints == (maxDataPoints - 1) ? 0 : radialStart+dataPoints*steps;
+			
+			// Enough conformations for a data point, analyze distribution and record.
 			if(conformations > maxConformations){
 				double avgDistribution = sumDistribution / maxConformations;
 				double avgSquaredDistribution = sumSquaredDistribution / maxConformations;
-				double uncertainty = avgSquaredDistribution - Math.pow(avgDistribution,2);
-				dataFiles[0].record(RADIAL_START+dataPoints*steps + " " + avgDistribution + " " + uncertainty);
+				double uncertainty = Math.sqrt(avgSquaredDistribution - Math.pow(avgDistribution,2));
+				dataFiles[0].record(placementPosition + " " + avgDistribution + " " + uncertainty);
 				dataPoints++;
-				if(dataPoints > maxDataPoints){
+				if(dataPoints >= maxDataPoints){
 					control.setAdjustableValue("Save", true);
 					this.stopAnimation();
 					return;
 				}
+				
+				// reset counters for next data point.
 				conformations = 0;
 				sumDistribution = 0;
 			}
 			
-//			// record volume fraction
-//			for(Polymer poly : np.polymers){
-//				sumVolume += (4./3.) * Math.PI * poly.getrX() * poly.getrY() * poly.getrZ();
-//			}		
-//			volumeSnapshots++;
-			
-			double e_delU = np.nanoTrialPlacement(RADIAL_START+dataPoints*steps);
+			double e_delU = np.nanoTrialPlacement(placementPosition);
 			sumDistribution += e_delU;
 			sumSquaredDistribution += Math.pow(e_delU, 2);
 			plotframe.append(0, np.mcs, e_delU);
@@ -303,12 +304,12 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("N Polymers", 8);
 		control.setValue("Polymer colloid ratio", 5);
 		control.setValue("Lattice length", 8.06);
-		control.setValue("x", 0.01);
-		control.setValue("y", 0.01);
-		control.setValue("z", 0.01);
+		control.setValue("x", 0.055555);
+		control.setValue("y", 0.055555);
+		control.setValue("z", 0.055555);
 		control.setValue("Tolerance", 0.1);
-		control.setValue("Rotation tolerance", 0.1);
-		control.setValue("Shape tolerance", 0.001);
+		control.setValue("Rotation tolerance", 0);
+		control.setValue("Shape tolerance", 0);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
