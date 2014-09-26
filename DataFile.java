@@ -38,7 +38,7 @@ public class DataFile {
 			}
 		}
 		scan.close();
-		String creationTime = calendar.get(Calendar.HOUR_OF_DAY) + ":" + 
+		String creationTime = calendar.get(Calendar.HOUR_OF_DAY) + "." + 
 							  calendar.get(Calendar.MINUTE);
 		String creationDate = calendar.get(Calendar.DAY_OF_MONTH) + "-" + 
 				  (calendar.get(Calendar.MONTH) + 1) + "-" + // calendar.MONTH starts counting at 0
