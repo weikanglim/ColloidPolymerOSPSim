@@ -74,13 +74,8 @@ public class CPMApp extends AbstractSimulation {
 		np.q = control.getDouble("Polymer colloid ratio");
 		np.Lx = np.Ly = np.Lz = control.getDouble("Lattice length");
 		np.nano_r = 0.5;
-		np.init_eX = control.getDouble("x");
-		np.init_eY = control.getDouble("y");
-		np.init_eZ = control.getDouble("z");
 		String configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
-		np.rotTolerance = control.getDouble("Rotation tolerance");
-		np.shapeTolerance = control.getDouble("Shape tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxConformations = control.getInt("Number of conformations");
@@ -89,7 +84,19 @@ public class CPMApp extends AbstractSimulation {
 		steps = (radialEnd-radialStart) / maxDataPoints;
 		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
 		radialStart = 1;
-		radialEnd = np.Lx/2;
+		if(control.getBoolean("Spherical polymers")){
+			np.init_eY = np.init_eZ =np.init_eX = 4/18f;
+			np.rotTolerance = 0;
+			np.shapeTolerance = 0;
+			radialEnd = np.Lx/2;
+		} else{
+			np.init_eX = control.getDouble("x");
+			np.init_eY = control.getDouble("y");
+			np.init_eZ = control.getDouble("z");
+			np.rotTolerance = control.getDouble("Rotation tolerance");
+			np.shapeTolerance = control.getDouble("Shape tolerance");
+			radialEnd = np.Lx/2;
+		}
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
@@ -112,7 +119,11 @@ public class CPMApp extends AbstractSimulation {
 			}
 
 			for (int i = 0; i < np.nP; i++) {
-				polySphere[i] = new ElementEllipsoid();
+				if(control.getBoolean("Spherical polymers")){
+					polySphere[i] = new ElementSphere();
+				}else{
+					polySphere[i] = new ElementEllipsoid();
+				}
 				display3d.addElement(polySphere[i]);
 			}
 			added = true; 
@@ -140,7 +151,6 @@ public class CPMApp extends AbstractSimulation {
 	            }
 			}
 
-			plotframe.append(0, np.mcs, np.totalIntersectCount);
 			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 			display3d.setSquareAspect(true);
 		}		
@@ -268,6 +278,7 @@ public class CPMApp extends AbstractSimulation {
 			sumDistribution += e_delU;
 			sumSquaredDistribution += Math.pow(e_delU, 2);
 			plotframe.append(0, np.mcs, e_delU);
+			plotframe.setMessage("r = " + placementPosition);
 			conformations++;
 		}		
 		
@@ -301,21 +312,22 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 8);
-		control.setValue("Polymer colloid ratio", 5);
-		control.setValue("Lattice length", 8.06);
-		control.setValue("x", 0.055555);
-		control.setValue("y", 0.055555);
-		control.setValue("z", 0.055555);
+		control.setValue("N Polymers", 370);
+		control.setValue("Polymer colloid ratio", 0.15);
+		control.setValue("Spherical polymers", true);
+		control.setValue("Lattice length", 3.741);
+		control.setValue("x", 0.01);
+		control.setValue("y", 0.01);
+		control.setValue("z", 0.01);
 		control.setValue("Tolerance", 0.1);
-		control.setValue("Rotation tolerance", 0);
-		control.setValue("Shape tolerance", 0);
+		control.setValue("Rotation tolerance", 0.1);
+		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
 		control.setValue("Number of datapoints", 10);
-		control.setValue("Number of conformations", 2000);
+		control.setValue("Number of conformations", 20);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);

@@ -192,13 +192,17 @@ public class CPM {
 		poly.move();
 		
 		/** Shape Changes **/
-		poly.shapeChange();
+		if(Polymer.getShapeTolerance() > 0){
+			poly.shapeChange();
+		}
 		double newEX = poly.geteX();
 		double newEY = poly.geteY();
 		double newEZ = poly.geteZ();
 		
 		/** Rotation **/
-		poly.rotate();
+		if(Polymer.getRotTolerance() > 0){
+			poly.rotate();
+		}
 		
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
@@ -213,8 +217,13 @@ public class CPM {
 			}
 		}
 		
-		double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
+		double p;
+		if(Polymer.getShapeTolerance() == 0){
+			p = Math.exp(-Ep*overlapCount);
+		} else {
+			p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
 				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  * Math.exp(-Ep*overlapCount);
+		}
 
 		// Acceptance probability
 		if (p > 1 || Math.random() < p) {		
@@ -266,6 +275,7 @@ public class CPM {
 			}
 			return Math.exp(-Ep*overlapCount); 
 		}
+		
 		
 		if(r < 1.0){
 			return 0; // overlap with origin nanoparticle
