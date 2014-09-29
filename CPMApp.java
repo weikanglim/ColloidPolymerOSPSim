@@ -81,21 +81,20 @@ public class CPMApp extends AbstractSimulation {
 		maxConformations = control.getInt("Number of conformations");
 		maxDataPoints = control.getInt("Number of datapoints") + 1; // added one for inserting at origin to get U at Infinity
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
+		radialEnd = np.Lx/2;
 		steps = (radialEnd-radialStart) / maxDataPoints;
 		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
 		radialStart = 1;
 		if(control.getBoolean("Spherical polymers")){
-			np.init_eY = np.init_eZ =np.init_eX = 4/18f;
+			np.init_eY = np.init_eZ =np.init_eX = 1/18f;
 			np.rotTolerance = 0;
 			np.shapeTolerance = 0;
-			radialEnd = np.Lx/2;
 		} else{
 			np.init_eX = control.getDouble("x");
 			np.init_eY = control.getDouble("y");
 			np.init_eZ = control.getDouble("z");
 			np.rotTolerance = control.getDouble("Rotation tolerance");
 			np.shapeTolerance = control.getDouble("Shape tolerance");
-			radialEnd = np.Lx/2;
 		}
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
