@@ -266,7 +266,7 @@ public class CPM {
 	public double nanoTrialPlacement(double r) {
 		// Calculate U at infinity
 		if(r == 0){
-			Nano nano = nanos[0];
+			Nano nano = nanos[0]; // take the nanoparticle at the origin.
 			int overlapCount = 0;
 			for (int i = 0; i < polymers.length; i++) {
 				if(nano.overlap(polymers[i])){

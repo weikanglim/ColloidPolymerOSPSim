@@ -46,7 +46,7 @@ public class Polymer extends Particle{
 			return false;
 		} else{
 			Nano nano = (Nano) particle;
-			if(this.geteX() == this.geteY() && this.geteX() == this.geteZ()){ // spherical polymer with no pbc checking necessary for nanoparticles within (r, Lx-r)
+			if(this.geteX() == this.geteY() && this.geteX() == this.geteZ()){ // spherical polymer with no pbc checking necessary for nanoparticles
 				return this.separation(nano) < Math.pow(this.getrX() + nano.getrX(), 2);  
 			} else {
 				double [] originAxis = {0,1,0}; // AD
