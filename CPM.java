@@ -264,18 +264,6 @@ public class CPM {
 	 * @return Probability of acceptance, e^(-delta_U)
 	 */
 	public double nanoTrialPlacement(double r) {
-		// Calculate U at infinity
-		if(r == 0){
-			Nano nano = nanos[0]; // take the nanoparticle at the origin.
-			int overlapCount = 0;
-			for (int i = 0; i < polymers.length; i++) {
-				if(nano.overlap(polymers[i])){
-					overlapCount++;
-				}
-			}
-			return Math.exp(-Ep*overlapCount); 
-		}
-		
 		
 		if(r < 1.0){
 			return 0; // overlap with origin nanoparticle

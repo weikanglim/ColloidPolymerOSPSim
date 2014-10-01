@@ -52,6 +52,7 @@ public class CPMApp extends AbstractSimulation {
 	ElementEllipsoid polySphere[];
 	boolean added = false;
 	boolean penetrationEnergyToggle;
+	boolean reset = false;
 	String minuteInfo = "";
 	DataFile [] dataFiles;
 
@@ -273,12 +274,21 @@ public class CPMApp extends AbstractSimulation {
 				sumDistribution = 0;
 			}
 			
-			double e_delU = np.nanoTrialPlacement(placementPosition);
-			sumDistribution += e_delU;
-			sumSquaredDistribution += Math.pow(e_delU, 2);
-			plotframe.append(0, np.mcs, e_delU);
-			plotframe.setMessage("r = " + placementPosition);
-			conformations++;
+			if(placementPosition == 0 && !reset){ // calculate U at infinity
+				reset = true;
+				nanoSphere[0].setVisible(false);
+				plotframe.clearDataAndRepaint();
+				np.nN = 0;
+				np.nanos = new Nano[0];
+				np.mcs = 1; // reset mcs counter to let system equilibrate.
+			} else {		
+				double e_delU = np.nanoTrialPlacement(placementPosition);
+				sumDistribution += e_delU;
+				sumSquaredDistribution += Math.pow(e_delU, 2);
+				plotframe.append(0, np.mcs, e_delU);
+				plotframe.setMessage("r = " + placementPosition);
+				conformations++;
+			}
 		}		
 		
 		if(writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % (snapshotIntervals*100) == 0){
@@ -311,7 +321,7 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 370);
+		control.setValue("N Polymers", 37);
 		control.setValue("Polymer colloid ratio", 0.15);
 		control.setValue("Spherical polymers", true);
 		control.setValue("Lattice length", 3.741);
@@ -319,8 +329,8 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
 		control.setValue("Tolerance", 0.1);
-		control.setValue("Rotation tolerance", 0.1);
-		control.setValue("Shape tolerance", 0.001);
+		control.setValue("Rotation tolerance", 0);
+		control.setValue("Shape tolerance", 0);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
