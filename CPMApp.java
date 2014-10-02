@@ -272,6 +272,7 @@ public class CPMApp extends AbstractSimulation {
 				// reset counters for next data point.
 				conformations = 0;
 				sumDistribution = 0;
+				sumSquaredDistribution = 0;
 			}
 			
 			if(placementPosition == 0 && !reset){ // calculate U at infinity
