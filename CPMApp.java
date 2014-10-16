@@ -52,7 +52,7 @@ public class CPMApp extends AbstractSimulation {
 	ElementEllipsoid polySphere[];
 	boolean added = false;
 	boolean penetrationEnergyToggle;
-	boolean reset = false;
+	boolean clearNano = false;
 	String minuteInfo = "";
 	DataFile [] dataFiles;
 
@@ -67,6 +67,8 @@ public class CPMApp extends AbstractSimulation {
 	public void initialize() {
 		i++;
 		sumDistribution = 0;
+		sumVolume = 0;
+		volumeSnapshots = 0;
 		totalIntersections = 0;
 		dataPoints = 0;
 		conformations = 0;
@@ -171,7 +173,7 @@ public class CPMApp extends AbstractSimulation {
 					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
 					"\n# Nanoparticle Volume Fraction: "+threeDecimal.format(np.volFraction) + 
 					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
-					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
+					"\n# Lattice Length: " +threeDecimal.format(np.Lx)+
 					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
 					"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
 					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
@@ -230,13 +232,6 @@ public class CPMApp extends AbstractSimulation {
 		if(control.getBoolean("Visualization on")){
 			// nanoparticle visualization updates
 			for (int i = 0; i < np.nN; i++) {
-//				if(np.nanos[i].intersectPairs.isEmpty()){
-//					nanoSphere[i].getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
-//					nanoSphere[i].getStyle().setLineColor(new Color(92, 146, 237, 100));
-//				}else{
-//					nanoSphere[i].getStyle().setFillColor(new Color(0, 255, 0, 100));  // light blue with half transparency
-//					nanoSphere[i].getStyle().setLineColor(new Color(0, 255, 0, 100));
-//				}
 				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
 						np.nanos[i].getZ());
 			}
@@ -252,9 +247,18 @@ public class CPMApp extends AbstractSimulation {
 			}
 		}
 
+		if(np.mcs % 10000 == 0){
+			for(Polymer p : np.polymers){
+				sumVolume += 4/3*Math.PI*p.getrX()*p.getrY()*p.getrZ();
+			}
+			volumeSnapshots++;
+		}
+		
 		// perform insertion algorithm and record the data
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % snapshotIntervals == 0) {
-			double placementPosition = dataPoints == (maxDataPoints - 1) ? 0 : radialStart+dataPoints*steps;
+			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
+			double placementPosition = dataPoints == (maxDataPoints - 1) ? 0 : radialStart+dataPoints*steps; 
+			
 			
 			// Enough conformations for a data point, analyze distribution and record.
 			if(conformations > maxConformations){
@@ -275,8 +279,9 @@ public class CPMApp extends AbstractSimulation {
 				sumSquaredDistribution = 0;
 			}
 			
-			if(placementPosition == 0 && !reset){ // calculate U at infinity
-				reset = true;
+			// perform removal of nanoparticle and allows system to equilibrate (by resetting mcs)
+			if(placementPosition == 0 && !clearNano){ 
+				clearNano = true;
 				nanoSphere[0].setVisible(false);
 				plotframe.clearDataAndRepaint();
 				np.nN = 0;
@@ -296,6 +301,7 @@ public class CPMApp extends AbstractSimulation {
 			dataFiles[0].write();
 		}
 		
+		// Simulation info
 		long timeElapsed = System.currentTimeMillis() - timeStarted;
 		if(timeElapsed % 1000 == 0){
 			control.clearMessages();

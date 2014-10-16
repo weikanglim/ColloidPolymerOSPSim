@@ -270,13 +270,14 @@ public class CPM {
 		}
 		
 		// Generate random angles in spherical coordinates
-		double polar = 2*Math.random()*Math.PI;
-		double azimuth = Math.random()*Math.PI;
+		double phi =  2*Math.random()*Math.PI;
+		double cosTheta = 2*Math.random() - 1; // (-1,1)
+		double theta = Math.acos(cosTheta);
 		
 		// Calculate cartesian coordinates
-		double x = r*Math.cos(polar)*Math.sin(azimuth);  
-		double y = r*Math.sin(polar)*Math.sin(azimuth);
-		double z = r*Math.cos(azimuth);
+		double x = r*Math.cos(phi)*Math.sin(theta);  
+		double y = r*Math.sin(phi)*Math.sin(theta);
+		double z = r*Math.cos(theta);
 		
 		// Translate to lattice coordinates
 		x += Lx/2f;
