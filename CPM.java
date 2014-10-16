@@ -265,10 +265,6 @@ public class CPM {
 	 */
 	public double nanoTrialPlacement(double r) {
 		
-		if(r < 1.0){
-			return 0; // overlap with origin nanoparticle
-		}
-		
 		// Generate random angles in spherical coordinates
 		double phi =  2*Math.random()*Math.PI;
 		double cosTheta = 2*Math.random() - 1; // (-1,1)
@@ -287,9 +283,24 @@ public class CPM {
 		// Count number of intersections
 		Nano nano = new Nano(x,y,z);
 		int overlapCount = 0;
+		for(Nano n : nanos){
+			if(nano.overlap(n)){
+				return 0;
+			}
+		}
+		
 		for (int i = 0; i < polymers.length; i++) {
 			if(nano.overlap(polymers[i])){
 				overlapCount++;
+			}
+		}
+		
+		// Count other nano-polymer intersections
+		for(Nano n : nanos){
+			for(Polymer p : polymers){
+				if(n.overlap(p)){
+					overlapCount++;
+				}
 			}
 		}
 		

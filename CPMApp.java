@@ -84,10 +84,10 @@ public class CPMApp extends AbstractSimulation {
 		maxConformations = control.getInt("Number of conformations");
 		maxDataPoints = control.getInt("Number of datapoints") + 1; // added one for inserting at origin to get U at Infinity
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
-		radialEnd = np.Lx/2;
+		radialEnd = 1 + 2*np.q + 0.1; // 2*Rp+2*Rn
+		radialStart = 1;
 		steps = (radialEnd-radialStart) / maxDataPoints;
 		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
-		radialStart = 1;
 		if(control.getBoolean("Spherical polymers")){
 			np.init_eY = np.init_eZ =np.init_eX = 1/18f;
 			np.rotTolerance = 0;
@@ -257,27 +257,7 @@ public class CPMApp extends AbstractSimulation {
 		// perform insertion algorithm and record the data
 		if (writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % snapshotIntervals == 0) {
 			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
-			double placementPosition = dataPoints == (maxDataPoints - 1) ? 0 : radialStart+dataPoints*steps; 
-			
-			
-			// Enough conformations for a data point, analyze distribution and record.
-			if(conformations > maxConformations){
-				double avgDistribution = sumDistribution / maxConformations;
-				double avgSquaredDistribution = sumSquaredDistribution / maxConformations;
-				double uncertainty = Math.sqrt(avgSquaredDistribution - Math.pow(avgDistribution,2));
-				dataFiles[0].record(placementPosition + " " + avgDistribution + " " + uncertainty);
-				dataPoints++;
-				if(dataPoints >= maxDataPoints){
-					control.setAdjustableValue("Save", true);
-					this.stopAnimation();
-					return;
-				}
-				
-				// reset counters for next data point.
-				conformations = 0;
-				sumDistribution = 0;
-				sumSquaredDistribution = 0;
-			}
+			double placementPosition = dataPoints == (maxDataPoints-1) ? 0 : radialStart+dataPoints*steps;
 			
 			// perform removal of nanoparticle and allows system to equilibrate (by resetting mcs)
 			if(placementPosition == 0 && !clearNano){ 
@@ -294,6 +274,24 @@ public class CPMApp extends AbstractSimulation {
 				plotframe.append(0, np.mcs, e_delU);
 				plotframe.setMessage("r = " + placementPosition);
 				conformations++;
+				// Enough conformations for a data point, analyze distribution and record.
+				if(conformations > maxConformations){
+					double avgDistribution = sumDistribution / maxConformations;
+					double avgSquaredDistribution = sumSquaredDistribution / maxConformations;
+					double uncertainty = Math.sqrt(avgSquaredDistribution - Math.pow(avgDistribution,2));
+					dataFiles[0].record(placementPosition + " " + avgDistribution + " " + uncertainty);
+					dataPoints++;
+					if(dataPoints >= maxDataPoints){
+						control.setAdjustableValue("Save", true);
+						this.stopAnimation();
+						return;
+					}
+					
+					// reset counters for next data point.
+					conformations = 0;
+					sumDistribution = 0;
+					sumSquaredDistribution = 0;
+				}
 			}
 		}		
 		
@@ -358,7 +356,6 @@ public class CPMApp extends AbstractSimulation {
 		control.println("Volume fraction of nanoparticles: " + Math.PI/(6 * np.Lx * np.Ly * np.Lz));
 		control.println("Volume fraction of polymers: " + volFract);
 		control.println("Average no. of Intersections: " + averageIntersections);
-		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
 		
 		}
 
