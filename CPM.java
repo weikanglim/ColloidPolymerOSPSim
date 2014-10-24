@@ -261,7 +261,7 @@ public class CPM {
 	 * 
 	 * @param r
 	 *            The radial distance to perform the trial placement
-	 * @return Probability of acceptance, e^(-delta_U)
+	 * @return Probability of acceptance, e^(-_U)
 	 */
 	public double nanoTrialPlacement(double r) {
 		
@@ -280,14 +280,20 @@ public class CPM {
 		y += Ly/2f;
 		z += Lz/2f;
 		
+		double dist_sqrd =  Math.pow(x-Lx/2f,2) + Math.pow(y-Lx/2f, 2) + Math.pow(z-Lz/2f,2);
+		if( dist_sqrd - Math.pow(r, 2) > 0.001){
+			System.out.println("r does not match: " + Math.sqrt(dist_sqrd) + " , " + r);
+		}
+		
 		// Count number of intersections
 		Nano nano = new Nano(x,y,z);
 		int overlapCount = 0;
-		for(Nano n : nanos){
-			if(nano.overlap(n)){
-				return 0;
-			}
-		}
+//		for(Nano n : nanos){
+//			if(nano.overlap(n)){
+//				System.out.println("Collision detected");
+//				return 0;
+//			}
+//		}
 		
 		for (int i = 0; i < polymers.length; i++) {
 			if(nano.overlap(polymers[i])){
@@ -304,6 +310,7 @@ public class CPM {
 			}
 		}
 		
+//		System.out.println(Math.exp(-Ep*overlapCount));
 		return Math.exp(-Ep*overlapCount); 
 	}
 
