@@ -53,6 +53,7 @@ public class CPMApp extends AbstractSimulation {
 	int maxDataPoints;
 	double totalMCS;
 	double steps;
+	double placementPosition;
 	int i =0;
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
@@ -79,8 +80,8 @@ public class CPMApp extends AbstractSimulation {
 		totalIntersections = 0;
 		dataPoints = 0;
 		conformations = 0;
-		np.nP = control.getInt("N Polymers");
-		np.nN = 1;
+		np.nP = 1;
+		np.nN = 2;
 		np.q = control.getDouble("Polymer colloid ratio");
 		np.Lx = np.Ly = np.Lz = control.getDouble("Lattice length");
 		np.nano_r = 0.5;
@@ -91,13 +92,14 @@ public class CPMApp extends AbstractSimulation {
 		maxConformations = control.getInt("Number of conformations");
 		maxDataPoints = control.getInt("Number of datapoints"); 
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
-		radialEnd = 1 + 2*np.q + 0.1 ; // 2*Rp+2*Rn
+		radialEnd = Math.min(1 + np.q + 0.1, (np.Lx-1)/2) ; // 2*Rp+2*Rn
 		radialStart = 1;
 		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
 		maxDataPoints++; // increase datapoint by 1 to account for 1 extra datapoint for run at r = 0
-		System.out.println(radialEnd + " " + radialStart + " by " + steps );
+		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
 		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
 		radialData = new double[maxDataPoints+1][3]; // radialData[i][0] = r, radialData[i][1] = e^[-U(r)], radialData[i][2] = uncertainty
+
 		if(control.getBoolean("Spherical polymers")){
 			np.init_eY = np.init_eZ =np.init_eX = 1/18f;
 			np.rotTolerance = 0;
@@ -119,7 +121,10 @@ public class CPMApp extends AbstractSimulation {
 		}
 		
 		np.initialize(configuration, penetrationEnergyToggle);
-		
+		placementPosition = radialStart;
+		np.placeNano2(placementPosition);
+		plotframe.setMessage("r = " + placementPosition);
+
 		// add simple3d.Element particles to the arrays 
 		if (i == 2) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
 			nanoSphere = new ElementSphere[np.nN];
@@ -179,6 +184,11 @@ public class CPMApp extends AbstractSimulation {
 
 		// logical step in the CPM class
 		np.step();
+		double e_negU = np.polyTrialPlacement(Math.random()*np.Lx);
+		sumDistribution += e_negU;
+		sumSquaredDistribution += Math.pow(e_negU, 2);
+		plotframe.append(0, np.mcs, e_negU);
+		conformations++;
 
 		// Volume fraction snapshots
 		if(np.mcs % 10000 == 0){
@@ -189,69 +199,67 @@ public class CPMApp extends AbstractSimulation {
 		}
 		
 		// Insertion algorithm snapshots
-		if (writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % snapshotIntervals == 0) {
-			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
-			double placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
-			
-			// perform removal of nanoparticle and allows system to equilibrate (by resetting mcs)
-			if(placementPosition == 0 && !clearNano){ 
-				clearNano = true;
-				nanoSphere[0].setVisible(false);
-				plotframe.clearDataAndRepaint();
-				np.nN = 0;
-				np.nanos = new Nano[0];
-				np.mcs = 1; // reset mcs counter to let system equilibrate.
-			} else {		
-				double e_negU = np.nanoTrialPlacement(placementPosition);
-				sumDistribution += e_negU;
-				sumSquaredDistribution += Math.pow(e_negU, 2);
-				plotframe.append(0, np.mcs, e_negU);
-				plotframe.setMessage("r = " + placementPosition);
-				conformations++;
-				// Enough conformations for a data point, analyze distribution and record.
-				if(conformations >= maxConformations){
-					double avgDistribution = sumDistribution / conformations;
-					double avgSquaredDistribution = sumSquaredDistribution / conformations;
-					double uncertainty = Math.sqrt(avgSquaredDistribution - Math.pow(avgDistribution,2));
-					dataFiles[0].record(placementPosition + " " + avgDistribution + " " + uncertainty);
-					radialData[dataPoints][0] = placementPosition;
-					radialData[dataPoints][1] = avgDistribution;
-					radialData[dataPoints][2] = uncertainty;
-					dataPoints++;
-					if(dataPoints > maxDataPoints){
-						data = new Dataset();
-						dataFiles[0].record("");
-						dataFiles[0].record("Calculated potentials: ");
-						int U_zero_index = radialData.length -1;
-						double lnU_inf = 2*Math.log(radialData[U_zero_index][1]);
-						for(int i =0; i < radialData.length-1; i++){
-							double r = radialData[i][0];
-							double lnU_r = Math.log(radialData[i][1]);
-							double V_r = -lnU_r + lnU_inf;
-							System.out.println(lnU_inf +  " " + lnU_r + " " + V_r);
-							double new_uncertainty = (Math.log(radialData[i][2])/lnU_r+ 2*Math.log(radialData[U_zero_index][2])/lnU_inf)*V_r;
-							dataFiles[0].record(r + " " + V_r + " " + new_uncertainty);
-							data.append(r, V_r, 0, new_uncertainty);
-						}
-						resultsFrame.addDrawable(data);
-						control.setAdjustableValue("Save", true);
-						int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
-						int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
-						String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
-						dataFiles[0].record("Total simulation time: " + formatTimeElapsed); 
-						this.stopAnimation();
-						return;
-					}
-					
-					// reset counters for next data point.
-					conformations = 0;
-					sumDistribution = 0;
-					sumSquaredDistribution = 0;
+		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
+			System.out.println(sumDistribution);
+			// Enough conformations for a data point, analyze distribution and record.
+			double avgDistribution = sumDistribution / conformations;
+			double avgSquaredDistribution = sumSquaredDistribution / conformations;
+			double uncertainty = Math.sqrt(avgSquaredDistribution - Math.pow(avgDistribution,2));
+			dataFiles[0].record(placementPosition + " " + avgDistribution + " " + uncertainty);
+			radialData[dataPoints][0] = placementPosition;
+			radialData[dataPoints][1] = avgDistribution;
+			radialData[dataPoints][2] = uncertainty;
+			dataPoints++;
+			if(dataPoints > maxDataPoints){
+				data = new Dataset();
+				dataFiles[0].record("");
+				dataFiles[0].record("Calculated potentials: ");
+				int U_zero_index = radialData.length -1;
+				double lnU_inf = 2*Math.log(radialData[U_zero_index][1]);
+				for(int i =0; i < radialData.length-1; i++){
+					double r = radialData[i][0];
+					double lnU_r = Math.log(radialData[i][1]);
+					double V_r = -lnU_r + lnU_inf;
+					System.out.println(lnU_inf +  " " + lnU_r + " " + V_r);
+					double new_uncertainty = (Math.log(radialData[i][2])/lnU_r+ 2*Math.log(radialData[U_zero_index][2])/lnU_inf)*V_r;
+					dataFiles[0].record(r + " " + V_r + " " + new_uncertainty);
+					data.append(r, V_r, 0, new_uncertainty);
 				}
+				resultsFrame.addDrawable(data);
+				control.setAdjustableValue("Save", true);
+				int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+				int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
+				String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
+				dataFiles[0].record("Total simulation time: " + formatTimeElapsed); 
+				this.stopAnimation();
+				return;
 			}
+			
+			// reset counters for next data point.
+			conformations = 0;
+			sumDistribution = 0;
+			sumSquaredDistribution = 0;
+			
+			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
+			placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
+			
+			if(placementPosition == 0 && !clearNano){ 
+				clearNano = true; // only perform once
+				nanoSphere[1].setVisible(false);
+				plotframe.clearDataAndRepaint();
+				
+				// Keep only one nanoparticle at the center
+				np.nN = 1;
+				np.nanos = new Nano[1];
+				np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
+			} 
+
+			// set new nanoparticle position
+			np.placeNano2(placementPosition);
+			plotframe.setMessage("r = " + placementPosition);
 		}		
 		
-		if(writeMode != WriteModes.WRITE_NONE && np.mcs >= 50000 && np.mcs % (snapshotIntervals*100) == 0){
+		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (snapshotIntervals*10) == 0){
 			dataFiles[0].write();
 		}
 		
@@ -306,14 +314,13 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("N Polymers", 37);
 		control.setValue("Polymer colloid ratio", 0.15);
 		control.setValue("Spherical polymers", true);
 		control.setValue("Lattice length", 3.741);
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
-		control.setValue("Tolerance", 0.1);
+		control.setValue("Tolerance", 0);
 		control.setValue("Rotation tolerance", 0);
 		control.setValue("Shape tolerance", 0);
 		control.setValue("Initial configuration", "square");
@@ -330,14 +337,6 @@ public class CPMApp extends AbstractSimulation {
 
 	public void stop() {
 		double averageIntersections = totalIntersections / np.mcs;
-		if(control.getInt("N Polymers")> 0){
-			
-		double volFract = sumVolume / (volumeSnapshots* np.Lx * np.Ly * np.Lz);
-		control.println("Volume fraction of nanoparticles: " + Math.PI/(6 * np.Lx * np.Ly * np.Lz));
-		control.println("Volume fraction of polymers: " + volFract);
-		control.println("Average no. of Intersections: " + averageIntersections);
-		
-		}
 
 		// close streams
 		if(control.getBoolean("Save")){

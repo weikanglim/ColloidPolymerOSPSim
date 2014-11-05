@@ -116,35 +116,7 @@ public class CPM {
 
 		// place nanoparticle at the center of the lattice box
 		nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
-
-		
-		// place polymers
-		int i = 0;
-		for (iy = 0; iy < rows; iy++) {
-			for (ix = 0; ix < rows; ix++) {
-				for (iz = 0; iz < rows; iz++) {
-					if (i < polymers.length) { // checks for remaining
-												// particles
-						polymers[i] = new Polymer(ix * Lx/rows, iy * Ly/rows, iz * Lz/rows);
-						i++;
-
-						if ((ix + 1) * Lx/rows > Lx
-								&& (iy + 1) * Ly/rows > Ly
-								&& (iz + 1) * Lz/rows > Lz) { // the next
-																// position
-																// is out of
-																// the
-																// lattice
-							ix = iy = 0; // reset position counter,
-											// overlap
-											// poylmers
-							iz = -1;
-						}
-					} else
-						return;
-				}
-			}
-		}
+		polymers[0] = new Polymer(0,0,0); 
 	}
 
 	/**
@@ -152,7 +124,6 @@ public class CPM {
 	 */
 	public void step() {
 		mcs++;
-		trialMoves();
 	}
 
 	/**
@@ -255,15 +226,32 @@ public class CPM {
 			poly.seteZ(oldEZ);
 		}
 	}
+	
+	/**
+	 * 
+	 */
+	public void placeNano2(double r){
+		if(nanos.length <2){
+			return;
+		}
+		
+		if(nanos[1] == null){
+			nanos[1] = new Nano(Lx/2f,Ly/2f+r,Lz/2f);
+		} else {
+			nanos[1].setX(Lx/2f);
+			nanos[1].setY(Ly/2f+r);
+			nanos[1].setZ(Lz/2f);
+		}
+	}
 
 	/**
-	 * Performs a trial placement of nanoparticle at radius r.
+	 * Performs a trial placement of a polymer at radius r.
 	 * 
 	 * @param r
 	 *            The radial distance to perform the trial placement
-	 * @return Probability of acceptance, e^(-_U)
+	 * @return Boltzmann faztor, e^(-_U) where U is the total internal energy of the system
 	 */
-	public double nanoTrialPlacement(double r) {
+	public double polyTrialPlacement(double r) {
 		
 		// Generate random angles in spherical coordinates
 		double phi =  2*Math.random()*Math.PI;
@@ -279,14 +267,16 @@ public class CPM {
 		x += Lx/2f;
 		y += Ly/2f;
 		z += Lz/2f;
-		
+				
 		double dist_sqrd =  Math.pow(x-Lx/2f,2) + Math.pow(y-Lx/2f, 2) + Math.pow(z-Lz/2f,2);
 		if( dist_sqrd - Math.pow(r, 2) > 0.001){
 			System.out.println("r does not match: " + Math.sqrt(dist_sqrd) + " , " + r);
 		}
 		
 		// Count number of intersections
-		Nano nano = new Nano(x,y,z);
+		polymers[0].setX(x);
+		polymers[0].setY(y);
+		polymers[0].setZ(z);
 		int overlapCount = 0;
 //		for(Nano n : nanos){
 //			if(nano.overlap(n)){
@@ -295,21 +285,12 @@ public class CPM {
 //			}
 //		}
 		
-		for (int i = 0; i < polymers.length; i++) {
-			if(nano.overlap(polymers[i])){
+		for (int i = 0; i < nanos.length; i++) {
+			if(polymers[0].overlap(nanos[i])){
 				overlapCount++;
 			}
 		}
-		
-		// Count other nano-polymer intersections
-		for(Nano n : nanos){
-			for(Polymer p : polymers){
-				if(n.overlap(p)){
-					overlapCount++;
-				}
-			}
-		}
-		
+//		return overlapCount;
 //		System.out.println(Math.exp(-Ep*overlapCount));
 		return Math.exp(-Ep*overlapCount); 
 	}
