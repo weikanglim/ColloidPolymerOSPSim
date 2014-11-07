@@ -245,33 +245,14 @@ public class CPM {
 	}
 
 	/**
-	 * Performs a trial placement of a polymer at radius r.
+	 * Performs a trial placement of a polymer at (x,y,z).
 	 * 
-	 * @param r
-	 *            The radial distance to perform the trial placement
+	 * @param x x-coordinate
+	 * @param y y-coordinate
+	 * @param z z-coordinate
 	 * @return Boltzmann faztor, e^(-_U) where U is the total internal energy of the system
 	 */
-	public double polyTrialPlacement(double r) {
-		
-		// Generate random angles in spherical coordinates
-		double phi =  2*Math.random()*Math.PI;
-		double cosTheta = 2*Math.random() - 1; // (-1,1)
-		double theta = Math.acos(cosTheta);
-		
-		// Calculate cartesian coordinates
-		double x = r*Math.cos(phi)*Math.sin(theta);  
-		double y = r*Math.sin(phi)*Math.sin(theta);
-		double z = r*Math.cos(theta);
-		
-		// Translate to lattice coordinates
-		x += Lx/2f;
-		y += Ly/2f;
-		z += Lz/2f;
-				
-		double dist_sqrd =  Math.pow(x-Lx/2f,2) + Math.pow(y-Lx/2f, 2) + Math.pow(z-Lz/2f,2);
-		if( dist_sqrd - Math.pow(r, 2) > 0.001){
-			System.out.println("r does not match: " + Math.sqrt(dist_sqrd) + " , " + r);
-		}
+	public double polyTrialPlacement(double x, double y, double z) {
 		
 		// Count number of intersections
 		polymers[0].setX(x);

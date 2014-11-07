@@ -184,7 +184,7 @@ public class CPMApp extends AbstractSimulation {
 
 		// logical step in the CPM class
 		np.step();
-		double e_negU = np.polyTrialPlacement(Math.random()*np.Lx);
+		double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
 		sumDistribution += e_negU;
 		sumSquaredDistribution += Math.pow(e_negU, 2);
 		plotframe.append(0, np.mcs, e_negU);
