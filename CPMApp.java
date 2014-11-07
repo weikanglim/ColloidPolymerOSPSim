@@ -97,7 +97,7 @@ public class CPMApp extends AbstractSimulation {
 		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
 		maxDataPoints++; // increase datapoint by 1 to account for 1 extra datapoint for run at r = 0
 		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
-		totalMCS = maxConformations * maxDataPoints * snapshotIntervals;
+		totalMCS = maxConformations * maxDataPoints;
 		radialData = new double[maxDataPoints+1][3]; // radialData[i][0] = r, radialData[i][1] = e^[-U(r)], radialData[i][2] = uncertainty
 
 		if(control.getBoolean("Spherical polymers")){
