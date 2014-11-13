@@ -253,6 +253,29 @@ public class CPM {
 	 * @return Boltzmann faztor, e^(-_U) where U is the total internal energy of the system
 	 */
 	public double polyTrialPlacement(double x, double y, double z) {
+		Polymer poly = polymers[0];
+		if(Polymer.getShapeTolerance() != 0){
+			double oldEX = poly.geteX();
+			double oldEY = poly.geteY();
+			double oldEZ = poly.geteZ();
+			poly.shapeChange();
+			double newEX = poly.geteX();
+			double newEY = poly.geteY();
+			double newEZ = poly.geteZ();
+			
+			double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
+					   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) );
+			
+			if(p < 1 && Math.random() >= p){
+				poly.seteX(oldEX);
+				poly.seteY(oldEY);
+				poly.seteZ(oldEZ);
+			}
+		}
+		
+		if(Polymer.getRotTolerance() != 0){
+			poly.rotate();
+		}
 		
 		// Count number of intersections
 		polymers[0].setX(x);

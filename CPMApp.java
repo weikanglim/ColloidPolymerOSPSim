@@ -199,7 +199,8 @@ public class CPMApp extends AbstractSimulation {
 		}
 		
 		// Insertion algorithm snapshots
-		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
+		if (	(Polymer.getShapeTolerance() == 0 || np.mcs >= 50000) &&
+				writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
 			System.out.println(sumDistribution);
 			// Enough conformations for a data point, analyze distribution and record.
 			double avgDistribution = sumDistribution / conformations;
@@ -314,21 +315,21 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 0.15);
-		control.setValue("Spherical polymers", true);
+		control.setValue("Polymer colloid ratio", 0.5);
+		control.setValue("Spherical polymers", false);
 		control.setValue("Lattice length", 3.741);
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
 		control.setValue("Tolerance", 0);
-		control.setValue("Rotation tolerance", 0);
-		control.setValue("Shape tolerance", 0);
+		control.setValue("Rotation tolerance", 0.1);
+		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1000);
 		control.setValue("Number of datapoints", 8);
-		control.setValue("Number of conformations", 2000);
+		control.setValue("Number of conformations", 2000000);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);
