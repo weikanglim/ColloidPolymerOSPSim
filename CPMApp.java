@@ -194,6 +194,7 @@ public class CPMApp extends AbstractSimulation {
 		for(Polymer p : np.polymers){
 			sumVolume += 4/3*Math.PI*p.getrX()*p.getrY()*p.getrZ();
 		}
+		volumeSnapshots++;
 		
 		// Insertion algorithm snapshots
 		if (	(Polymer.getShapeTolerance() == 0 || np.mcs >= 50000) &&
@@ -225,8 +226,11 @@ public class CPMApp extends AbstractSimulation {
 				}
 				resultsFrame.addDrawable(data);
 				control.setAdjustableValue("Save", true);
-				double avgPhiP = (sumVolume / volumeSnapshots) / (np.Lx*np.Ly*np.Lz);
-				dataFiles[0].record("Average phiP: " +  ( new DecimalFormat("#0.###") ).format(avgPhiP));
+				double avgPhiP = (sumVolume / volumeSnapshots) / (np.nP*np.Lx*np.Ly*np.Lz);
+				System.out.println(avgPhiP);
+				DecimalFormat threeDecimals = new DecimalFormat("#0.###");
+				String phiP = threeDecimals.format(avgPhiP);
+				dataFiles[0].record("Average phiP: " +  phiP);
 				int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
 				int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 				String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
@@ -364,11 +368,18 @@ public class CPMApp extends AbstractSimulation {
 	public void initializeDataFiles(){
 		DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 		DecimalFormat threeDecimal = new DecimalFormat("#0.###");
+		DecimalFormat fourDecimal = new DecimalFormat("#0.####");
+		String phi_n;
+		if(np.volFraction < 0.001){
+			phi_n = fourDecimal.format(np.volFraction);
+		} else {
+			phi_n = threeDecimal.format(np.volFraction);
+		}
 		String configurations = "# Number of Polymers: " + np.nP +
 				"\n# Number of Nanoparticles: "+np.nN +
 				"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 				"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-				"\n# Nanoparticle Volume Fraction: "+threeDecimal.format(np.volFraction) + 
+				"\n# Nanoparticle Volume Fraction: "+phi_n + 
 				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 				"\n# Lattice Length: " +threeDecimal.format(np.Lx)+
 				"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
