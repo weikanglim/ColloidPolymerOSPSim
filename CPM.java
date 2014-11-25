@@ -61,6 +61,7 @@ public class CPM {
 	public double Ep; // Penetration Energy
 	public double mcs;
 	public double rotTolerance;
+	public boolean pomfRun = true;
 
 	// end declaration
 
@@ -99,7 +100,8 @@ public class CPM {
 			setPositions();
 		} 
 		Particle.setBoundaries(Lx, Ly, Lz);
-		volFraction = nN * (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3);
+		volFraction = pomfRun ? (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3):
+								nN * (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3);
 	}
 
 	/**

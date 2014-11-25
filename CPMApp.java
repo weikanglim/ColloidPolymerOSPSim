@@ -190,12 +190,9 @@ public class CPMApp extends AbstractSimulation {
 		plotframe.append(0, np.mcs, e_negU);
 		conformations++;
 
-		// Volume fraction snapshots
-		if(np.mcs % 10000 == 0){
-			for(Polymer p : np.polymers){
-				sumVolume += 4/3*Math.PI*p.getrX()*p.getrY()*p.getrZ();
-			}
-			volumeSnapshots++;
+		// 	Volume fraction snapshots
+		for(Polymer p : np.polymers){
+			sumVolume += 4/3*Math.PI*p.getrX()*p.getrY()*p.getrZ();
 		}
 		
 		// Insertion algorithm snapshots
@@ -228,6 +225,8 @@ public class CPMApp extends AbstractSimulation {
 				}
 				resultsFrame.addDrawable(data);
 				control.setAdjustableValue("Save", true);
+				double avgPhiP = (sumVolume / volumeSnapshots) / (np.Lx*np.Ly*np.Lz);
+				dataFiles[0].record("Average phiP: " +  ( new DecimalFormat("#0.###") ).format(avgPhiP));
 				int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
 				int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 				String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
@@ -315,9 +314,9 @@ public class CPMApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 0.5);
+		control.setValue("Polymer colloid ratio", 3);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", 3.741);
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.001));
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
