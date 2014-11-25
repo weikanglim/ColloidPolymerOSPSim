@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [ -n "$OSP_PATH"]
+then
+	OSP_PATH="$PWD"
+	i="0"
+	while [ $i -lt 5 ] 
+	do
+		OSP_PATH=$(dirname "$OSP_PATH")
+		i=$[$i+1]
+		echo $OSP_PATH
+	done
+fi
+
+echo $OSP_PATH
+cd $OSP_PATH
+javac -d classes/ -classpath classes/ -sourcepath src/ src/org/opensourcephysics/sip/CPM/CPMApp.java && java -classpath classes/ org/opensourcephysics/sip/CPM/CPMApp
+
+#while(true)
+	#echo "Choose a program to run:"
+	#echo "(1) Polymer crowding effects."
+	#echo "(2) Polymer depletion."
+	
+
