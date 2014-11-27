@@ -62,6 +62,7 @@ public class CPM {
 	public double mcs;
 	public double rotTolerance;
 	public boolean pomfRun = true;
+	public String insertionType;
 
 	// end declaration
 
@@ -73,6 +74,13 @@ public class CPM {
 	 *            the initial lattice structure of the model
 	 */
 	public void initialize(String configuration, boolean penetrationEnergy) {
+		if (insertionType.toLowerCase().equals("polymer")) {
+			nP = 1;
+			nN = 2;
+		}else{
+			nN = 1;
+			nP = (int) Math.round(Lx*Ly*Lz/(Math.PI/6*Math.pow(q,3)));
+		}
 		// set-up variables
 		totalIntersectCount = 0;
 		mcs = 0;
@@ -96,9 +104,12 @@ public class CPM {
 		Polymer.setDefault_eZ(init_eZ);
 
 		// initialize positions
-		if (configuration.toUpperCase().equals("SQUARE")) {
+		if (insertionType.toLowerCase().equals("polymer")) {
+			nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
+			polymers[0] = new Polymer(0,0,0); 
+		} else{
 			setPositions();
-		} 
+		}
 		Particle.setBoundaries(Lx, Ly, Lz);
 		volFraction = pomfRun ? (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3):
 								nN * (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3);
@@ -118,7 +129,35 @@ public class CPM {
 
 		// place nanoparticle at the center of the lattice box
 		nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
-		polymers[0] = new Polymer(0,0,0); 
+
+		
+		// place polymers
+		int i = 0;
+		for (iy = 0; iy < rows; iy++) {
+			for (ix = 0; ix < rows; ix++) {
+				for (iz = 0; iz < rows; iz++) {
+					if (i < polymers.length) { // checks for remaining
+												// particles
+						polymers[i] = new Polymer(ix * Lx/rows, iy * Ly/rows, iz * Lz/rows);
+						i++;
+
+						if ((ix + 1) * Lx/rows > Lx
+								&& (iy + 1) * Ly/rows > Ly
+								&& (iz + 1) * Lz/rows > Lz) { // the next
+																// position
+																// is out of
+																// the
+																// lattice
+							ix = iy = 0; // reset position counter,
+											// overlap
+											// poylmers
+							iz = -1;
+						}
+					} else
+						return;
+				}
+			}
+		}
 	}
 
 	/**
@@ -126,6 +165,9 @@ public class CPM {
 	 */
 	public void step() {
 		mcs++;
+		if(insertionType.equals("nano")){
+			trialMoves();
+		}
 	}
 
 	/**
@@ -228,9 +270,66 @@ public class CPM {
 			poly.seteZ(oldEZ);
 		}
 	}
+	/**
+	 * Performs a trial placement of nanoparticle at radius r.
+	 * 
+	 * @param r
+	 *            The radial distance to perform the trial placement
+	 * @return Probability of acceptance, e^(-_U)
+	 */
+	public double nanoTrialPlacement(double r) {
+		
+		// Generate random angles in spherical coordinates
+		double phi =  2*Math.random()*Math.PI;
+		double cosTheta = 2*Math.random() - 1; // (-1,1)
+		double theta = Math.acos(cosTheta);
+		
+		// Calculate cartesian coordinates
+		double x = r*Math.cos(phi)*Math.sin(theta);  
+		double y = r*Math.sin(phi)*Math.sin(theta);
+		double z = r*Math.cos(theta);
+		
+		// Translate to lattice coordinates
+		x += Lx/2f;
+		y += Ly/2f;
+		z += Lz/2f;
+		
+		double dist_sqrd =  Math.pow(x-Lx/2f,2) + Math.pow(y-Lx/2f, 2) + Math.pow(z-Lz/2f,2);
+		if( dist_sqrd - Math.pow(r, 2) > 0.001){
+			System.out.println("r does not match: " + Math.sqrt(dist_sqrd) + " , " + r);
+		}
+		
+		// Count number of intersections
+		Nano nano = new Nano(x,y,z);
+		int overlapCount = 0;
+//		for(Nano n : nanos){
+//			if(nano.overlap(n)){
+//				System.out.println("Collision detected");
+//				return 0;
+//			}
+//		}
+		
+		for (int i = 0; i < polymers.length; i++) {
+			if(nano.overlap(polymers[i])){
+				overlapCount++;
+			}
+		}
+		
+		// Count other nano-polymer intersections
+		for(Nano n : nanos){
+			for(Polymer p : polymers){
+				if(n.overlap(p)){
+					overlapCount++;
+				}
+			}
+		}
+		
+//		System.out.println(Math.exp(-Ep*overlapCount));
+		return Math.exp(-Ep*overlapCount); 
+	}
 	
 	/**
-	 * 
+	 * Places a nanoparticle at the specified radial distance (currently only y-distance) from the origin.
 	 */
 	public void placeNano2(double r){
 		if(nanos.length <2){
