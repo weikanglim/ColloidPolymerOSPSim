@@ -248,7 +248,8 @@ public class CPMApp extends AbstractSimulation {
 
 				// Calculate V_r from averaged e^-U
 				int U_zero_index = maxDataPoints; // last position
-				double lnU_inf = 2*Math.log(radialData[currentRun][U_zero_index][1]); 
+				double U_inf = 2*radialData[currentRun][U_zero_index][1]-1;
+				double lnU_inf = Math.log(U_inf);
 				for(int i =0; i < maxDataPoints; i++){
 					double r = radialData[currentRun][i][0];
 					double lnU_r = Math.log(radialData[currentRun][i][1]);
@@ -285,7 +286,7 @@ public class CPMApp extends AbstractSimulation {
 					}
 					
 					data = new Dataset();
-					dataFiles[0].record("r\tV_r\tStd-dev" );
+					dataFiles[0].record("# r\tV_r\tStd-dev" );
 					for(int i = 0; i < maxDataPoints; i++){
 						dataFiles[0].record(radialData[0][i][0] + "\t" + avgPotential[i] + "\t" + stdDevPotential[i]);
 						data.append(radialData[0][i][0], avgPotential[i], 0, stdDevPotential[i]);
@@ -301,7 +302,7 @@ public class CPMApp extends AbstractSimulation {
 					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
 					int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
-					dataFiles[0].record("Total simulation time: " + formatTimeElapsed); 
+					dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
 					this.stopAnimation();
 					return;
 				}
