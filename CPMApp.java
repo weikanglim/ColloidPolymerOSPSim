@@ -294,6 +294,8 @@ public class CPMApp extends AbstractSimulation {
 
 					resultsFrame.addDrawable(data);
 					control.setAdjustableValue("Save", true);
+					control.clearMessages();
+					control.println("Runs completed.");
 //					double avgPhiP = (sumVolume / volumeSnapshots) / (np.nP*np.Lx*np.Ly*np.Lz);
 //					System.out.println(avgPhiP);
 //					DecimalFormat threeDecimals = new DecimalFormat("#0.###");
@@ -396,21 +398,21 @@ public class CPMApp extends AbstractSimulation {
 		enableStepsPerDisplay(true);
 		control.setValue("Polymer colloid ratio", 5);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.001));
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0002));
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
-		control.setValue("Runs", 2);
-		control.setValue("Tolerance", 0.3);
+		control.setValue("Runs", 5);
+		control.setValue("Tolerance", 0);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
-		control.setValue("Insertion method", "nano");
+		control.setValue("Insertion method", "polymer");
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 100);
 		control.setValue("Number of datapoints", 8);
-		control.setValue("Number of conformations", 2000);
+		control.setValue("Number of conformations", 2000000);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);
@@ -457,6 +459,7 @@ public class CPMApp extends AbstractSimulation {
 				"\n# Number of Nanoparticles: "+np.nN +
 				"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 				"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
+				"\n# Insertion type: " + insertionType +
 				"\n# Nanoparticle Volume Fraction: "+phi_n + 
 				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 				"\n# Lattice Length: " +threeDecimal.format(np.Lx)+
