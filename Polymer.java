@@ -1,6 +1,7 @@
 package org.opensourcephysics.sip.CPM;
 
 import org.opensourcephysics.numerics.Matrix3DTransformation;
+import org.opensourcephysics.numerics.PBC;
 import org.opensourcephysics.numerics.VectorMath;
 
 public class Polymer extends Particle{
@@ -54,11 +55,11 @@ public class Polymer extends Particle{
 			if(this.geteX() == this.geteY() && this.geteX() == this.geteZ()){
 				return this.separation(nano) < Math.pow(this.getrX() + nano.getrX(), 2); // Calculate the pbc distance directly.
 			} else { // Polymer is ellipsoidal
-				double [] originAxis = {0,1,0}; // The origin vector of the ellipsoid.
+				double [] originAxis = {0,1,0}; // The unrotated vector of the ellipsoid.
 				
 				/** The current way the overlap detection works:
 				 *  All periodic images of the polymer are generated, and if a nanoparticle is found to be within the approximate exclusion shell
-				 *  given by the sum of the two radii in each dimension, a overlap is detected.
+				 *  given by the sum of the two radii in each dimension, an overlap is detected.
 				 */
 				// Initialize the starting position of the polymer corresponding to the periodic image closest to (0,0,0)
 				double [] startImage = {this.getX() > Particle.getLx()/2 ? this.getX() - Particle.getLx() : this.getX(), 
@@ -94,20 +95,26 @@ public class Polymer extends Particle{
 						}
 					}
 				} else {
-					double [] point = {nano.getX(), nano.getY(), nano.getZ()};
-					for(int x = 0; x <= 1; x++){
-						for(int y = 0; y <= 1; y++){
-							for(int z = 0; z <= 1; z++){
-								dist[0] = Math.abs(point[0]-(startImage[0] + boundary[0]*x) );
-								dist[1] = Math.abs(point[1]-(startImage[1] + boundary[1]*y) );
-								dist[2] = Math.abs(point[2]-(startImage[2] + boundary[2]*z) );
-								if(Math.pow(dist[0]/(this.getrX()+nano.getrX()),2) + Math.pow(dist[1]/(this.getrY()+nano.getrY()), 2) + Math.pow(dist[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
-								//if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
-									return true;
-								}
-							}
-						}
+					dist[0] = PBC.separation(nano.getX()-this.getX(), boundary[0]);
+					dist[1] = PBC.separation(nano.getY()-this.getY(), boundary[1]);
+					dist[2] = PBC.separation(nano.getZ()-this.getZ(), boundary[2]);
+					if(Math.pow(dist[0]/(this.getrX()+nano.getrX()),2) + Math.pow(dist[1]/(this.getrY()+nano.getrY()), 2) + Math.pow(dist[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
+							return true;
 					}
+//					double [] point = {nano.getX(), nano.getY(), nano.getZ()};
+//					for(int x = 0; x <= 1; x++){
+//						for(int y = 0; y <= 1; y++){
+//							for(int z = 0; z <= 1; z++){
+//								dist[0] = Math.abs(point[0]-(startImage[0] + boundary[0]*x) );
+//								dist[1] = Math.abs(point[1]-(startImage[1] + boundary[1]*y) );
+//								dist[2] = Math.abs(point[2]-(startImage[2] + boundary[2]*z) );
+//								if(Math.pow(dist[0]/(this.getrX()+nano.getrX()),2) + Math.pow(dist[1]/(this.getrY()+nano.getrY()), 2) + Math.pow(dist[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
+//								//if(Math.pow(dist[0]/this.getrX(),2) + Math.pow(dist[1]/this.getrY(), 2) + Math.pow(dist[2]/this.getrZ(),2) < 1){
+//									return true;
+//								}
+//							}
+//						}
+//					}
 				}
 				return false;	
 			}
