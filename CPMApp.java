@@ -88,12 +88,29 @@ public class CPMApp extends AbstractSimulation {
 	}
 	
 	public void getInput(){
+		// CPM (Simulation logic) input
 		np.insertionType =insertionType = control.getString("Insertion method");
 		np.q = control.getDouble("Polymer colloid ratio");
 		np.Lx = np.Ly = np.Lz = control.getDouble("Lattice length");
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
+		Polymer.setExact(control.getBoolean("Exact overlap"));
+		
+		if(control.getBoolean("Spherical polymers")){
+			np.init_eY = np.init_eZ =np.init_eX = 1/18f;
+			np.rotTolerance = 0;
+			np.shapeTolerance = 0;
+		} else{
+			np.init_eX = control.getDouble("x");
+			np.init_eY = control.getDouble("y");
+			np.init_eZ = control.getDouble("z");
+			np.rotTolerance = control.getDouble("Rotation tolerance");
+			np.shapeTolerance = control.getDouble("Shape tolerance");
+		}
+
+		
+		// Simulation control input
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxConformations = control.getInt("Number of conformations");
 		maxDataPoints = control.getInt("Number of datapoints"); 
@@ -122,17 +139,6 @@ public class CPMApp extends AbstractSimulation {
 		}
 		radialData = new double[runs][maxDataPoints+1][3]; // radialData[i][0] = r, radialData[i][1] = e^[-U(r)], radialData[i][2] = uncertainty
 
-		if(control.getBoolean("Spherical polymers")){
-			np.init_eY = np.init_eZ =np.init_eX = 1/18f;
-			np.rotTolerance = 0;
-			np.shapeTolerance = 0;
-		} else{
-			np.init_eX = control.getDouble("x");
-			np.init_eY = control.getDouble("y");
-			np.init_eZ = control.getDouble("z");
-			np.rotTolerance = control.getDouble("Rotation tolerance");
-			np.shapeTolerance = control.getDouble("Shape tolerance");
-		}
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
@@ -210,11 +216,25 @@ public class CPMApp extends AbstractSimulation {
 		
 		// Insertion algorithms
 		// Polymer Insertion
-		if(insertionType.equals("polymer") && (Polymer.getShapeTolerance() == 0 || np.mcs >= 100)){
+		if(insertionType.equals("polymer")){
 			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
-			sumDistribution += e_negU;
-			plotframe.append(0, np.mcs, e_negU);
-			conformations++;
+			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
+				// !TODO Temporarily putting visualization updates here for testing.
+				// START
+				for (int i = 0; i < np.nP; i++) {
+					polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
+							np.polymers[i].getZ());
+					polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
+							2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+					if(np.polymers[i].isRotated()){ // this is done to save computation
+						polySphere[i].setTransformation(np.polymers[i].getTransformation());
+					}
+				}
+				// END
+				sumDistribution += e_negU;
+				plotframe.append(0, np.mcs, e_negU);
+				conformations++;
+			}
 		}
 		
 		// Nanoparticle insertion
@@ -237,9 +257,9 @@ public class CPMApp extends AbstractSimulation {
 		
 		// Insertion algorithm snapshots
 		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
-			System.out.println(sumDistribution);
 			// Enough conformations for a data point, analyze distribution and record.
 			double avgDistribution = sumDistribution / conformations;
+			System.out.println(avgDistribution);
 			radialData[currentRun][dataPoints][0] = placementPosition;
 			radialData[currentRun][dataPoints][1] = avgDistribution; // temporarily place the variable, will be replaced with V_r calculations later on.
 			dataPoints++;
@@ -250,9 +270,11 @@ public class CPMApp extends AbstractSimulation {
 				int U_zero_index = maxDataPoints; // last position
 				double U_inf = 2*radialData[currentRun][U_zero_index][1]-1;
 				double lnU_inf = Math.log(U_inf);
+				System.out.println(lnU_inf + " U_inf: " + U_inf);
 				for(int i =0; i < maxDataPoints; i++){
 					double r = radialData[currentRun][i][0];
 					double lnU_r = Math.log(radialData[currentRun][i][1]);
+					System.out.println(lnU_r);
 					double V_r = -lnU_r + lnU_inf;
 					radialData[currentRun][i][1] = V_r;
 					System.out.println(r + "\t" + V_r);
@@ -279,6 +301,7 @@ public class CPMApp extends AbstractSimulation {
 							avgPotential[i] += radialData[j][i][1];
 							stdDevPotential[i] += Math.pow(radialData[j][i][1],2);
 						}
+						
 						
 						avgPotential[i] /= runs;
 						stdDevPotential[i] /= runs;
@@ -407,12 +430,13 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Insertion method", "polymer");
+		control.setValue("Exact overlap", true);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 100);
 		control.setValue("Number of datapoints", 8);
-		control.setValue("Number of conformations", 2000000);
+		control.setValue("Number of conformations", 20000);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);
@@ -462,6 +486,7 @@ public class CPMApp extends AbstractSimulation {
 				"\n# Insertion type: " + insertionType +
 				"\n# Nanoparticle Volume Fraction: "+phi_n + 
 				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
+				"\n# Exact overlap: " + Polymer.getExact() + 
 				"\n# Lattice Length: " +threeDecimal.format(np.Lx)+
 				"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
 				"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
