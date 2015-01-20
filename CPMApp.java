@@ -230,6 +230,20 @@ public class CPMApp extends AbstractSimulation {
 						polySphere[i].setTransformation(np.polymers[i].getTransformation());
 					}
 				}
+				
+				if(e_negU < 1){ // overlap occurred
+					System.out.println("Overlap:");
+					for(int i = 0; i < np.nP; i++){
+						System.out.println(np.polymers[i].toPovray());
+					}
+					
+					for(int i = 0; i < np.nN; i++){
+						System.out.println(np.nanos[i].toPovray());
+					}
+				}
+					
+				
+				display3d.render();
 				// END
 				sumDistribution += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
