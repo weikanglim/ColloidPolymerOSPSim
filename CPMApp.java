@@ -233,13 +233,13 @@ public class CPMApp extends AbstractSimulation {
 				
 				if(e_negU < 1){ // overlap occurred
 					System.out.println("Overlap:");
-					for(int i = 0; i < np.nP; i++){
-						System.out.println(np.polymers[i].toPovray());
-					}
-					
-					for(int i = 0; i < np.nN; i++){
-						System.out.println(np.nanos[i].toPovray());
-					}
+//					for(int i = 0; i < np.nP; i++){
+//						System.out.println(np.polymers[i].toPovray());
+//					}
+//					
+//					for(int i = 0; i < np.nN; i++){
+//						System.out.println(np.nanos[i].toPovray());
+//					}
 				}
 					
 				
@@ -436,12 +436,12 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Polymer colloid ratio", 5);
 		control.setValue("Spherical polymers", false);
 		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0002));
-		control.setValue("x", 0.01);
+		control.setValue("x", 0.1);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
 		control.setValue("Runs", 5);
 		control.setValue("Tolerance", 0);
-		control.setValue("Rotation tolerance", 0.1);
+		control.setValue("Rotation tolerance", 0);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Insertion method", "polymer");
 		control.setValue("Exact overlap", true);
