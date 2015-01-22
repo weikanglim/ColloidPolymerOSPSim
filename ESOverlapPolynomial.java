@@ -18,7 +18,7 @@ public class ESOverlapPolynomial implements org.opensourcephysics.numerics.Funct
 	
 	/**
 	 * Instantiates the function with the required variables.
-	 * @param ellips double[] An array containing the ellipsoid radii.<br>
+	 * @param ellips double[] An array containing the ellipsoid radii squared.<br>
 	 * 				 [0,1,2] =  The x,y,z ellipsoid radii.
 	 * @param sphere double[] An array containing the sphere coordinates. <br>
 	 * 				 [0,1,2] = The sphere coordinates, relative to the center of ellipsoid. <br>
@@ -29,7 +29,7 @@ public class ESOverlapPolynomial implements org.opensourcephysics.numerics.Funct
 	
 	/**
 	 * Updates the polynomial with new parameters.
-	 * @param ellips double[] An array containing the ellipsoid radii.<br>
+	 * @param ellips double[] An array containing the ellipsoid radii squared.<br>
 	 * 				 [0,1,2] =  The x,y,z ellipsoid radii.
 	 * @param sphere double[] An array containing the sphere coordinates. <br>
 	 * 				 [0,1,2] = The sphere coordinates, relative to the center of ellipsoid. <br>

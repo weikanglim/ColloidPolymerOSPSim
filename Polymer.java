@@ -67,10 +67,23 @@ public class Polymer extends Particle{
 						return false;
 					}
 					
+					double [] originAxis = {0,1,0};
+					double [] point = {nano.getX(), nano.getY(), nano.getZ()};
+					boolean normalAxis = true;
+					for(int i = 0; i < 3; i++){
+						normalAxis = normalAxis && (newAxis[i] == originAxis[i]);
+					}	
+					
+					if(!normalAxis  && this.getRotTolerance() != 0){ // Rotations needed
+						Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
+						transformation.setOrigin(this.getX(), this.getY(), this.getZ());
+						point = transformation.direct(point);
+					}
+
 					/** Exact solution **/
-					double [] ellips = {this.getrX(), this.getrY(), this.getrZ()}; // ellipsoid radii
+					double [] ellips = {Math.pow(this.getrX(),2), Math.pow(this.getrY(),2), Math.pow(this.getrZ(),2)}; // ellipsoid radii
 					// sphere distances from center of ellipsoid
-					double [] sphere = {Math.abs(nano.getX() - this.getX()), Math.abs(nano.getY() - this.getY()), Math.abs(nano.getZ() - this.getZ())}; 
+					double [] sphere = {point[0] - this.getX(), point[1] - this.getY(), point[2] - this.getZ()}; 
 					
 					// Update the overlap polynomial with the new ellipsoid shape, and new distance of sphere.
 					if(overlapPolynomial == null){ // If the function hasn't been instantiated, instantiate a new object
@@ -84,11 +97,18 @@ public class Polymer extends Particle{
 					// solve for root, which must be in between (0, maxEllipsRadius).
 					// 0.001 is currently set as the acceptable computational tolerance.
 					// x, y, z are the coordinates of the closest point
-					double x = Root.bisection(overlapPolynomial, 0 , maxEllipsRadius, 0.001); 
+					
+					double max = sphere[0] > 0 ? maxEllipsRadius : 0;
+					double min = sphere[0] > 0 ? 0 : -maxEllipsRadius;
+					double x = Root.bisection(overlapPolynomial, min , max, 0.0001); 
 					double y = yRatio*x*sphere[1]/(sphere[0] + (yRatio-1)*x);
 					double z = zRatio*x*sphere[2]/(sphere[0] + (zRatio-1)*x);
+					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
 					
+					
+					System.out.println("Ellipsoid radii: " + this.getrX() + " " + this.getrY() + " " + this.getrZ());
 					System.out.println("Closest: " + x + " " + y + " " + z);
+					System.out.println("Equation of ellipsoid: " + ellipsEquation);
 					System.out.println("Nano center: " + sphere[0] + " " + sphere[1] + " " + sphere[2]);
 					return Math.pow(x-sphere[0], 2) + Math.pow(y-sphere[1], 2) + Math.pow(z-sphere[2], 2) < Math.pow(nano.getrX(),2);
 				} else{
