@@ -7,6 +7,7 @@ import org.opensourcephysics.controls.AbstractSimulation;
 import org.opensourcephysics.controls.SimulationControl;
 import org.opensourcephysics.display.Dataset;
 import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
+import org.opensourcephysics.display3d.simple3d.ElementPoints;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.DisplayFrame;
@@ -62,9 +63,13 @@ public class CPMApp extends AbstractSimulation {
 	double steps;
 	double placementPosition;
 	int i =0;
+	int AXIS_POINTS = 30;
+	double [][] axisPoints = new double[AXIS_POINTS][3];
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
+	ElementPoints axis;
+	ElementSphere closest;
 	boolean added = false;
 	boolean penetrationEnergyToggle;
 	boolean clearNano = false;
@@ -157,6 +162,12 @@ public class CPMApp extends AbstractSimulation {
 		if (i == 2) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
 			nanoSphere = new ElementSphere[np.nN];
 			polySphere = new ElementEllipsoid[np.nP];
+			axis = new ElementPoints();
+			closest = new ElementSphere();
+			closest.setSizeXYZ(0.1,0.1,0.1);
+			closest.getStyle().setFillColor(Color.BLACK); 
+			display3d.addElement(closest);
+
 
 			for (int i = 0; i < np.nN; i++) {
 				nanoSphere[i] = new ElementSphere();
@@ -191,10 +202,20 @@ public class CPMApp extends AbstractSimulation {
 				polySphere[i].getStyle().setLineColor(Color.RED);
 				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 						np.polymers[i].getZ());
-	            if(np.polymers[i].isRotated()){ 
+	            if(np.polymers[i].updateRotation()){
 	                    polySphere[i].setTransformation(np.polymers[i].getTransformation());
 	            }
 			}
+			 
+			for(int i =0; i < AXIS_POINTS; i++){
+				axisPoints[i][0] = np.polymers[0].getX() + i*np.polymers[0].getNewAxis()[0]/AXIS_POINTS;
+				axisPoints[i][0] = np.polymers[0].getY() + i*np.polymers[0].getNewAxis()[1]/AXIS_POINTS;
+				axisPoints[i][0] = np.polymers[0].getZ() + i*np.polymers[0].getNewAxis()[2]/AXIS_POINTS;
+			}
+			axis.setData(axisPoints);
+			axis.getStyle().setLineColor(Color.BLACK);
+			display3d.addElement(axis);
+
 
 			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 			display3d.setSquareAspect(true);
@@ -213,26 +234,50 @@ public class CPMApp extends AbstractSimulation {
 		// logical step in the CPM class
 		np.step();
 		
+//		if(np.mcs == 10){
+//			double [] newAxis = {1,0,0};
+//			np.polymers[0].setNewAxis(newAxis);
+//		}
 		
 		// Insertion algorithms
 		// Polymer Insertion
 		if(insertionType.equals("polymer")){
 			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
+			
 			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
 				// !TODO Temporarily putting visualization updates here for testing.
 				// START
+				// nanoparticle visualization updates
+				for (int i = 0; i < np.nN; i++) {
+					nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
+							np.nanos[i].getZ());
+				}
+				
 				for (int i = 0; i < np.nP; i++) {
 					polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 							np.polymers[i].getZ());
 					polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 							2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-					if(np.polymers[i].isRotated()){ // this is done to save computation
+					if(np.polymers[i].updateRotation()){ // this is done to save computation
 						polySphere[i].setTransformation(np.polymers[i].getTransformation());
 					}
 				}
 				
+				for(int i =0; i < AXIS_POINTS; i++){
+					axisPoints[i][0] = np.polymers[0].getX() + i*np.polymers[0].getNewAxis()[0]/AXIS_POINTS;
+					axisPoints[i][0] = np.polymers[0].getY() + i*np.polymers[0].getNewAxis()[1]/AXIS_POINTS;
+					axisPoints[i][0] = np.polymers[0].getZ() + i*np.polymers[0].getNewAxis()[2]/AXIS_POINTS;
+				}
+				axis.setData(axisPoints);
+
+				
 				if(e_negU < 1){ // overlap occurred
+					closest.setXYZ(np.polymers[0].closestPoint[0], 
+							np.polymers[0].closestPoint[1],
+							np.polymers[0].closestPoint[2]);
 					System.out.println("Overlap:");
+					System.out.println("Ellipsoid radii from visualization: " + polySphere[0].getSizeX()/2 + " "
+							+ polySphere[0].getSizeY()/2 + " " + polySphere[0].getSizeZ()/2);
 //					for(int i = 0; i < np.nP; i++){
 //						System.out.println(np.polymers[i].toPovray());
 //					}
@@ -242,7 +287,6 @@ public class CPMApp extends AbstractSimulation {
 //					}
 				}
 					
-				
 				display3d.render();
 				// END
 				sumDistribution += e_negU;
@@ -400,7 +444,7 @@ public class CPMApp extends AbstractSimulation {
 						np.polymers[i].getZ());
 				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
 						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-				if(np.polymers[i].isRotated()){ // this is done to save computation
+				if(np.polymers[i].updateRotation()){ // this is done to save computation
 					polySphere[i].setTransformation(np.polymers[i].getTransformation());
 				}
 			}
@@ -436,12 +480,12 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Polymer colloid ratio", 5);
 		control.setValue("Spherical polymers", false);
 		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0002));
-		control.setValue("x", 0.1);
+		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
 		control.setValue("Runs", 5);
 		control.setValue("Tolerance", 0);
-		control.setValue("Rotation tolerance", 0);
+		control.setValue("Rotation tolerance", 0.01);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Insertion method", "polymer");
 		control.setValue("Exact overlap", true);
@@ -452,7 +496,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Number of datapoints", 8);
 		control.setValue("Number of conformations", 20000);
 		control.setValue("Penetration energy", true);
-		control.setValue("Write Mode", 4);
+		control.setValue("Write Mode", 0);
 		control.setAdjustableValue("Save", false);
 		initialize();
 	}
@@ -542,9 +586,11 @@ public class CPMApp extends AbstractSimulation {
 			break;
 		}
 		
+		if(writeMode != WriteModes.WRITE_NONE){
 		// Write out the initialization data
-		for(DataFile df : dataFiles){
-			df.write();
+			for(DataFile df : dataFiles){
+				df.write();
+			}
 		}
 	}
 	

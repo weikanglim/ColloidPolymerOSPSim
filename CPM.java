@@ -354,28 +354,30 @@ public class CPM {
 	 * @return Boltzmann faztor, e^(-_U) where U is the total internal energy of the system
 	 */
 	public double polyTrialPlacement(double x, double y, double z) {
-		Polymer poly = polymers[0];
 		if(Polymer.getShapeTolerance() != 0){
-			double oldEX = poly.geteX();
-			double oldEY = poly.geteY();
-			double oldEZ = poly.geteZ();
-			poly.shapeChange();
-			double newEX = poly.geteX();
-			double newEY = poly.geteY();
-			double newEZ = poly.geteZ();
+			double oldEX = polymers[0].geteX();
+			double oldEY = polymers[0].geteY();
+			double oldEZ = polymers[0].geteZ();
+			polymers[0].shapeChange();
+			double newEX = polymers[0].geteX();
+			double newEY = polymers[0].geteY();
+			double newEZ = polymers[0].geteZ();
 			
 			double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
 					   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) );
 			
 			if(p < 1 && Math.random() >= p){
-				poly.seteX(oldEX);
-				poly.seteY(oldEY);
-				poly.seteZ(oldEZ);
+				polymers[0].seteX(oldEX);
+				polymers[0].seteY(oldEY);
+				polymers[0].seteZ(oldEZ);
 			}
 		}
-		
+//		
+		System.out.println("Ellipsoid radii after shape change: " + polymers[0].getrX() + " " + polymers[0].getrY() + " " + polymers[0].getrZ());
+
+//		
 		if(Polymer.getRotTolerance() != 0){
-			poly.rotate();
+			polymers[0].rotate();
 		}
 		
 		// Count number of intersections

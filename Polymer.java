@@ -17,8 +17,10 @@ public class Polymer extends Particle{
 	private double eX;
 	private double eY;
     private double eZ;
+    private final double originAxis[] = {0,0,1};
     private double oldAxis[] = {0,0,1};
-    private double newAxis[] = {0,1,0}; // transformation axis
+    private double newAxis[] = {0,0,1}; // transformation axis
+    public double [] closestPoint = new double[3];
     private ESOverlapPolynomial overlapPolynomial;
 
 
@@ -55,36 +57,32 @@ public class Polymer extends Particle{
 		} else{
 			Nano nano = (Nano) particle;
 			
-			// Check if polymer is spherical. 
-			if(this.geteX() == this.geteY() && this.geteX() == this.geteZ()){
-				return this.separation(nano) < Math.pow(this.getrX() + nano.getrX(), 2); // Calculate the pbc distance directly.
-			} else { // Polymer is ellipsoidal				
+//			// Check if polymer is spherical. 
+//			if(this.geteX() == this.geteY() && this.geteX() == this.geteZ()){
+//				return this.separation(nano) < Math.pow(this.getrX() + nano.getrX(), 2); // Calculate the pbc distance directly.
+//			} else { // Polymer is ellipsoidal				
 				if(exact){
 					/** Initial filter: **/
 					// If a sphere is outside of a sphere formed by the longest radius of the ellispoid, reject it right away.
+					Matrix3DTransformation transformation =  this.getTransformation();
+
 					double maxEllipsRadius = Math.max(Math.max(this.getrX(), this.getrY()), this.getrZ());
 					if(this.separation(nano) >= Math.pow(maxEllipsRadius + nano.getrX(), 2)){ 
 						return false;
 					}
 					
 					double [] originAxis = {0,1,0};
-					double [] point = {nano.getX(), nano.getY(), nano.getZ()};
-					boolean normalAxis = true;
-					for(int i = 0; i < 3; i++){
-						normalAxis = normalAxis && (newAxis[i] == originAxis[i]);
-					}	
 					
-					if(!normalAxis  && this.getRotTolerance() != 0){ // Rotations needed
-						Matrix3DTransformation transformation =  Matrix3DTransformation.createAlignmentTransformation(originAxis,newAxis);
-						transformation.setOrigin(this.getX(), this.getY(), this.getZ());
-						point = transformation.direct(point);
-					}
-
 					/** Exact solution **/
 					double [] ellips = {Math.pow(this.getrX(),2), Math.pow(this.getrY(),2), Math.pow(this.getrZ(),2)}; // ellipsoid radii
 					// sphere distances from center of ellipsoid
-					double [] sphere = {point[0] - this.getX(), point[1] - this.getY(), point[2] - this.getZ()}; 
+					double [] sphere = {nano.getX() - this.getX(), nano.getY() - this.getY(), nano.getZ() - this.getZ()}; 
 					
+					
+					if(isRotated()){ // Rotations needed
+						sphere = transformation.direct(sphere);
+					}
+
 					// Update the overlap polynomial with the new ellipsoid shape, and new distance of sphere.
 					if(overlapPolynomial == null){ // If the function hasn't been instantiated, instantiate a new object
 						overlapPolynomial = new ESOverlapPolynomial(ellips, sphere);
@@ -104,12 +102,24 @@ public class Polymer extends Particle{
 					double y = yRatio*x*sphere[1]/(sphere[0] + (yRatio-1)*x);
 					double z = zRatio*x*sphere[2]/(sphere[0] + (zRatio-1)*x);
 					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
+					double [] closest = {x,y,z};
+
+					if(isRotated()){ // Rotations needed
+						closest = transformation.inverse(closest);
+					}
+					closestPoint[0] = closest[0] + this.getX();
+					closestPoint[1] = closest[1] + this.getY();
+					closestPoint[2] = closest[2] + this.getZ();
 					
-					
-					System.out.println("Ellipsoid radii: " + this.getrX() + " " + this.getrY() + " " + this.getrZ());
+//					System.out.println("Ellipsoid radii: " + this.getrX() + " " + this.getrY() + " " + this.getrZ());
 					System.out.println("Closest: " + x + " " + y + " " + z);
 					System.out.println("Equation of ellipsoid: " + ellipsEquation);
-					System.out.println("Nano center: " + sphere[0] + " " + sphere[1] + " " + sphere[2]);
+//					System.out.println("Nano center: " + sphere[0] + " " + sphere[1] + " " + sphere[2]);
+					boolean exactOverlap = Math.pow(x-sphere[0], 2) + Math.pow(y-sphere[1], 2) + Math.pow(z-sphere[2], 2) < Math.pow(nano.getrX(),2);
+					if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.separation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
+						System.out.println("Inconsistency in overlap.");
+					}
+
 					return Math.pow(x-sphere[0], 2) + Math.pow(y-sphere[1], 2) + Math.pow(z-sphere[2], 2) < Math.pow(nano.getrX(),2);
 				} else{
 					double [] originAxis = {0,1,0}; // The unrotated vector of the ellipsoid.
@@ -161,7 +171,7 @@ public class Polymer extends Particle{
 					}
 					return false;
 				}
-			}
+//			}
 		}
 	}
 	
@@ -333,11 +343,18 @@ public class Polymer extends Particle{
 		return (q/2.) * Math.sqrt(18. * ei);
 	}
 	
-	public boolean isRotated(){
+	public boolean updateRotation(){
 		for(int i = 0; i < oldAxis.length; i++){
 			if(oldAxis[i] != newAxis[i]) return true;
 		}
 		return false;
+	}
+	
+	public boolean isRotated(){
+		for(int i = 0; i < originAxis.length; i++){
+			if(newAxis[i] != originAxis[i]) return true;
+		}
+		return false; 
 	}
 	
 	public static double getRotTolerance() {
