@@ -1,7 +1,5 @@
 package org.opensourcephysics.sip.CPM;
 
-import java.util.ArrayList;
-
 import org.opensourcephysics.numerics.PBC;
 
 public class RDF {

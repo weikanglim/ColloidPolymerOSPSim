@@ -71,8 +71,6 @@ public class Polymer extends Particle{
 						return false;
 					}
 					
-					double [] originAxis = {0,1,0};
-					
 					/** Exact solution **/
 					double [] ellips = {Math.pow(this.getrX(),2), Math.pow(this.getrY(),2), Math.pow(this.getrZ(),2)}; // ellipsoid radii
 					// sphere distances from center of ellipsoid

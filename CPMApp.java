@@ -63,8 +63,6 @@ public class CPMApp extends AbstractSimulation {
 	double steps;
 	double placementPosition;
 	int i =0;
-	int AXIS_POINTS = 30;
-	double [][] axisPoints = new double[AXIS_POINTS][3];
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
@@ -207,15 +205,6 @@ public class CPMApp extends AbstractSimulation {
 	            }
 			}
 			 
-			for(int i =0; i < AXIS_POINTS; i++){
-				axisPoints[i][0] = np.polymers[0].getX() + i*np.polymers[0].getNewAxis()[0]/AXIS_POINTS;
-				axisPoints[i][0] = np.polymers[0].getY() + i*np.polymers[0].getNewAxis()[1]/AXIS_POINTS;
-				axisPoints[i][0] = np.polymers[0].getZ() + i*np.polymers[0].getNewAxis()[2]/AXIS_POINTS;
-			}
-			axis.setData(axisPoints);
-			axis.getStyle().setLineColor(Color.BLACK);
-			display3d.addElement(axis);
-
 
 			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 			display3d.setSquareAspect(true);
@@ -233,11 +222,6 @@ public class CPMApp extends AbstractSimulation {
 
 		// logical step in the CPM class
 		np.step();
-		
-//		if(np.mcs == 10){
-//			double [] newAxis = {1,0,0};
-//			np.polymers[0].setNewAxis(newAxis);
-//		}
 		
 		// Insertion algorithms
 		// Polymer Insertion
@@ -263,14 +247,6 @@ public class CPMApp extends AbstractSimulation {
 					}
 				}
 				
-				for(int i =0; i < AXIS_POINTS; i++){
-					axisPoints[i][0] = np.polymers[0].getX() + i*np.polymers[0].getNewAxis()[0]/AXIS_POINTS;
-					axisPoints[i][0] = np.polymers[0].getY() + i*np.polymers[0].getNewAxis()[1]/AXIS_POINTS;
-					axisPoints[i][0] = np.polymers[0].getZ() + i*np.polymers[0].getNewAxis()[2]/AXIS_POINTS;
-				}
-				axis.setData(axisPoints);
-
-				
 				if(e_negU < 1){ // overlap occurred
 					closest.setXYZ(np.polymers[0].closestPoint[0], 
 							np.polymers[0].closestPoint[1],
@@ -278,13 +254,6 @@ public class CPMApp extends AbstractSimulation {
 					System.out.println("Overlap:");
 					System.out.println("Ellipsoid radii from visualization: " + polySphere[0].getSizeX()/2 + " "
 							+ polySphere[0].getSizeY()/2 + " " + polySphere[0].getSizeZ()/2);
-//					for(int i = 0; i < np.nP; i++){
-//						System.out.println(np.polymers[i].toPovray());
-//					}
-//					
-//					for(int i = 0; i < np.nN; i++){
-//						System.out.println(np.nanos[i].toPovray());
-//					}
 				}
 					
 				display3d.render();
@@ -306,12 +275,6 @@ public class CPMApp extends AbstractSimulation {
 				conformations++;
 			}
 		}
-
-//		// 	Volume fraction snapshots
-//		for(Polymer p : np.polymers){
-//			sumVolume += 4/3*Math.PI*p.getrX()*p.getrY()*p.getrZ();
-//		}
-//		volumeSnapshots++;
 		
 		// Insertion algorithm snapshots
 		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
