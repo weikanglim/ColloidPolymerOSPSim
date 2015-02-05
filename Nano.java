@@ -24,7 +24,7 @@ public class Nano extends Particle{
 	@Override
 	public boolean overlap(Particle particle) {
 		if(particle instanceof Nano){
-			return separation(particle) < Math.pow(2.*getrX(), 2); // overlap if center-to-center distance is less than particle diameter
+			return squaredSeparation(particle) < Math.pow(2.*getrX(), 2); // overlap if center-to-center distance is less than particle diameter
 		} else if(this.equals(particle)){
 			return false;
 		} else{

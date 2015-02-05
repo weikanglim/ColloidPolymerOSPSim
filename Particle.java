@@ -17,7 +17,7 @@ public abstract class Particle {
 	public ArrayList<Particle> intersectPairs = new ArrayList<Particle>();
 
 	
-	public double separation(Particle particle){
+	public double squaredSeparation(Particle particle){
 		double dx = PBC.separation(this.x-particle.x, Lx);
 		double dy = PBC.separation(this.y-particle.y, Ly);
 		double dz = PBC.separation(this.z-particle.z, Lz);
