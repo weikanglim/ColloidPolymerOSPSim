@@ -74,12 +74,16 @@ public class CPM {
 	 *            the initial lattice structure of the model
 	 */
 	public void initialize(String configuration, boolean penetrationEnergy) {
-		if (insertionType.toLowerCase().equals("polymer")) {
-			nP = 1;
-			nN = 2;
-		}else{
-			nN = 1;
-			nP = (int) Math.round(Lx*Ly*Lz/(Math.PI/6*Math.pow(q,3)));
+		if(insertionType != null){
+			if (insertionType.toLowerCase().equals("polymer")) {
+				nP = 1;
+				nN = 2;
+			}else{
+				nN = 1;
+				nP = (int) Math.round(Lx*Ly*Lz/(Math.PI/6*Math.pow(q,3)));
+			}
+		} else {
+			// nP and nN set by CPMApp
 		}
 		// set-up variables
 		totalIntersectCount = 0;
@@ -104,17 +108,119 @@ public class CPM {
 		Polymer.setDefault_eZ(init_eZ);
 
 		// initialize positions
-		if (insertionType.toLowerCase().equals("polymer")) {
-			nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
-			polymers[0] = new Polymer(0,0,0); 
-		} else{
-			setPositions();
+		if(insertionType != null){
+			if (insertionType.toLowerCase().equals("polymer")) {
+				nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
+				polymers[0] = new Polymer(0,0,0); 
+			} else{
+				setPositions();
+			}
+		} else {
+			d = lc;
+			setSqrPositions();
 		}
 		Particle.setBoundaries(Lx, Ly, Lz);
 		volFraction = pomfRun ? (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3):
 								nN * (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3);
 	}
 
+	/**
+	 * Places particles on a square lattice depending on the number of nano particles.
+	 * If number of nano particles is 0, polymers are placed by themselves.
+	 */
+	public void setSqrPositions() {
+		int ix, iy, iz, nx;
+		if (nN > 0) {
+			double dnx = Math.cbrt(nN);
+			nx = (int) dnx;
+			if (dnx - nx > 0.00001) {
+				nx++; // N is not a perfect cube
+			}
+			Lx = Ly = Lz = d * nx;
+
+			// place nano particles
+			int i = 0;
+			for (iy = 0; iy < nx; iy++) { // loops through particles in a column
+				for (ix = 0; ix < nx; ix++) { // loops through particles in a
+												// row
+					for (iz = 0; iz < nx; iz++) {
+						if (i < nanos.length) { // checks for remaining
+												// particles
+							nanos[i] = new Nano(ix * d, iy * d, iz * d);
+							i++;
+						}
+					}
+				}
+			}
+
+			// place polymer particles
+			i = 0;
+			for (iy = nx/2; iy < nx; iy++) {
+				for (ix = nx/2; ix < nx; ix++) {
+					for (iz = nx/2; iz < nx; iz++) {
+						if (i < polymers.length) { // checks for remaining
+													// particles
+							polymers[i] = new Polymer(ix * d , iy * d
+									, iz * d );
+							i++;
+
+							if ((ix + 1) * d + d / 2 > Lx
+									&& (iy + 1) * d + d / 2 > Ly
+									&& (iz + 1) * d + d / 2 > Lz) { // the next
+																	// position
+																	// is out of
+																	// the
+																	// lattice
+								ix = iy = 0; // reset position counter,
+												// overlap
+												// poylmers
+								iz = -1;
+							}
+						} else
+							return;
+					}
+				}
+			}
+		} else { // no nanoparticles on the lattice
+			double dnx = Math.cbrt(nP); // count lattice points based on number of polymers instead
+			nx = (int) dnx;
+			if (dnx - nx > 0.00001) {
+				nx++; // N is not a perfect cube
+			}
+			Lx = Ly = Lz = d * nx;
+			
+			// place polymers
+			int i = 0;
+			for (iy = 0; iy < nx; iy++) {
+				for (ix = 0; ix < nx; ix++) {
+					for (iz = 0; iz < nx; iz++) {
+						if (i < polymers.length) { // checks for remaining
+													// particles
+							polymers[i] = new Polymer(ix * d + d / 2, iy * d
+									+ d / 2, iz * d + d / 2);
+							i++;
+
+							if ((ix + 1) * d + d / 2 > Lx
+									&& (iy + 1) * d + d / 2 > Ly
+									&& (iz + 1) * d + d / 2 > Lz) { // the next
+																	// position
+																	// is out of
+																	// the
+																	// lattice
+								ix = iy = 0; // reset position counter,
+												// overlap
+												// poylmers
+								iz = -1;
+							}
+						} else
+							return;
+					}
+				}
+			}
+		}
+	}
+
+	
 	/**
 	 * Initializes the configuration.
 	 * A nanoparticle is placed at the center, and the polymers are put into an evenly divided lattice.
@@ -165,15 +271,39 @@ public class CPM {
 	 */
 	public void step() {
 		mcs++;
-		if(insertionType.equals("nano")){
+		if(insertionType != null){
+			if(insertionType.equals("nano")){
+				polyTrialMoves();
+			}
+		} else {
 			trialMoves();
 		}
 	}
-
+	
 	/**
 	 * Attempts trial moves, rotations, and shape changes.
 	 */
 	public void trialMoves() {
+		
+		for(int x = 1; x <= trialMovesPerMcs; x++){
+		// Nanoparticles Trial Displacements
+			for (int i = 0; i < nanos.length; ++i) {
+				int j = (int) (Math.random()*nanos.length);
+				nanoTrialMove(nanos[j]);
+			}
+			// Polymer Trial Displacements
+			for (int i = 0; i < polymers.length; ++i) {
+				int j = (int) (Math.random()*polymers.length);
+				polyTrialMove(polymers[j]);
+			}
+		}
+	}
+
+
+	/**
+	 * Attempts trial moves, rotations, and shape changes for only polymers.
+	 */
+	public void polyTrialMoves() {
 		
 		for(int x = 1; x <= trialMovesPerMcs; x++){
 			// Polymer Trial Displacements
@@ -181,6 +311,68 @@ public class CPM {
 				int j = (int) (Math.random()*polymers.length);
 				polyTrialMove(polymers[j]);
 			}
+		}
+	}
+	
+	/**
+	 * Nanoparticle trial moves
+	 * 
+	 * @param nano
+	 *            A nanoparticle to be moved.
+	 */
+	public void nanoTrialMove(Nano nano) {
+		double oldX = nano.getX();
+		double oldY = nano.getY();
+		double oldZ = nano.getZ();
+		int overlapCount = 0;
+		Stack<Polymer> overlapPolymers = new Stack<Polymer>();
+		nano.move();
+
+		// Nano-nano intersections, reject immediately
+		for (int j = 0; j < nanos.length; ++j) {
+			if (!nano.equals(nanos[j]) && nano.overlap(nanos[j])) { // Nano-nano overlap
+					nano.setX(oldX);
+					nano.setY(oldY);
+					nano.setZ(oldZ);
+					return;
+				}
+		}
+
+		// Count number of intersections
+		for (int i = 0; i < polymers.length; i++) {
+			boolean overlap = nano.overlap(polymers[i]);
+			boolean wasOverlapping = nano.intersectPairs.contains(polymers[i]) || polymers[i].intersectPairs.contains(nano);
+			if (overlap && !wasOverlapping) { // Check for gain in overlaps
+						overlapCount++;
+						overlapPolymers.push(polymers[i]);
+			}
+			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
+						overlapCount--;
+			}
+		}
+		
+		// Acceptance probability
+		if (Math.random() < Math.exp(-Ep*overlapCount)) { 
+				while(!overlapPolymers.isEmpty()){
+					overlapPolymers.peek().intersectPairs.add(nano);
+					nano.intersectPairs.add(overlapPolymers.pop()); // Add
+					totalIntersectCount++;
+				}
+				
+				// Remove particles that are no longer overlapping
+				for (int j = 0; j < polymers.length; j++) {
+					if (!nano.overlap(polymers[j]) &&
+							nano.intersectPairs.remove(polymers[j])
+								&& polymers[j].intersectPairs.remove(nano)){
+							totalIntersectCount--;
+					}
+				}
+		}
+		else 
+		{
+			nano.setX(oldX);
+			nano.setY(oldY);
+			nano.setZ(oldZ);
 		}
 	}
 
