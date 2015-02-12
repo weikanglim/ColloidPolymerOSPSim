@@ -12,6 +12,7 @@ import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.DisplayFrame;
 import org.opensourcephysics.frames.PlotFrame;
+import org.opensourcephysics.numerics.Matrix3DTransformation;
 import org.opensourcephysics.numerics.PBC;
 
 /**
@@ -27,6 +28,7 @@ public class POMFApp extends AbstractSimulation {
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
 	CPM np = new CPM();
 	Display3DFrame display3d = new Display3DFrame("3D Frame");
+	Display3DFrame display3d2 = new Display3DFrame("3D Frame");
 	PlotFrame plotframe = new PlotFrame("Monte Carlo Steps",
 			"e^-U", "Acceptance Probability Plot");
 	DisplayFrame resultsFrame = new DisplayFrame("Radial Distance",
@@ -67,6 +69,8 @@ public class POMFApp extends AbstractSimulation {
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
 	ElementSphere closest;
+	ElementSphere sphere;
+	ElementEllipsoid ellipse;
 	boolean added = false;
 	boolean penetrationEnergyToggle;
 	boolean clearNano = false;
@@ -77,6 +81,8 @@ public class POMFApp extends AbstractSimulation {
 		if(display3d != null) display3d.dispose();
 		display3d = new Display3DFrame("3D Frame");
 
+		if(display3d2 != null) display3d2.dispose();
+		display3d2 = new Display3DFrame("3D Frame");
 	}
 	
 	public void clearCounters(){
@@ -198,9 +204,9 @@ public class POMFApp extends AbstractSimulation {
 				polySphere[i].getStyle().setLineColor(Color.RED);
 				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 						np.polymers[i].getZ());
-	            if(np.polymers[i].updateRotation()){
-	                    polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
-	            }
+//	            if(np.polymers[i].updateRotation()){
+//	                    polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
+//	            }
 			}
 			 
 
@@ -250,10 +256,31 @@ public class POMFApp extends AbstractSimulation {
 							np.polymers[0].closestPoint[1],
 							np.polymers[0].closestPoint[2]);
 					System.out.println("Overlap:");
-					System.out.println("Ellipsoid radii from visualization: " + polySphere[0].getSizeX()/2 + " "
-							+ polySphere[0].getSizeY()/2 + " " + polySphere[0].getSizeZ()/2);
+					if(ellipse == null || sphere == null){
+						ellipse = new ElementEllipsoid();
+						ellipse.getStyle().setFillColor(Color.RED);
+						ellipse.getStyle().setLineColor(Color.RED);
+
+						sphere = new ElementSphere();
+						sphere.setRadius(np.nanos[0].getrX());
+						sphere.getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
+						sphere.getStyle().setLineColor(new Color(92, 146, 237, 100));
+
+						display3d2.addElement(ellipse);
+						display3d2.addElement(sphere);
+						display3d2.setPreferredMinMax(-np.q, np.q, -np.q, np.q, -np.q, np.q);
+						display3d2.setSquareAspect(true);
+					} 
+
+					ellipse.setSizeXYZ(2 * np.polymers[0].getrX(),
+							2 * np.polymers[0].getrY(), 2 * np.polymers[0].getrZ());
+					ellipse.setXYZ(0, 0, 0);
+					sphere.setXYZ(np.polymers[0].overlapSphere[0], np.polymers[0].overlapSphere[1], np.polymers[0].overlapSphere[2]);
+					display3d2.render();
+				} else {
+					closest.setXYZ(0,0,0);
 				}
-					
+				
 				display3d.render();
 				// END
 				sumDistribution += e_negU;
@@ -459,6 +486,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 0);
 		control.setAdjustableValue("Save", false);
+		i=0;
 		initialize();
 	}
 
