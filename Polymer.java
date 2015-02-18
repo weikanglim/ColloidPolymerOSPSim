@@ -144,7 +144,7 @@ public class Polymer extends Particle{
 										   PBC.separation(nano.getZ()-this.getZ(), Particle.getLz())};
 					if(isRotated()){
 						Matrix3DTransformation transformation = this.getRotationTransformation();
-						transformation.direct(nanoCoord);
+						transformation.inverse(nanoCoord);
 					}
 					
 					if(Math.pow(nanoCoord[0]/(this.getrX()+nano.getrX()),2) + 
