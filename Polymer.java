@@ -21,6 +21,7 @@ public class Polymer extends Particle{
     private double oldAxis[] = {0,0,1};
     private double newAxis[] = {0,0,1}; // transformation axis
     public double [] closestPoint = new double[3];
+    public double [] overlapSphere = new double[3];
     private ESOverlapPolynomial overlapPolynomial;
 
 
@@ -83,13 +84,16 @@ public class Polymer extends Particle{
 										   PBC.separation(nano.getZ()-this.getZ(), Particle.getLz())};
 					
 					if(isRotated()){ // Rotations needed
-						sphereCoord = rotationTransformation.direct(sphereCoord);
+						sphereCoord = rotationTransformation.inverse(sphereCoord);
 					}
 
 					// Update the overlap polynomial with the new ellipsoid shape, and new distance of sphere.
 					if(overlapPolynomial == null){ // If the function hasn't been instantiated, instantiate a new object
 						overlapPolynomial = new ESOverlapPolynomial(ellipsEigen, sphereCoord);
 					} else { // Object instantiated, reuse it instead of creating new references for performance.
+						System.out.println("x0 " + sphereCoord[0] + " " +
+										   "y0 " + sphereCoord[1] + " " +
+										   "z0 " + sphereCoord[2]);
 						overlapPolynomial.update(ellipsEigen, sphereCoord);
 					}
 					
@@ -101,18 +105,15 @@ public class Polymer extends Particle{
 					
 					double max = sphereCoord[0] > 0 ? maxEllipsRadius : 0;
 					double min = sphereCoord[0] > 0 ? 0 : -maxEllipsRadius;
-					double x = Root.bisection(overlapPolynomial, min , max, 0.0001); 
+					double x = Root.newtonBisection(overlapPolynomial, min , max, 0.0001,20); 
 					double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
 					double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
 					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
 					double [] closest = {x,y,z};
 
 					if(isRotated()){ // Rotations needed
-						closest = rotationTransformation.inverse(closest);
+						closest = rotationTransformation.direct(closest);
 					}
-					closestPoint[0] = closest[0] + this.getX();
-					closestPoint[1] = closest[1] + this.getY();
-					closestPoint[2] = closest[2] + this.getZ();
 					
 //					System.out.println("Ellipsoid radii: " + this.getrX() + " " + this.getrY() + " " + this.getrZ());
 					System.out.println("Closest: " + x + " " + y + " " + z);
@@ -121,6 +122,16 @@ public class Polymer extends Particle{
 					boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
 					if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.squaredSeparation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
 						System.out.println("Inconsistency in overlap.");
+					}
+					
+					
+					if(exactOverlap){
+						overlapSphere[0] = sphereCoord[0];
+						overlapSphere[1] = sphereCoord[1];
+						overlapSphere[2] = sphereCoord[2];
+					closestPoint[0] = closest[0] + this.getX();
+					closestPoint[1] = closest[1] + this.getY();
+					closestPoint[2] = closest[2] + this.getZ();
 					}
 
 					return Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
