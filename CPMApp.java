@@ -207,6 +207,8 @@ public class CPMApp extends AbstractSimulation {
 			for(DataFile df : dataFiles){
 				df.write();
 			}
+			
+			timeStarted = System.nanoTime();
 		}
 
 		// logical step in the CPM class
