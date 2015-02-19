@@ -26,7 +26,7 @@ public class CPMApp extends AbstractSimulation {
 	PlotFrame plotframe = new PlotFrame("Monte Carlo Steps",
 			"Number of Intersections", "Number of Intersections");
 	double totalIntersections = 0;
-	double snapshotIntervals = 1;
+	long snapshotIntervals = 1;
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
 	RDF rdf;
@@ -38,6 +38,11 @@ public class CPMApp extends AbstractSimulation {
 	int runs;
 	int currentRun =  1;
 	int i =0;
+	long timeStarted = 0;
+	long timeElapsed = 0;
+	final long START_MCS = 50000;
+	long totalMCS = 0;
+	String minuteInfo = "";
 	WriteModes writeMode;
 	ElementSphere nanoSphere[];
 	ElementEllipsoid polySphere[];
@@ -78,6 +83,8 @@ public class CPMApp extends AbstractSimulation {
 		runs = control.getInt("Number of runs");
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		Polymer.setExact(control.getBoolean("Exact overlap"));
+		totalMCS = START_MCS + snapshotIntervals * maxDataPoints * runs;
+
 		
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
@@ -268,7 +275,7 @@ public class CPMApp extends AbstractSimulation {
 			} else{
 				switch(writeMode){
 					case WRITE_SHAPES:
-						if(np.mcs > 50000){ // hardcoded 
+						if(np.mcs > START_MCS){ // hardcoded 
 							for(Polymer poly: np.polymers){
 							dataFiles[0].record(String.valueOf(poly.geteX()));
 							dataFiles[1].record(String.valueOf(poly.geteY()));
@@ -288,13 +295,13 @@ public class CPMApp extends AbstractSimulation {
 					dataPoints++;
 					break;
 					case WRITE_RADIAL:
-						if(np.mcs > 50000){
+						if(np.mcs > START_MCS){
 							rdf.update();
 							dataPoints++;
 						}
 						break;
 					case WRITE_ALL:
-						if(np.mcs > 50000){ // hardcoded 
+						if(np.mcs > START_MCS){ // hardcoded 
 							for(Polymer poly: np.polymers){
 									dataFiles[0].record(String.valueOf(poly.geteX()));
 									dataFiles[1].record(String.valueOf(poly.geteY()));
@@ -315,6 +322,28 @@ public class CPMApp extends AbstractSimulation {
 				df.write();
 			}
 		}
+		
+		// Simulation info
+		timeElapsed = (System.nanoTime() - timeStarted)/1000000;
+		if(timeElapsed % 1000 == 0){
+			control.clearMessages();
+			int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+			int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
+			String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
+			control.println("Time Elapsed: " + formatTimeElapsed);
+			control.println(minuteInfo);
+			
+			if(timeElapsed % 60000 == 0){
+				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+				double mcsPerMinute = 60000* np.mcs / timeElapsed;
+				double timeRemain = (totalMCS - np.mcs) / mcsPerMinute;
+				int minutes = (int) Math.floor(timeRemain);
+				int seconds = (int) Math.round((timeRemain - minutes) * 60); 
+				minuteInfo = "MCS per minute: " + largeDecimal.format(mcsPerMinute)
+						+"\nTime remaining: " + minutes + "m " + seconds + "s";
+			}
+		}
+
 	}
 
 	/**
