@@ -131,7 +131,7 @@ public class Polymer extends Particle{
 						closest = rotationTransformation.direct(closest);
 					}
 					
-					if(x == Double.NaN || y == Double.NaN || z == Double.NaN){
+					if(Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)){
 						rootFailCount++;
 					}
 					

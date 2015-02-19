@@ -83,7 +83,7 @@ public class CPMApp extends AbstractSimulation {
 		runs = control.getInt("Number of runs");
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		Polymer.setExact(control.getBoolean("Exact overlap"));
-		totalMCS = START_MCS + snapshotIntervals * maxDataPoints * runs;
+		totalMCS = START_MCS + snapshotIntervals * maxDataPoints ;
 		Polymer.rootFailCount = 0;
 
 		
@@ -267,7 +267,7 @@ public class CPMApp extends AbstractSimulation {
 						}
 						
 						dataFiles[0].record("Root fails: " + Polymer.rootFailCount);
-						dataFiles[0].record("Root fail (% of total possible comparions): " + (Polymer.rootFailCount / np.mcs)*np.nN*np.nP * 100);
+						dataFiles[0].record("Root fail (% of total possible comparions): " + (Polymer.rootFailCount / np.mcs) / (np.nN*np.nP) * 100);
 						dataFiles[0].record("Root fail (per mcs): " + (Polymer.rootFailCount / np.mcs));
 						
 						for(DataFile df : dataFiles){
@@ -396,7 +396,9 @@ public class CPMApp extends AbstractSimulation {
 		double volFract = volSpheres / (np.Lx * np.Ly * np.Lz);
 		control.println("Average no. of Intersections: " + averageIntersections);
 		control.println("Expected average no. of intersections with Ep = 0: " + volFract);
-		
+		control.println("Root fails: " + Polymer.rootFailCount);
+		control.println("Root fail (% of total possible comparions): " + (Polymer.rootFailCount / np.mcs)*np.nN*np.nP * 100);
+		control.println("Root fail (per mcs): " + (Polymer.rootFailCount / np.mcs));
 		}
 /*
 		double volPolymers = 0;
