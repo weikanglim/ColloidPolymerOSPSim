@@ -6,18 +6,21 @@ public class UpdatableMatrix3DTransformation extends org.opensourcephysics.numer
 
 	public UpdatableMatrix3DTransformation(double[][] matrix) {
 		super(matrix);
+		inverseMatrix = new double[3][3];
+        inverseMatrix[0][0] = inverseMatrix[1][1] = inverseMatrix[2][2] = 1;
 	}
 	
 	public UpdatableMatrix3DTransformation(double[][] matrix, double[][] inverse){
 		super(matrix);
-		
-	    if(inverse==null) { // identiy matrix
-	        inverseMatrix[0][0] = inverseMatrix[1][1] = inverseMatrix[2][2] = 1;
-	        return;
-	      }
-	      for(int i = 0; i<inverseMatrix.length; i++) { // loop over the rows
-	        System.arraycopy(inverse[i], 0, inverseMatrix[i], 0, inverseMatrix[i].length);
-	      }
+		inverseMatrix = new double[3][3];
+
+	  if(inverse==null) { // identiy matrix
+        inverseMatrix[0][0] = inverseMatrix[1][1] = inverseMatrix[2][2] = 1;
+        return;
+      }
+      for(int i = 0; i<inverseMatrix.length; i++) { // loop over the rows
+        System.arraycopy(inverse[i], 0, inverseMatrix[i], 0, inverseMatrix[i].length);
+      }
 	}
 	
 	/**
