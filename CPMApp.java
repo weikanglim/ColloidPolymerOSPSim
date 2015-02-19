@@ -332,7 +332,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Tolerance", 0.1);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
-		control.setValue("Exact overlap", false);
+		control.setValue("Exact overlap", true);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);

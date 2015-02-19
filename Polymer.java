@@ -23,6 +23,8 @@ public class Polymer extends Particle{
     public double [] closestPoint = new double[3];
     public double [] overlapSphere = new double[3];
     private ESOverlapPolynomial overlapPolynomial;
+    private UpdatableMatrix3DTransformation transform;
+    private boolean rotationIsDirty = false; // whether transform requires updating.
 
 
 
@@ -34,6 +36,14 @@ public class Polymer extends Particle{
 		seteY(eY);
 		seteZ(eZ);
 		tolerance = tolerance_;
+		
+		double [][] identity = {
+				{1, 0, 0},
+				{0, 1, 0},
+				{0, 0, 1}
+		};
+		
+		transform = new UpdatableMatrix3DTransformation(identity);
 	}
 	
 	public Polymer(double x_, double y_, double z_){
@@ -43,6 +53,14 @@ public class Polymer extends Particle{
 		seteX(default_eX);
 		seteY(default_eY);
 		seteZ(default_eZ);
+		
+		double [][] identity = {
+				{1, 0, 0},
+				{0, 1, 0},
+				{0, 0, 1}
+		};		
+		
+		transform = new UpdatableMatrix3DTransformation(identity);
 	}
 	
 	/**
@@ -76,7 +94,7 @@ public class Polymer extends Particle{
 					}
 					
 					/** Exact solution **/
-					Matrix3DTransformation rotationTransformation =  this.getRotationTransformation();
+					Matrix3DTransformation rotationTransformation =  this.getRotationTransformationInternal();
 					double [] ellipsEigen = {Math.pow(this.getrX(),2), Math.pow(this.getrY(),2), Math.pow(this.getrZ(),2)}; // ellipsoid eigenvalues
 					// sphere distances from center of ellipsoid
 					double [] sphereCoord = {PBC.separation(nano.getX()-this.getX(), Particle.getLx()),
@@ -91,9 +109,6 @@ public class Polymer extends Particle{
 					if(overlapPolynomial == null){ // If the function hasn't been instantiated, instantiate a new object
 						overlapPolynomial = new ESOverlapPolynomial(ellipsEigen, sphereCoord);
 					} else { // Object instantiated, reuse it instead of creating new references for performance.
-						System.out.println("x0 " + sphereCoord[0] + " " +
-										   "y0 " + sphereCoord[1] + " " +
-										   "z0 " + sphereCoord[2]);
 						overlapPolynomial.update(ellipsEigen, sphereCoord);
 					}
 					
@@ -115,10 +130,8 @@ public class Polymer extends Particle{
 						closest = rotationTransformation.direct(closest);
 					}
 					
-//					System.out.println("Ellipsoid radii: " + this.getrX() + " " + this.getrY() + " " + this.getrZ());
 					System.out.println("Closest: " + x + " " + y + " " + z);
 					System.out.println("Equation of ellipsoid: " + ellipsEquation);
-//					System.out.println("Nano center: " + sphere[0] + " " + sphere[1] + " " + sphere[2]);
 					boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
 					if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.squaredSeparation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
 						System.out.println("Inconsistency in overlap.");
@@ -143,7 +156,7 @@ public class Polymer extends Particle{
 										   PBC.separation(nano.getY()-this.getY(), Particle.getLy()),
 										   PBC.separation(nano.getZ()-this.getZ(), Particle.getLz())};
 					if(isRotated()){
-						Matrix3DTransformation transformation = this.getRotationTransformation();
+						Matrix3DTransformation transformation = this.getRotationTransformationInternal();
 						transformation.inverse(nanoCoord);
 					}
 					
@@ -202,9 +215,10 @@ public class Polymer extends Particle{
 		// normalize result
 		VectorMath.normalize(a);
 		this.setNewAxis(a);
-
+		
+		rotationIsDirty = true;
 	}
-	
+
 	/**
 	 * Moves the polymer with the tolerance specified by Polymer.tolerance.
 	 */
@@ -247,6 +261,7 @@ public class Polymer extends Particle{
 		if(axis.length == 3){
 			this.oldAxis = axis;
 		}
+		rotationIsDirty = true;
 	}
 
 	public static void setQ(double q_){
@@ -254,26 +269,29 @@ public class Polymer extends Particle{
 	}
 	public void setNewAxis(double newAxis[]) {
 		this.newAxis = newAxis;
+		rotationIsDirty = true;
 	}
 
 
   // -------------------------------------
   // Getter methods
   // -------------------------------------
-	public Matrix3DTransformation getRotationTransformation(){
-		Matrix3DTransformation transform;
-		if(!isRotated()){
-			double [][] identity = {
-					{1, 0, 0},
-					{0, 1, 0},
-					{0, 0, 1}
-			};
-			 transform = new Matrix3DTransformation(identity);
-		} else{
-			double [] originAxis = {0,0,1};
-			transform = Matrix3DTransformation.createAlignmentTransformation(originAxis, newAxis);
+	private Matrix3DTransformation getRotationTransformationInternal(){
+		if(rotationIsDirty){
+			transform.allign(originAxis,newAxis);
+			rotationIsDirty=false;
 		}
+		
 		return transform;
+	}
+	
+	public Matrix3DTransformation getRotationTransformation(){
+		if(rotationIsDirty){
+			transform.allign(originAxis,newAxis);
+			rotationIsDirty=false;
+		}
+		
+		return transform.clone();
 	}
 
 	
