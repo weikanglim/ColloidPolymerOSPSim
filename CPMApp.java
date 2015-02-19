@@ -261,6 +261,10 @@ public class CPMApp extends AbstractSimulation {
 						}
 						
 						for(DataFile df : dataFiles){
+							int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+							int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
+							String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
+							dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
 							df.close();
 						}
 					}
