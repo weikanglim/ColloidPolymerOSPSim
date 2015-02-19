@@ -84,6 +84,7 @@ public class CPMApp extends AbstractSimulation {
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		Polymer.setExact(control.getBoolean("Exact overlap"));
 		totalMCS = START_MCS + snapshotIntervals * maxDataPoints * runs;
+		Polymer.rootFailCount = 0;
 
 		
 		switch(control.getInt("Write Mode")){
@@ -208,6 +209,9 @@ public class CPMApp extends AbstractSimulation {
 				df.write();
 			}
 			
+		}
+		
+		if(np.mcs == 0){
 			timeStarted = System.nanoTime();
 		}
 
@@ -262,11 +266,15 @@ public class CPMApp extends AbstractSimulation {
 							dataFiles[3].write();
 						}
 						
+						dataFiles[0].record("Root fails: " + Polymer.rootFailCount);
+						dataFiles[0].record("Root fail (% of total possible comparions): " + (Polymer.rootFailCount / np.mcs)*np.nN*np.nP * 100);
+						dataFiles[0].record("Root fail (per mcs): " + (Polymer.rootFailCount / np.mcs));
+						
 						for(DataFile df : dataFiles){
 							int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
 							int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 							String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
-							dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
+							df.record("# Total simulation time: " + formatTimeElapsed); 
 							df.close();
 						}
 					}
@@ -339,7 +347,7 @@ public class CPMApp extends AbstractSimulation {
 			control.println("Time Elapsed: " + formatTimeElapsed);
 			control.println(minuteInfo);
 			
-			if(timeElapsed % 60000 == 0){
+			if(timeElapsed / 60000 > 0){
 				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 				double mcsPerMinute = 60000* np.mcs / timeElapsed;
 				double timeRemain = (totalMCS - np.mcs) / mcsPerMinute;

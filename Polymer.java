@@ -25,6 +25,7 @@ public class Polymer extends Particle{
     private ESOverlapPolynomial overlapPolynomial;
     private UpdatableMatrix3DTransformation transform;
     private boolean rotationIsDirty = false; // whether transform requires updating.
+    public static long  rootFailCount = 0;
 
 
 
@@ -123,15 +124,17 @@ public class Polymer extends Particle{
 					double x = Root.newtonBisection(overlapPolynomial, min , max, 0.0001,20); 
 					double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
 					double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
-					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
+//					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
 					double [] closest = {x,y,z};
 
 					if(isRotated()){ // Rotations needed
 						closest = rotationTransformation.direct(closest);
 					}
 					
-					System.out.println("Closest: " + x + " " + y + " " + z);
-					System.out.println("Equation of ellipsoid: " + ellipsEquation);
+					if(x == Double.NaN || y == Double.NaN || z == Double.NaN){
+						rootFailCount++;
+					}
+					
 					boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
 					if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.squaredSeparation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
 						System.out.println("Inconsistency in overlap.");
@@ -147,7 +150,7 @@ public class Polymer extends Particle{
 					closestPoint[2] = closest[2] + this.getZ();
 					}
 
-					return Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
+					return exactOverlap;
 				} else{					
 					/**
 					 * Inexact overlap algorithm.
