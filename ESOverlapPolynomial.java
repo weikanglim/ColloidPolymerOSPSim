@@ -51,6 +51,24 @@ public class ESOverlapPolynomial implements org.opensourcephysics.numerics.Funct
 		double e = this.x0*this.x0/l1;
 		double u = this.x0 / x;
 		
-		return e/(u*u) + a/((u+b)*(u+b)) + c/((u+d)*(u+d)) - 1;
+		 return e/(u*u) + a/((u+b)*(u+b)) + c/((u+d)*(u+d)) - 1;
+//		return e*(u+b)*(u+b)*(u+d)*(u+d) + a*u*u*(u+d)*(u+d) + c*u*u*(u+b)*(u+b) - u*u*(u+b)*(u+b)*(u+d)*(u+d);
+	}
+	
+	public String toString(){
+		double a = l2/(l1*l1) * y0*y0;
+		double b = l2/l1 - 1;
+		double c = l3/(l1*l1) * z0*z0;
+		double d = l3/l1 - 1;
+		
+		String result = "x^2/$l1+$a/($x0/x+$b)^2+$c/($x0/x+$d)^2";
+		result = result.replace("$l1", Double.toString(l1));
+		result = result.replace("$x0", Double.toString(x0));
+		result = result.replace("$a", Double.toString(a));
+		result = result.replace("$b", Double.toString(b));
+		result = result.replace("$c", Double.toString(c));
+		result = result.replace("$d", Double.toString(d));
+		
+		return result;
 	}
 }

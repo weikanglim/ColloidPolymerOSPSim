@@ -77,7 +77,7 @@ public class CPM {
 		if(insertionType != null){
 			if (insertionType.toLowerCase().equals("polymer")) {
 				nP = 1;
-				nN = 2;
+				nN = 1;
 			}else{
 				nN = 1;
 				nP = (int) Math.round(Lx*Ly*Lz/(Math.PI/6*Math.pow(q,3)));
@@ -564,10 +564,7 @@ public class CPM {
 				polymers[0].seteZ(oldEZ);
 			}
 		}
-//		
-		System.out.println("Ellipsoid radii after shape change: " + polymers[0].getrX() + " " + polymers[0].getrY() + " " + polymers[0].getrZ());
-
-//		
+		
 		if(Polymer.getRotTolerance() != 0){
 			polymers[0].rotate();
 		}

@@ -26,6 +26,7 @@ public class Polymer extends Particle{
     private UpdatableMatrix3DTransformation transform;
     private boolean rotationIsDirty = false; // whether transform requires updating.
     public static long  rootFailCount = 0;
+    public boolean debug= false;
 
 
 
@@ -85,10 +86,10 @@ public class Polymer extends Particle{
 					/** Initial filter: **/
 					// If a sphere is outside of a sphere formed by the longest radius of the ellipsoid, reject it right away.
 					double maxEllipsRadius = Math.max(Math.max(this.getrX(), this.getrY()), this.getrZ());
-					if(this.squaredSeparation(nano) >= Math.pow(maxEllipsRadius + nano.getrX(), 2)){ 
-						return false;
-					}
-					
+//					if(this.squaredSeparation(nano) >= Math.pow(maxEllipsRadius + nano.getrX(), 2)){ 
+//						return false;
+//					}
+//					
 					// If center of ellipsoid is inside the sphere, accept it immediately.
 					if(this.squaredSeparation(nano) <= Math.pow(nano.getrX(), 2)){
 						return true;
@@ -133,25 +134,34 @@ public class Polymer extends Particle{
 					
 					if(Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)){
 						rootFailCount++;
+						System.out.println("root fail");
 					}
 					
 					boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
+					boolean inexactOverlap = Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
+							   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
+							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;
+					if(!exactOverlap && inexactOverlap){
+						System.out.println("Inexact measures overlap, exact doesn't");
+						debug  = true;
+					} else {
+						debug = false;
+					}
+					
 					if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.squaredSeparation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
 						System.out.println("Inconsistency in overlap.");
 					}
 					
 					
-					if(exactOverlap){
-						overlapSphere[0] = sphereCoord[0];
-						overlapSphere[1] = sphereCoord[1];
-						overlapSphere[2] = sphereCoord[2];
+					overlapSphere[0] = sphereCoord[0];
+					overlapSphere[1] = sphereCoord[1];
+					overlapSphere[2] = sphereCoord[2];
 					closestPoint[0] = closest[0] + this.getX();
 					closestPoint[1] = closest[1] + this.getY();
 					closestPoint[2] = closest[2] + this.getZ();
-					}
 
 					return exactOverlap;
-				} else{					
+				} else{
 					/**
 					 * Inexact overlap algorithm.
 					 */
@@ -166,6 +176,7 @@ public class Polymer extends Particle{
 					if(Math.pow(nanoCoord[0]/(this.getrX()+nano.getrX()),2) + 
 					   Math.pow(nanoCoord[1]/(this.getrY()+nano.getrY()), 2) + 
 					   Math.pow(nanoCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
+						System.out.println("Inexact: Overlap");
 						return true;
 					} 
 					
@@ -407,5 +418,9 @@ public class Polymer extends Particle{
 				oldAxis[0], oldAxis[1], oldAxis[2],
 				newAxis[0], newAxis[1], newAxis[2]);
 		return pString;
+	}
+	
+	public String polynomial(){
+		return this.overlapPolynomial.toString();
 	}
 }
