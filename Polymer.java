@@ -122,45 +122,59 @@ public class Polymer extends Particle{
 					
 					double max = sphereCoord[0] > 0 ? maxEllipsRadius : 0;
 					double min = sphereCoord[0] > 0 ? 0 : -maxEllipsRadius;
-					double x = Root.newtonBisection(overlapPolynomial, min , max, 0.0001,20); 
-					double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
-					double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
-//					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
-					double [] closest = {x,y,z};
-
-					if(isRotated()){ // Rotations needed
-						closest = rotationTransformation.direct(closest);
+					double [] roots = overlapPolynomial.rootsReal();
+					System.out.println(roots.length);
+					System.out.println(this.polynomial());
+					System.out.println(Arrays.toString(roots));
+					for(double x : roots){
+						double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
+						double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
+	//					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
+						double [] closest = {x,y,z};
+	
+						if(Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)){
+							rootFailCount++;
+							System.out.println("root fail");
+						}
+						
+						boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
+						if(isRotated()){ // Rotations needed
+							closest = rotationTransformation.direct(closest);
+						}
+						
+						if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.squaredSeparation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
+							System.out.println("Inconsistency in overlap.");
+						}
+						
+						
+						overlapSphere[0] = sphereCoord[0];
+						overlapSphere[1] = sphereCoord[1];
+						overlapSphere[2] = sphereCoord[2];
+						closestPoint[0] = closest[0] + this.getX();
+						closestPoint[1] = closest[1] + this.getY();
+						closestPoint[2] = closest[2] + this.getZ();
+						
+						if(exactOverlap){
+							return true;
+						}
 					}
 					
-					if(Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)){
-						rootFailCount++;
-						System.out.println("root fail");
-					}
-					
-					boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
 					boolean inexactOverlap = Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
 							   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
-							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;
-					if(!exactOverlap && inexactOverlap){
+							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;						
+					if(inexactOverlap){
 						System.out.println("Inexact measures overlap, exact doesn't");
+						System.out.println(this.polynomial());
+						System.out.println(String.format("Roots found: " + Arrays.toString(roots)));
+						System.out.println(String.format("Sphere center:  <%f,%f,%f>", sphereCoord[0], sphereCoord[1], sphereCoord[2]));
+//						System.out.println(String.format("Sphere center generated:  <%f,%f,%f>", this.getX()+sphere[0], this.getY() +sphere[1], this.getZ()+sphere[2]));
 						debug  = true;
 					} else {
 						debug = false;
 					}
-					
-					if(this.geteX() == this.geteY() && this.geteX() == this.geteZ() && exactOverlap && this.squaredSeparation(nano) >= Math.pow(this.getrX() + nano.getrX(), 2)){
-						System.out.println("Inconsistency in overlap.");
-					}
-					
-					
-					overlapSphere[0] = sphereCoord[0];
-					overlapSphere[1] = sphereCoord[1];
-					overlapSphere[2] = sphereCoord[2];
-					closestPoint[0] = closest[0] + this.getX();
-					closestPoint[1] = closest[1] + this.getY();
-					closestPoint[2] = closest[2] + this.getZ();
 
-					return exactOverlap;
+					
+					return false;
 				} else{
 					/**
 					 * Inexact overlap algorithm.
