@@ -278,7 +278,6 @@ public class POMFApp extends AbstractSimulation {
 					display3d2.render();
 					display3d.render();
 					System.out.println("Pause debug");
-					System.out.println(np.polymers[0].polynomial());
 				} else {
 					closest.setXYZ(0,0,0);
 				}

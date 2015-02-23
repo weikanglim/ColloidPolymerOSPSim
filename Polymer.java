@@ -1,5 +1,7 @@
 package org.opensourcephysics.sip.CPM;
 
+import java.util.Arrays;
+
 import org.opensourcephysics.numerics.Matrix3DTransformation;
 import org.opensourcephysics.numerics.PBC;
 import org.opensourcephysics.numerics.Root;
@@ -83,21 +85,21 @@ public class Polymer extends Particle{
 				return this.squaredSeparation(nano) < Math.pow(this.getrX() + nano.getrX(), 2); // Calculate the pbc distance directly.
 			} else { // Polymer is ellipsoidal				
 				if(exact){
-					/** Initial filter: **/
+					debug = false;
+					/** Initial filter that isn't dependent on orientation of ellipsoid: **/
 					// If a sphere is outside of a sphere formed by the longest radius of the ellipsoid, reject it right away.
 					double maxEllipsRadius = Math.max(Math.max(this.getrX(), this.getrY()), this.getrZ());
-//					if(this.squaredSeparation(nano) >= Math.pow(maxEllipsRadius + nano.getrX(), 2)){ 
-//						return false;
-//					}
-//					
+					if(this.squaredSeparation(nano) > Math.pow(maxEllipsRadius + nano.getrX(), 2)){ 
+						return false;
+					}
+					
 					// If center of ellipsoid is inside the sphere, accept it immediately.
 					if(this.squaredSeparation(nano) <= Math.pow(nano.getrX(), 2)){
 						return true;
 					}
 					
-					/** Exact solution **/
+					/** Orientation of ellipsoid has to be taken into account **/
 					Matrix3DTransformation rotationTransformation =  this.getRotationTransformationInternal();
-					double [] ellipsEigen = {Math.pow(this.getrX(),2), Math.pow(this.getrY(),2), Math.pow(this.getrZ(),2)}; // ellipsoid eigenvalues
 					// sphere distances from center of ellipsoid
 					double [] sphereCoord = {PBC.separation(nano.getX()-this.getX(), Particle.getLx()),
 										   PBC.separation(nano.getY()-this.getY(), Particle.getLy()),
@@ -106,7 +108,24 @@ public class Polymer extends Particle{
 					if(isRotated()){ // Rotations needed
 						sphereCoord = rotationTransformation.inverse(sphereCoord);
 					}
-
+					
+					// Non-overlap if nanosphere is outside "coated ellipsoid"
+					if(Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
+					   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
+					   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) > 1){
+						return false;
+					}
+					
+					// Overlap if nanosphere is inside ellipsoid
+					if(Math.pow(sphereCoord[0]/this.getrX(),2) + 
+					   Math.pow(sphereCoord[1]/this.getrY(),2) +
+					   Math.pow(sphereCoord[2]/this.getrZ(),2) < 1){
+						return true;
+					}
+					
+					/** Exact solution **/
+					/** At this point, the nanosphere lies within ellipsoid coating of thickness nano_radius **/
+					double [] ellipsEigen = {Math.pow(this.getrX(),2), Math.pow(this.getrY(),2), Math.pow(this.getrZ(),2)}; // ellipsoid eigenvalues
 					// Update the overlap polynomial with the new ellipsoid shape, and new distance of sphere.
 					if(overlapPolynomial == null){ // If the function hasn't been instantiated, instantiate a new object
 						overlapPolynomial = new ESOverlapPolynomial(ellipsEigen, sphereCoord);
@@ -120,13 +139,15 @@ public class Polymer extends Particle{
 					// 0.001 is currently set as the acceptable computational tolerance.
 					// x, y, z are the coordinates of the closest point
 					
-					double max = sphereCoord[0] > 0 ? maxEllipsRadius : 0;
-					double min = sphereCoord[0] > 0 ? 0 : -maxEllipsRadius;
 					double [] roots = overlapPolynomial.rootsReal();
 					System.out.println(roots.length);
 					System.out.println(this.polynomial());
 					System.out.println(Arrays.toString(roots));
 					for(double x : roots){
+						if(Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) > 1){
+							continue;
+						}
+						
 						double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
 						double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
 	//					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
@@ -155,6 +176,7 @@ public class Polymer extends Particle{
 						closestPoint[2] = closest[2] + this.getZ();
 						
 						if(exactOverlap){
+							debug = true;
 							return true;
 						}
 					}
