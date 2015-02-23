@@ -136,9 +136,6 @@ public class Polymer extends Particle{
 					double yRatio = ellipsEigen[1] / ellipsEigen[0]; //  ratio of the radii, lambda2/lambda1
 					double zRatio = ellipsEigen[2] / ellipsEigen[0]; //  lambda3/lambda1
 					double [] roots = overlapPolynomial.rootsReal(); // get all roots
-					System.out.println(roots.length);
-					System.out.println(this.polynomial());
-					System.out.println(Arrays.toString(roots));
 					for(double x : roots){
 						// Filter roots that are out of the ellipsoid coating.
 						if(Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) > 1){
@@ -179,7 +176,8 @@ public class Polymer extends Particle{
 					
 					boolean inexactOverlap = Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
 							   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
-							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;						
+							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;	
+					
 					if(inexactOverlap){
 						System.out.println("Inexact measures overlap, exact doesn't");
 						System.out.println(this.polynomial());
