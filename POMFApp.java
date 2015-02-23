@@ -74,6 +74,7 @@ public class POMFApp extends AbstractSimulation {
 	boolean added = false;
 	boolean penetrationEnergyToggle;
 	boolean clearNano = false;
+	boolean debug = false;
 	String minuteInfo = "";
 	DataFile [] dataFiles;
 
@@ -233,57 +234,55 @@ public class POMFApp extends AbstractSimulation {
 			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
 			
 			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
-				// !TODO Temporarily putting visualization updates here for testing.
-				// START
-				// nanoparticle visualization updates				
-				if(np.polymers[0].debug == true){ // overlap occurred
-					// Update our visualization for debugging purposes
-					for (int i = 0; i < np.nN; i++) {
-						nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
-								np.nanos[i].getZ());
-					}
-					
-					for (int i = 0; i < np.nP; i++) {
-						polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
-								np.polymers[i].getZ());
-						polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
-								2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-						if(np.polymers[i].updateRotation()){ // this is done to save computation
-							polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
+				if(debug){
+					if(np.polymers[0].debug){ // overlap occurred
+						// Update our visualization for debugging purposes
+						for (int i = 0; i < np.nN; i++) {
+							nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
+									np.nanos[i].getZ());
 						}
+						
+						for (int i = 0; i < np.nP; i++) {
+							polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
+									np.polymers[i].getZ());
+							polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
+									2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+							if(np.polymers[i].updateRotation()){ // this is done to save computation
+								polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
+							}
+						}
+	
+						closest.setXYZ(np.polymers[0].closestPoint[0], 
+								np.polymers[0].closestPoint[1],
+								np.polymers[0].closestPoint[2]);
+						if(ellipse == null || sphere == null){
+							ellipse = new ElementEllipsoid();
+							ellipse.getStyle().setFillColor(Color.RED);
+							ellipse.getStyle().setLineColor(Color.RED);
+	
+							sphere = new ElementSphere();
+							sphere.setRadius(np.nanos[0].getrX());
+							sphere.getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
+							sphere.getStyle().setLineColor(new Color(92, 146, 237, 100));
+	
+							display3d2.addElement(ellipse);
+							display3d2.addElement(sphere);
+							display3d2.setPreferredMinMax(-np.q, np.q, -np.q, np.q, -np.q, np.q);
+							display3d2.setSquareAspect(true);
+						}
+						ellipse.setSizeXYZ(2 * np.polymers[0].getrX(),
+								2 * np.polymers[0].getrY(), 2 * np.polymers[0].getrZ());
+						ellipse.setXYZ(0, 0, 0);
+						sphere.setXYZ(np.polymers[0].overlapSphere[0], np.polymers[0].overlapSphere[1], np.polymers[0].overlapSphere[2]);
+						display3d2.render();
+						display3d.render();
+						System.out.println("Pause debug");
+					} else {
+						closest.setXYZ(0,0,0);
 					}
-
-					closest.setXYZ(np.polymers[0].closestPoint[0], 
-							np.polymers[0].closestPoint[1],
-							np.polymers[0].closestPoint[2]);
-					if(ellipse == null || sphere == null){
-						ellipse = new ElementEllipsoid();
-						ellipse.getStyle().setFillColor(Color.RED);
-						ellipse.getStyle().setLineColor(Color.RED);
-
-						sphere = new ElementSphere();
-						sphere.setRadius(np.nanos[0].getrX());
-						sphere.getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
-						sphere.getStyle().setLineColor(new Color(92, 146, 237, 100));
-
-						display3d2.addElement(ellipse);
-						display3d2.addElement(sphere);
-						display3d2.setPreferredMinMax(-np.q, np.q, -np.q, np.q, -np.q, np.q);
-						display3d2.setSquareAspect(true);
-					}
-					ellipse.setSizeXYZ(2 * np.polymers[0].getrX(),
-							2 * np.polymers[0].getrY(), 2 * np.polymers[0].getrZ());
-					ellipse.setXYZ(0, 0, 0);
-					sphere.setXYZ(np.polymers[0].overlapSphere[0], np.polymers[0].overlapSphere[1], np.polymers[0].overlapSphere[2]);
-					display3d2.render();
-					display3d.render();
-					System.out.println("Pause debug");
-				} else {
-					closest.setXYZ(0,0,0);
 				}
 				
 				
-				// END
 				sumDistribution += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
 				conformations++;
