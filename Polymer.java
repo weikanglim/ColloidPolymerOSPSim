@@ -135,22 +135,18 @@ public class Polymer extends Particle{
 					
 					double yRatio = ellipsEigen[1] / ellipsEigen[0]; //  ratio of the radii, lambda2/lambda1
 					double zRatio = ellipsEigen[2] / ellipsEigen[0]; //  lambda3/lambda1
-					// solve for root, which must be in between (0, maxEllipsRadius).
-					// 0.001 is currently set as the acceptable computational tolerance.
-					// x, y, z are the coordinates of the closest point
-					
-					double [] roots = overlapPolynomial.rootsReal();
+					double [] roots = overlapPolynomial.rootsReal(); // get all roots
 					System.out.println(roots.length);
 					System.out.println(this.polynomial());
 					System.out.println(Arrays.toString(roots));
 					for(double x : roots){
+						// Filter roots that are out of the ellipsoid coating.
 						if(Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) > 1){
 							continue;
 						}
 						
 						double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
 						double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
-	//					double ellipsEquation = Math.pow(x/this.getrX(),2)+Math.pow(y/this.getrY(),2)+Math.pow(z/this.getrZ(),2);
 						double [] closest = {x,y,z};
 	
 						if(Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)){
