@@ -301,6 +301,115 @@ public class POMFApp extends AbstractSimulation {
 			}
 		}
 		
+		// Insertion algorithm snapshots
+		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
+			// Enough conformations for a data point, analyze distribution and record.
+			double avgDistribution = sumDistribution / conformations;
+			System.out.println(avgDistribution);
+			radialData[currentRun][dataPoints][0] = placementPosition;
+			radialData[currentRun][dataPoints][1] = avgDistribution; // temporarily place the variable, will be replaced with V_r calculations later on.
+			dataPoints++;
+			if(dataPoints >= maxDataPoints +1 ){ // all data points + U(inf)				
+				System.out.println("Run " + currentRun);
+
+				// Calculate V_r from averaged e^-U
+				int U_zero_index = maxDataPoints; // last position
+				double U_inf = 2*radialData[currentRun][U_zero_index][1]-1;
+				double lnU_inf = Math.log(U_inf);
+				System.out.println(lnU_inf + " U_inf: " + U_inf);
+				for(int i =0; i < maxDataPoints; i++){
+					double r = radialData[currentRun][i][0];
+					double lnU_r = Math.log(radialData[currentRun][i][1]);
+					System.out.println(lnU_r);
+					double V_r = -lnU_r + lnU_inf;
+					radialData[currentRun][i][1] = V_r;
+					System.out.println(r + "\t" + V_r);
+				}
+				
+				// Reset counters for next run
+				clearCounters();
+				if(insertionType.equals("polymer")){
+					np.nN = 2;
+					np.nanos = new Nano[2];
+					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
+				} else {
+					np.nN = 1;
+					np.nanos = new Nano[1];
+					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
+				}
+				currentRun++;
+
+				if(currentRun >= runs){
+					double [] avgPotential = new double[maxDataPoints];
+					double [] stdDevPotential = new double[maxDataPoints];
+					for(int i = 0; i < maxDataPoints; i++){
+						for(int j = 0; j < runs; j++){
+							avgPotential[i] += radialData[j][i][1];
+							stdDevPotential[i] += Math.pow(radialData[j][i][1],2);
+						}
+						
+						
+						avgPotential[i] /= runs;
+						stdDevPotential[i] /= runs;
+						stdDevPotential[i] = Math.sqrt(stdDevPotential[i] - Math.pow(avgPotential[i],2));
+					}
+					
+					data = new Dataset();
+					dataFiles[0].record("# r\tV_r\tStd-dev" );
+					for(int i = 0; i < maxDataPoints; i++){
+						dataFiles[0].record(radialData[0][i][0] + "\t" + avgPotential[i] + "\t" + stdDevPotential[i]);
+						data.append(radialData[0][i][0], avgPotential[i], 0, stdDevPotential[i]);
+					}
+
+					resultsFrame.addDrawable(data);
+					control.setAdjustableValue("Save", true);
+					control.clearMessages();
+					control.println("Runs completed.");
+//					double avgPhiP = (sumVolume / volumeSnapshots) / (np.nP*np.Lx*np.Ly*np.Lz);
+//					System.out.println(avgPhiP);
+//					DecimalFormat threeDecimals = new DecimalFormat("#0.###");
+//					String phiP = threeDecimals.format(avgPhiP);
+//					dataFiles[0].record("Average phiP: " +  phiP);
+					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+					int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
+					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
+					dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
+					this.stopAnimation();
+					return;
+				}
+			}
+			
+			// reset counters for next data point.
+			conformations = 0;
+			sumDistribution = 0;			
+			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
+			placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
+			
+			if(placementPosition == 0 && !clearNano){ 
+				if(insertionType.equals("polymer")){
+					clearNano = true; // only perform once
+					nanoSphere[1].setVisible(false);
+					plotframe.clearDataAndRepaint();
+					
+					// Keep only one nanoparticle at the center
+					np.nN = 1;
+					np.nanos = new Nano[1];
+					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
+				} else {
+					clearNano = true;
+					nanoSphere[0].setVisible(false);
+					plotframe.clearDataAndRepaint();
+					np.nN = 0;
+					np.nanos = new Nano[0];
+					waitMCS = MCS_WAIT_TO_EQUIL;
+				}
+			} 
+
+			// set new nanoparticle position
+			if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
+			plotframe.setMessage("r = " + placementPosition);
+		}		
+		
 		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (snapshotIntervals*10) == 0){
 			dataFiles[0].write();
 		}
