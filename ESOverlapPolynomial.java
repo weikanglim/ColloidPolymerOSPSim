@@ -40,6 +40,9 @@ public class ESOverlapPolynomial extends org.opensourcephysics.numerics.Polynomi
 		updateCoefficients();
 	}
 	
+	/**
+	 * Updates the polynomial coefficients.
+	 */
 	private void updateCoefficients(){
 		double a = l2/(l1*l1) * y0*y0;
 		double b = l2/l1 - 1;
