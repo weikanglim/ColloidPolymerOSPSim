@@ -410,9 +410,9 @@ public class POMFApp extends AbstractSimulation {
 			plotframe.setMessage("r = " + placementPosition);
 		}		
 		
-		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (snapshotIntervals*10) == 0){
-			dataFiles[0].write();
-		}
+//		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (snapshotIntervals*10) == 0){
+//			dataFiles[0].write();
+//		}
 		
 
 		//!-- Visualization --! // START
