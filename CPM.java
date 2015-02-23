@@ -77,7 +77,7 @@ public class CPM {
 		if(insertionType != null){
 			if (insertionType.toLowerCase().equals("polymer")) {
 				nP = 1;
-				nN = 1;
+				nN = 2;
 			}else{
 				nN = 1;
 				nP = (int) Math.round(Lx*Ly*Lz/(Math.PI/6*Math.pow(q,3)));
