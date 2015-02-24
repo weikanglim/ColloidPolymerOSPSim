@@ -109,11 +109,11 @@ public class Polymer extends Particle{
 						sphereCoord = rotationTransformation.inverse(sphereCoord);
 					}
 					
-					// Non-overlap if nanosphere is outside "coated ellipsoid"
+					// Overlap if nanosphere is inside "fattened ellipsoid"
 					if(Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
 					   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
-					   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) > 1){
-						return false;
+					   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1){
+						return true;
 					}
 					
 					// Overlap if nanosphere is inside ellipsoid
@@ -136,6 +136,11 @@ public class Polymer extends Particle{
 					double yRatio = ellipsEigen[1] / ellipsEigen[0]; //  ratio of the radii, lambda2/lambda1
 					double zRatio = ellipsEigen[2] / ellipsEigen[0]; //  lambda3/lambda1
 					double [] roots = overlapPolynomial.rootsReal(); // get all roots
+					boolean inexactOverlap = Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
+							   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
+							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;	
+					
+
 					for(double x : roots){
 						// Filter roots that are out of the ellipsoid coating.
 						if(Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) > 1){
@@ -145,11 +150,6 @@ public class Polymer extends Particle{
 						double y = yRatio*x*sphereCoord[1]/(sphereCoord[0] + (yRatio-1)*x);
 						double z = zRatio*x*sphereCoord[2]/(sphereCoord[0] + (zRatio-1)*x);
 						double [] closest = {x,y,z};
-	
-						if(Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)){
-							rootFailCount++;
-							System.out.println("root fail");
-						}
 						
 						boolean exactOverlap = Math.pow(x-sphereCoord[0], 2) + Math.pow(y-sphereCoord[1], 2) + Math.pow(z-sphereCoord[2], 2) < Math.pow(nano.getrX(),2);
 						if(isRotated()){ // Rotations needed
@@ -169,16 +169,13 @@ public class Polymer extends Particle{
 						closestPoint[2] = closest[2] + this.getZ();
 						
 						if(exactOverlap){
-							debug = true;
 							return true;
 						}
 					}
 					
-					boolean inexactOverlap = Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
-							   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
-							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;	
-					
 					if(inexactOverlap){
+						rootFailCount++;
+						System.out.println("root fail");
 						System.out.println("Inexact measures overlap, exact doesn't");
 						System.out.println(this.polynomial());
 						System.out.println(String.format("Roots found: " + Arrays.toString(roots)));
