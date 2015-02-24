@@ -189,8 +189,21 @@ public class Polymer extends Particle{
 					
 					return false;
 				} else{
+					/** Initial filter that isn't dependent on orientation of ellipsoid: **/
+					// If a sphere is outside of a sphere formed by the longest radius of the ellipsoid, reject it right away.					
+					double maxEllipsRadius = Math.max(Math.max(this.getrX(), this.getrY()), this.getrZ());
+					if(this.squaredSeparation(nano) > Math.pow(maxEllipsRadius + nano.getrX(), 2)){ 
+						return false;
+					}
+					
+					// If center of ellipsoid is inside the sphere, accept it immediately.
+					if(this.squaredSeparation(nano) <= Math.pow(nano.getrX(), 2)){
+						return true;
+					}
+
 					/**
 					 * Inexact overlap algorithm.
+					 * Check whether nanosphere is within the flattened ellipsoid.
 					 */
 					double [] nanoCoord = {PBC.separation(nano.getX()-this.getX(), Particle.getLx()),
 										   PBC.separation(nano.getY()-this.getY(), Particle.getLy()),
@@ -203,7 +216,6 @@ public class Polymer extends Particle{
 					if(Math.pow(nanoCoord[0]/(this.getrX()+nano.getrX()),2) + 
 					   Math.pow(nanoCoord[1]/(this.getrY()+nano.getrY()), 2) + 
 					   Math.pow(nanoCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1){ // AD
-						System.out.println("Inexact: Overlap");
 						return true;
 					} 
 					
