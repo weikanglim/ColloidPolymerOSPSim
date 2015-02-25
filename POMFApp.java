@@ -441,7 +441,7 @@ public class POMFApp extends AbstractSimulation {
 		timeElapsed = (System.nanoTime() - timeStarted)/1000000;
 		if(timeElapsed % 1000 == 0){
 			control.clearMessages();
-			int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+			int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60));
 			int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 			String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
 			control.println("Time Elapsed: " + formatTimeElapsed);
