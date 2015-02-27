@@ -178,26 +178,26 @@ public class CPMApp extends AbstractSimulation {
 			switch(writeMode){
 			case WRITE_SHAPES:
 				dataFiles = new DataFile[3];
-				dataFiles[0] = new DataFile("eX", configurations);
-				dataFiles[1] = new DataFile("eY", configurations);
-				dataFiles[2] = new DataFile("eZ", configurations);
+				dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[1] = new DataFile("eY", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[2] = new DataFile("eZ", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				break;
 			case WRITE_ROTATIONS:
 				dataFiles = new DataFile[2];
-				dataFiles[0] = new DataFile("polar", configurations);
-				dataFiles[1] = new DataFile("azimuth", configurations);
+				dataFiles[0] = new DataFile("polar", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[1] = new DataFile("azimuth", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				break;
 			case WRITE_RADIAL:
 				dataFiles = new DataFile[1]; 
-				dataFiles[0] = new DataFile("radial", configurations);
+				dataFiles[0] = new DataFile("radial", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				rdf = new RDF(np.nanos, np.Lx);
 				break;
 			case WRITE_ALL:
 				dataFiles = new DataFile[4];
-				dataFiles[0] = new DataFile("eX", configurations);
-				dataFiles[1] = new DataFile("eY", configurations);
-				dataFiles[2] = new DataFile("eZ", configurations);
-				dataFiles[3] = new DataFile("radial", configurations);
+				dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[1] = new DataFile("eY", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[2] = new DataFile("eZ", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[3] = new DataFile("radial", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				rdf = new RDF(np.nanos, np.Lx);
 				break;
 			default:
@@ -271,7 +271,7 @@ public class CPMApp extends AbstractSimulation {
 						dataFiles[0].record("Root fail (per mcs): " + (Polymer.rootFailCount / np.mcs));
 						
 						for(DataFile df : dataFiles){
-							int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+							int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60));
 							int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 							String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
 							df.record("# Total simulation time: " + formatTimeElapsed); 
@@ -341,7 +341,7 @@ public class CPMApp extends AbstractSimulation {
 		timeElapsed = (System.nanoTime() - timeStarted)/1000000;
 		if(timeElapsed % 1000 == 0){
 			control.clearMessages();
-			int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+			int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) ;
 			int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 			String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
 			control.println("Time Elapsed: " + formatTimeElapsed);

@@ -18,8 +18,13 @@ public class DataFile {
 	private String data;
 	private BufferedWriter bw;
 	private Path filePath;
+	public enum FileIdentifier { 
+		SIZE,
+		FRACTION,
+		SIZE_AND_FRACTION
+	};
 	
-	public DataFile(String name, String configurations){
+	public DataFile(String name, String configurations, FileIdentifier type, boolean multiple){
 		this.name = name;
 		if(DataFile.calendar == null){
 			calendar = Calendar.getInstance();
@@ -27,10 +32,15 @@ public class DataFile {
 		Scanner scan = new Scanner(configurations);
 		String phiN = "";
 		String runNumber = "";
+		String q = "";
 		while(scan.hasNext()){
 			String token = scan.next();
 			if(token.equals("Fraction:")){
 				phiN = scan.next();
+			}
+			
+			if(token.equals("Ratio:")){
+				q = scan.next();
 			}
 			
 			if(token.equals("Number:")){
@@ -38,12 +48,30 @@ public class DataFile {
 			}
 		}
 		scan.close();
+		
+		String prefix;
+		switch(type){
+			case SIZE: 
+				prefix = "phiN=" + phiN; break;
+			case FRACTION:
+				prefix = "q=" + q; break;
+			case SIZE_AND_FRACTION:
+				prefix = "phiN=" + phiN + ",q=" + q; break;
+			default:
+				prefix = "phiN=" + phiN; break;
+		}
+
 		String creationTime = calendar.get(Calendar.HOUR_OF_DAY) + "." + 
 							  calendar.get(Calendar.MINUTE);
 		String creationDate = calendar.get(Calendar.DAY_OF_MONTH) + "-" + 
 				  (calendar.get(Calendar.MONTH) + 1) + "-" + // calendar.MONTH starts counting at 0
 				  calendar.get(Calendar.YEAR) + " " + creationTime;
-		Path dir = Paths.get(DataFile.baseDir + "/" +  "phiN=" + phiN + "   " + creationDate + "/" + runNumber);
+		Path dir;
+		if(multiple){
+			dir = Paths.get(DataFile.baseDir + "/" +  prefix + "_" + creationDate + "/" + runNumber);
+		} else {
+			dir = Paths.get(DataFile.baseDir + "/");
+		}
 		
 		// create directory to store datafiles, categorized by date if it doesn't exist
 		try {
@@ -52,7 +80,12 @@ public class DataFile {
 			e.printStackTrace();
 		}
 
-		filePath = Paths.get(dir + "/" + "phiN=" + phiN + " " + name + ".dat");
+		
+		if(multiple){
+			filePath = Paths.get(dir + "/" + prefix + "_" + name + ".dat");
+		}else{
+			filePath = Paths.get(dir + "/" + prefix + "_" + name + "." + creationDate +".dat");
+		}
 		
 		try {
 			bw = Files.newBufferedWriter(filePath, 

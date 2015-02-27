@@ -370,10 +370,11 @@ public class POMFApp extends AbstractSimulation {
 //					DecimalFormat threeDecimals = new DecimalFormat("#0.###");
 //					String phiP = threeDecimals.format(avgPhiP);
 //					dataFiles[0].record("Average phiP: " +  phiP);
-					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60)) % 60;
+					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60));
 					int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
 					dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
+					dataFiles[0].record("# Number of runs: " + currentRun);
 					this.stopAnimation();
 					return;
 				}
@@ -465,13 +466,13 @@ public class POMFApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 10);
+		control.setValue("Polymer colloid ratio", 0.776);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.000015));
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.004));
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
-		control.setValue("Runs", 1);
+		control.setValue("Runs", 5);
 		control.setValue("Tolerance", 0);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
@@ -521,7 +522,9 @@ public class POMFApp extends AbstractSimulation {
 		DecimalFormat threeDecimal = new DecimalFormat("#0.###");
 		DecimalFormat fourDecimal = new DecimalFormat("#0.####");
 		String phi_n;
-		if(np.volFraction < 0.001){
+		if(np.volFraction < 0.0001){
+			phi_n = largeDecimal.format(np.volFraction);
+		} else if(np.volFraction < 0.001){
 			phi_n = fourDecimal.format(np.volFraction);
 		} else {
 			phi_n = threeDecimal.format(np.volFraction);
@@ -545,30 +548,30 @@ public class POMFApp extends AbstractSimulation {
 		switch(writeMode){
 		case WRITE_SHAPES:
 			dataFiles = new DataFile[3];
-			dataFiles[0] = new DataFile("eX", configurations);
-			dataFiles[1] = new DataFile("eY", configurations);
-			dataFiles[2] = new DataFile("eZ", configurations);
+			dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+			dataFiles[1] = new DataFile("eY", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+			dataFiles[2] = new DataFile("eZ", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 			break;
 		case WRITE_ROTATIONS:
 			dataFiles = new DataFile[2];
-			dataFiles[0] = new DataFile("polar", configurations);
-			dataFiles[1] = new DataFile("azimuth", configurations);
+			dataFiles[0] = new DataFile("polar", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+			dataFiles[1] = new DataFile("azimuth", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 			break;
 		case WRITE_RADIAL:
 			dataFiles = new DataFile[1]; 
-			dataFiles[0] = new DataFile("radial", configurations);
+			dataFiles[0] = new DataFile("radial", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, false);
 			rdf = new RDF(np.nanos, np.Lx);
 			break;
 		case WRITE_POMF:
 			dataFiles = new DataFile[1];
-			dataFiles[0] = new DataFile("POMF", configurations);
+			dataFiles[0] = new DataFile("POMF", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, false);
 			break;
 		case WRITE_ALL:
 			dataFiles = new DataFile[4];
-			dataFiles[0] = new DataFile("eX", configurations);
-			dataFiles[1] = new DataFile("eY", configurations);
-			dataFiles[2] = new DataFile("eZ", configurations);
-			dataFiles[3] = new DataFile("radial", configurations);
+			dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+			dataFiles[1] = new DataFile("eY", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+			dataFiles[2] = new DataFile("eZ", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+			dataFiles[3] = new DataFile("radial", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 			rdf = new RDF(np.nanos, np.Lx);
 			break;
 		default:
