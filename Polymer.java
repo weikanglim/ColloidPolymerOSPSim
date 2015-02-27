@@ -169,24 +169,10 @@ public class Polymer extends Particle{
 						closestPoint[2] = closest[2] + this.getZ();
 						
 						if(exactOverlap){
+							debug = true;
 							return true;
 						}
 					}
-					
-					if(inexactOverlap){
-						rootFailCount++;
-						System.out.println("root fail");
-						System.out.println("Inexact measures overlap, exact doesn't");
-						System.out.println(this.polynomial());
-						System.out.println(String.format("Roots found: " + Arrays.toString(roots)));
-						System.out.println(String.format("Sphere center:  <%f,%f,%f>", sphereCoord[0], sphereCoord[1], sphereCoord[2]));
-//						System.out.println(String.format("Sphere center generated:  <%f,%f,%f>", this.getX()+sphere[0], this.getY() +sphere[1], this.getZ()+sphere[2]));
-						debug  = true;
-					} else {
-						debug = false;
-					}
-
-					
 					return false;
 				} else{
 					/** Initial filter that isn't dependent on orientation of ellipsoid: **/
