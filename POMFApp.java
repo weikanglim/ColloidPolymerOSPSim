@@ -136,7 +136,11 @@ public class POMFApp extends AbstractSimulation {
 		np.nano_r = 0.5;
 		clearCounters();
 		getInput();
-		radialEnd = Math.min(1 + np.q + 0.1, (np.Lx-1)/2) ; // 2*Rp+2*Rn
+		if(np.q < 1){
+			radialEnd = Math.min(1 + np.q + 0.1, 1+3*np.q) ;
+		} else {
+			radialEnd = Math.min(1 + np.q + 0.1, (np.Lx-1)/2) ; // 2*Rp+2*Rn
+		}
 		radialStart = 1;
 		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
 		maxDataPoints++; // increase datapoint by 1 to account for 1 extra datapoint for run at r = 0
@@ -468,7 +472,7 @@ public class POMFApp extends AbstractSimulation {
 		enableStepsPerDisplay(true);
 		control.setValue("Polymer colloid ratio", 0.776);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.004));
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.01)); // Testing 2 + 2q for q < 1
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);

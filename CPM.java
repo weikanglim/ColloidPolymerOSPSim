@@ -110,7 +110,11 @@ public class CPM {
 		// initialize positions
 		if(insertionType != null){
 			if (insertionType.toLowerCase().equals("polymer")) {
-				nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
+				if(q < 1){
+					nanos[0] = new Nano(Lx/2f, 2*q, Lz/2f);
+				} else {
+					nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
+				}
 				polymers[0] = new Polymer(0,0,0); 
 			} else{
 				setPositions();
@@ -529,11 +533,11 @@ public class CPM {
 		}
 		
 		if(nanos[1] == null){
-			nanos[1] = new Nano(Lx/2f,Ly/2f+r,Lz/2f);
+			nanos[1] = new Nano(nanos[0].getX(),nanos[0].getY()+r,nanos[0].getZ());
 		} else {
-			nanos[1].setX(Lx/2f);
-			nanos[1].setY(Ly/2f+r);
-			nanos[1].setZ(Lz/2f);
+			nanos[1].setX(nanos[0].getX());
+			nanos[1].setY(nanos[0].getY()+r);
+			nanos[1].setZ(nanos[0].getZ());
 		}
 	}
 
