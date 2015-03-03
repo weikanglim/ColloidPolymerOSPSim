@@ -112,7 +112,7 @@ public class CPM {
 		if(insertionType != null){
 			if (insertionType.toLowerCase().equals("polymer")) {
 				if(q < 1){
-					Lx = Lz = 1 + q;
+					Lx = Lz = 1 + 2*q;
 					nanos[0] = new Nano(Lx/2f, 2*q, Lz/2f);
 				} else {
 					nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
