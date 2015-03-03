@@ -538,10 +538,12 @@ public class POMFApp extends AbstractSimulation {
 				"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 				"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
 				"\n# Insertion type: " + insertionType +
-				"\n# Nanoparticle Volume Fraction: "+phi_n + 
+				"\n# Nanoparticle Volume Fraction: "+largeDecimal.format(phi_n) + 
 				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 				"\n# Exact overlap: " + Polymer.getExact() + 
-				"\n# Lattice Length: " +threeDecimal.format(np.Lx)+
+				"\n# x length: " +largeDecimal.format(np.Lx)+
+				"\n# y length: " +largeDecimal.format(np.Ly)+
+				"\n# z length: " +largeDecimal.format(np.Lz)+
 				"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
 				"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
 				"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
