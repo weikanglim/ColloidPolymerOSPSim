@@ -104,6 +104,7 @@ public class POMFApp extends AbstractSimulation {
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
+		np.C = control.getDouble("Penetration free parameter:");
 		Polymer.setExact(control.getBoolean("Exact overlap"));
 		
 		if(control.getBoolean("Spherical polymers")){
@@ -476,6 +477,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
+		control.setValue("Penetration free parameter:", 3);
 		control.setValue("Runs", 5);
 		control.setValue("Tolerance", 0);
 		control.setValue("Rotation tolerance", 0.1);
@@ -540,7 +542,7 @@ public class POMFApp extends AbstractSimulation {
 				"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 				"\n# Number of Coformations Sampled: " + maxConformations +
 				"\n# Number of dataPoints: " + (maxDataPoints-1) + // 1 datapoint is used for e^(-U(r=0))
-				"\n# Penetration Energy On: " + this.penetrationEnergyToggle
+				"\n# Penetration Energy: " + np.C + "/q" + "="  + np.Ep
 				;
 		switch(writeMode){
 		case WRITE_SHAPES:

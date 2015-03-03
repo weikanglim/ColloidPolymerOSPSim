@@ -61,6 +61,7 @@ public class CPM {
 	public double Ep; // Penetration Energy
 	public double mcs;
 	public double rotTolerance;
+	public double C;
 	public boolean pomfRun = true;
 	public String insertionType;
 
@@ -92,7 +93,7 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		if(penetrationEnergy){
-			Ep = 3./q;
+			Ep = C/q;
 		}else{
 			Ep = 0;
 			System.out.println("Penetration energy turned off.");
