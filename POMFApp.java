@@ -524,21 +524,12 @@ public class POMFApp extends AbstractSimulation {
 	public void initializeDataFiles(){
 		DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 		DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-		DecimalFormat fourDecimal = new DecimalFormat("#0.####");
-		String phi_n;
-		if(np.volFraction < 0.0001){
-			phi_n = largeDecimal.format(np.volFraction);
-		} else if(np.volFraction < 0.001){
-			phi_n = fourDecimal.format(np.volFraction);
-		} else {
-			phi_n = threeDecimal.format(np.volFraction);
-		}
 		String configurations = "# Number of Polymers: " + np.nP +
 				"\n# Number of Nanoparticles: "+np.nN +
 				"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
 				"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
 				"\n# Insertion type: " + insertionType +
-				"\n# Nanoparticle Volume Fraction: "+largeDecimal.format(np.volFraction) + 
+				"\n# Nanoparticle Volume Fraction: "+np.volFraction + 
 				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
 				"\n# Exact overlap: " + Polymer.getExact() + 
 				"\n# x length: " +largeDecimal.format(np.Lx)+

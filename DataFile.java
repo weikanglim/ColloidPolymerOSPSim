@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Scanner;
 
@@ -33,10 +34,24 @@ public class DataFile {
 		String phiN = "";
 		String runNumber = "";
 		String q = "";
+
 		while(scan.hasNext()){
 			String token = scan.next();
 			if(token.equals("Fraction:")){
 				phiN = scan.next();
+				double phi_N = Double.parseDouble(phiN);
+				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
+				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
+				DecimalFormat fourDecimal = new DecimalFormat("#0.####");
+
+				if(phi_N < 0.0001){
+					phiN = largeDecimal.format(phi_N);
+				} else if(phi_N < 0.001){
+					phiN = fourDecimal.format(phi_N);
+				} else {
+					phiN = threeDecimal.format(phi_N);
+				}
+
 			}
 			
 			if(token.equals("Ratio:")){
