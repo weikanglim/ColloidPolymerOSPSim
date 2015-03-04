@@ -78,14 +78,6 @@ public class POMFApp extends AbstractSimulation {
 	String minuteInfo = "";
 	DataFile [] dataFiles;
 
-	public POMFApp(){
-		if(display3d != null) display3d.dispose();
-		display3d = new Display3DFrame("3D Frame");
-
-		if(display3d2 != null) display3d2.dispose();
-		display3d2 = new Display3DFrame("3D Frame");
-	}
-	
 	public void clearCounters(){
 		sumDistribution = 0;
 		sumVolume = 0;
@@ -134,16 +126,28 @@ public class POMFApp extends AbstractSimulation {
 	 * Initializes the model.
 	 */
 	public void initialize() {
-		i++;
+		if(display3d != null) display3d.dispose();
+		if(display3d2 != null) display3d2.dispose();
+		if(plotframe != null) plotframe.dispose();
+		if(resultsFrame != null) resultsFrame.dispose();
+		
+		if(debug) display3d2 = new Display3DFrame("3D Frame");
+		plotframe = new PlotFrame("Monte Carlo Steps",
+				"e^-U", "Acceptance Probability Plot");
+		resultsFrame = new DisplayFrame("Radial Distance",
+				"Effective Potential", "Effective Potential Plot");
+		display3d = new Display3DFrame("3D Frame");
+
+
 		waitMCS = MCS_WAIT_TO_EQUIL;
 		currentRun = 0;
 		np.nano_r = 0.5;
 		clearCounters();
 		getInput();
 		if(np.q < 1){
-			radialEnd = Math.min(1 + np.q + 0.1, np.Lx-0.5-np.q) ; // 
+			radialEnd = Math.min(1 + np.q + 0.1, np.Ly-0.5-np.q) ; //
 		} else {
-			radialEnd = Math.min(1 + np.q + 0.1, (np.Lx-1)/2) ; // 2*Rp+2*Rn
+			radialEnd = Math.min(1 + np.q + 0.1, (np.Ly-1)/2) ; // 2*Rp+2*Rn
 		}
 		radialStart = 1;
 		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
@@ -170,52 +174,49 @@ public class POMFApp extends AbstractSimulation {
 		plotframe.setMessage("r = " + placementPosition);
 
 		// add simple3d.Element particles to the arrays 
-		if (i == 2) { // particles only allowed to be added once, this is to prevent clone particles when initialize is called twice by the simulation
-			nanoSphere = new ElementSphere[np.nN];
-			polySphere = new ElementEllipsoid[np.nP];
-			closest = new ElementSphere();
-			closest.setSizeXYZ(0.1,0.1,0.1);
-			closest.getStyle().setFillColor(Color.BLACK); 
-			display3d.addElement(closest);
+		nanoSphere = new ElementSphere[np.nN];
+		polySphere = new ElementEllipsoid[np.nP];
+		closest = new ElementSphere();
+		closest.setSizeXYZ(0.1,0.1,0.1);
+		closest.getStyle().setFillColor(Color.BLACK); 
+		display3d.addElement(closest);
 
 
-			for (int i = 0; i < np.nN; i++) {
-				nanoSphere[i] = new ElementSphere();
-				display3d.addElement(nanoSphere[i]);
+		for (int i = 0; i < np.nN; i++) {
+			nanoSphere[i] = new ElementSphere();
+			display3d.addElement(nanoSphere[i]);
+		}
+	
+		for (int i = 0; i < np.nP; i++) {
+			if(control.getBoolean("Spherical polymers")){
+				polySphere[i] = new ElementSphere();
+			}else{
+				polySphere[i] = new ElementEllipsoid();
 			}
+			display3d.addElement(polySphere[i]);
+		}
+		
+		// Initialize visualization elements for nano particles
+		for (int i = 0; i < np.nN; i++) {
+			nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
+					2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
+			nanoSphere[i].getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
+			nanoSphere[i].getStyle().setLineColor(new Color(92, 146, 237, 100));
+			nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
+					np.nanos[i].getZ());
+		}
 
-			for (int i = 0; i < np.nP; i++) {
-				if(control.getBoolean("Spherical polymers")){
-					polySphere[i] = new ElementSphere();
-				}else{
-					polySphere[i] = new ElementEllipsoid();
-				}
-				display3d.addElement(polySphere[i]);
-			}
-			added = true; 
-			
-			// Initialize visualization elements for nano particles
-			for (int i = 0; i < np.nN; i++) {
-				nanoSphere[i].setSizeXYZ(2 * np.nanos[i].getrX(),
-						2 * np.nanos[i].getrY(), 2 * np.nanos[i].getrZ());
-				nanoSphere[i].getStyle().setFillColor(new Color(92, 146, 237, 100));  // light blue with half transparency
-				nanoSphere[i].getStyle().setLineColor(new Color(92, 146, 237, 100));
-				nanoSphere[i].setXYZ(np.nanos[i].getX(), np.nanos[i].getY(),
-						np.nanos[i].getZ());
-			}
-
-			// Initialize visualization elements for polymer particles
-			for (int i = 0; i < np.nP; i++) {
-				polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
-						2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
-				polySphere[i].getStyle().setFillColor(Color.RED);
-				polySphere[i].getStyle().setLineColor(Color.RED);
-				polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
-						np.polymers[i].getZ());
+		// Initialize visualization elements for polymer particles
+		for (int i = 0; i < np.nP; i++) {
+			polySphere[i].setSizeXYZ(2 * np.polymers[i].getrX(),
+					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
+			polySphere[i].getStyle().setFillColor(Color.RED);
+			polySphere[i].getStyle().setLineColor(Color.RED);
+			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
+					np.polymers[i].getZ());
 //	            if(np.polymers[i].updateRotation()){
 //	                    polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
 //	            }
-			}
 			 
 
 			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
@@ -339,9 +340,11 @@ public class POMFApp extends AbstractSimulation {
 					np.nN = 2;
 					np.nanos = new Nano[2];
 					np.setPolyInsertionPositions();
+					nanoSphere[1].setVisible(true);
 				} else {
 					np.nN = 1;
 					np.nanos = new Nano[1];
+					nanoSphere[1].setVisible(true);
 					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
 				}
 				currentRun++;
@@ -474,9 +477,9 @@ public class POMFApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 7.78);
+		control.setValue("Polymer colloid ratio", 0.2459);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0000145)); // Testing 2 + 2q for q < 1
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.019)); // Testing 2 + 2q for q < 1
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
@@ -544,7 +547,7 @@ public class POMFApp extends AbstractSimulation {
 				"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
 				"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 				"\n# Number of Coformations Sampled: " + maxConformations +
-				"\n# Number of dataPoints: " + (maxDataPoints-1) + // 1 datapoint is used for e^(-U(r=0))
+				"\n# Number of dataPoints: " + maxDataPoints + 
 				"\n# Penetration Energy: " + np.C + "/q" + "="  + np.Ep
 				;
 		switch(writeMode){
