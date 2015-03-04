@@ -101,6 +101,9 @@ public class POMFApp extends AbstractSimulation {
 		np.insertionType =insertionType = control.getString("Insertion method");
 		np.q = control.getDouble("Polymer colloid ratio");
 		np.Lx = np.Ly = np.Lz = control.getDouble("Lattice length");
+		if(insertionType.equals("polymer") && np.q < 0.5){
+			np.Lz = np.Lx = 1 + 2*np.q;
+		}
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
@@ -138,16 +141,15 @@ public class POMFApp extends AbstractSimulation {
 		clearCounters();
 		getInput();
 		if(np.q < 1){
-			radialEnd = Math.min(1 + np.q + 0.1, 1+3*np.q) ;
+			radialEnd = Math.min(1 + np.q + 0.1, np.Lx-0.5-np.q) ; // 
 		} else {
 			radialEnd = Math.min(1 + np.q + 0.1, (np.Lx-1)/2) ; // 2*Rp+2*Rn
 		}
 		radialStart = 1;
 		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
-		maxDataPoints++; // increase datapoint by 1 to account for 1 extra datapoint for run at r = 0
 		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
 		if(insertionType.equals("polymer")){
-			totalMCS = runs* maxConformations * maxDataPoints;
+			totalMCS = runs* maxConformations * (maxDataPoints+1); // 1 extra datapoint for U_inf
 		} else{
 			totalMCS = runs* maxConformations * snapshotIntervals * maxDataPoints;			
 		}
@@ -290,7 +292,7 @@ public class POMFApp extends AbstractSimulation {
 				
 				sumDistribution += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
-				conformations++;
+				conformations++; 
 			}
 		}
 		
@@ -336,7 +338,7 @@ public class POMFApp extends AbstractSimulation {
 				if(insertionType.equals("polymer")){
 					np.nN = 2;
 					np.nanos = new Nano[2];
-					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
+					np.setPolyInsertionPositions();
 				} else {
 					np.nN = 1;
 					np.nanos = new Nano[1];
@@ -388,6 +390,7 @@ public class POMFApp extends AbstractSimulation {
 			// reset counters for next data point.
 			conformations = 0;
 			sumDistribution = 0;			
+			// Set placement position for next datapoint.
 			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
 			placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
 			
@@ -400,7 +403,7 @@ public class POMFApp extends AbstractSimulation {
 					// Keep only one nanoparticle at the center
 					np.nN = 1;
 					np.nanos = new Nano[1];
-					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
+					np.setPolyInsertionPositions();
 				} else {
 					clearNano = true;
 					nanoSphere[0].setVisible(false);
@@ -471,9 +474,9 @@ public class POMFApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 0.776);
+		control.setValue("Polymer colloid ratio", 7.78);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.01)); // Testing 2 + 2q for q < 1
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0000145)); // Testing 2 + 2q for q < 1
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
@@ -487,7 +490,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
-		control.setValue("Snapshot interval", 1000);
+		control.setValue("Snapshot interval", 1);
 		control.setValue("Number of datapoints", 8);
 		control.setValue("Number of conformations", 2000000);
 		control.setValue("Penetration energy", true);

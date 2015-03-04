@@ -111,13 +111,7 @@ public class CPM {
 		// initialize positions
 		if(insertionType != null){
 			if (insertionType.toLowerCase().equals("polymer")) {
-				if(q < 1){
-					Lx = Lz = 1 + 2*q;
-					nanos[0] = new Nano(Lx/2f, 2*q, Lz/2f);
-				} else {
-					nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
-				}
-				polymers[0] = new Polymer(0,0,0); 
+				setPolyInsertionPositions();
 			} else{
 				setPositions();
 			}
@@ -226,7 +220,6 @@ public class CPM {
 		}
 	}
 
-	
 	/**
 	 * Initializes the configuration.
 	 * A nanoparticle is placed at the center, and the polymers are put into an evenly divided lattice.
@@ -271,7 +264,20 @@ public class CPM {
 			}
 		}
 	}
-
+	
+	/**
+	 * Sets the polymer insertion positions
+	 * 
+	 */
+	public void setPolyInsertionPositions(){
+		if(q < 0.5){
+			nanos[0] = new Nano(Lx/2f, 0.5+2*q, Lz/2f);
+		} else {
+			nanos[0] = new Nano(Lx/2f, Ly/2f, Lz/2f);
+		}
+		polymers[0] = new Polymer(0,0,0); 
+	}
+	
 	/**
 	 * Does a monte carlo simulation step.
 	 */
