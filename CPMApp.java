@@ -9,7 +9,6 @@ import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.PlotFrame;
-import org.opensourcephysics.numerics.PBC;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
@@ -78,6 +77,7 @@ public class CPMApp extends AbstractSimulation {
 		np.rotTolerance = control.getDouble("Rotation tolerance");
 		np.shapeTolerance = control.getDouble("Shape tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
+		np.energyProfile = control.getBoolean("Energy profile");
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxDataPoints = control.getInt("Number of datapoints");
 		runs = control.getInt("Number of runs");
@@ -376,6 +376,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Exact overlap", true);
+		control.setValue("Energy profile", true);
 		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);

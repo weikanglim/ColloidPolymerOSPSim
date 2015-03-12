@@ -2,9 +2,6 @@ package org.opensourcephysics.sip.CPM;
 
 import java.util.Stack;
 
-import org.opensourcephysics.numerics.PBC;
-import org.opensourcephysics.numerics.VectorMath;
-
 /**
  * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
  * and polymers model.
@@ -58,11 +55,12 @@ public class CPM {
 						// species (hexagonal lattice),
 						// or columns and rows (square lattice)
 	public double totalIntersectCount;
-	public double Ep; // Penetration Energy
+	public double step_Ep; // Penetration Energy
 	public double mcs;
 	public double rotTolerance;
 	public double C;
 	public boolean pomfRun = true;
+	public boolean energyProfile = false;
 	public String insertionType;
 
 	// end declaration
@@ -93,9 +91,9 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		if(penetrationEnergy){
-			Ep = C/q;
+			step_Ep = C/q;
 		}else{
-			Ep = 0;
+			step_Ep = 0;
 			System.out.println("Penetration energy turned off.");
 		}
 		Nano.setTolerance(tolerance);
@@ -336,7 +334,6 @@ public class CPM {
 		double oldX = nano.getX();
 		double oldY = nano.getY();
 		double oldZ = nano.getZ();
-		int overlapCount = 0;
 		Stack<Polymer> overlapPolymers = new Stack<Polymer>();
 		nano.move();
 
@@ -350,21 +347,25 @@ public class CPM {
 				}
 		}
 
+		double Ep=0;
+		double r;
 		// Count number of intersections
 		for (int i = 0; i < polymers.length; i++) {
 			boolean overlap = nano.overlap(polymers[i]);
 			boolean wasOverlapping = nano.intersectPairs.contains(polymers[i]) || polymers[i].intersectPairs.contains(nano);
 			if (overlap && !wasOverlapping) { // Check for gain in overlaps
-						overlapCount++;
-						overlapPolymers.push(polymers[i]);
+				r = Math.sqrt(nano.squaredSeparation(polymers[i]));
+				Ep += penetrationEnergy(r);
+				overlapPolymers.push(polymers[i]);
 			}
 			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
-						overlapCount--;
+				r = Math.sqrt(nano.squaredSeparation(polymers[i]));
+				Ep -= penetrationEnergy(r);
 			}
 		}
 		
 		// Acceptance probability
-		if (Math.random() < Math.exp(-Ep*overlapCount)) { 
+		if (Math.random() < Math.exp(-Ep)) { 
 				while(!overlapPolymers.isEmpty()){
 					overlapPolymers.peek().intersectPairs.add(nano);
 					nano.intersectPairs.add(overlapPolymers.pop()); // Add
@@ -404,8 +405,6 @@ public class CPM {
 		double [] initialOldAxis = poly.getOldAxis();
 		double [] initialNewAxis = poly.getNewAxis();
 
-
-		int overlapCount = 0;
 		Stack<Nano> overlapNanos = new Stack<Nano>();
 		/** Trial Displacement **/
 		poly.move();
@@ -423,25 +422,30 @@ public class CPM {
 			poly.rotate();
 		}
 		
+		double Ep=0;
+		double r;
 		// Check for intersections with nanoparticles
 		for (int i = 0; i < nanos.length; i++) {
 			boolean overlap = poly.overlap(nanos[i]);
 			boolean wasOverlapping = poly.intersectPairs.contains(nanos[i]) || nanos[i].intersectPairs.contains(poly);
 			if (overlap && !wasOverlapping) { // Check for gain in overlap
-					overlapCount++;
-					overlapNanos.push(nanos[i]);
+				overlapNanos.push(nanos[i]);
+				r = Math.sqrt(poly.squaredSeparation(nanos[i]));
+				Ep += penetrationEnergy(r);
 			}
 			else if (!overlap && wasOverlapping) { // Check for loss of previous overlap
-					overlapCount--;
+				r = Math.sqrt(poly.squaredSeparation(nanos[i]));
+				Ep -= penetrationEnergy(r);
 			}
 		}
 		
 		double p;
+		
 		if(Polymer.getShapeTolerance() == 0){
-			p = Math.exp(-Ep*overlapCount);
+			p = Math.exp(-Ep);
 		} else {
 			p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
-				   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) )  * Math.exp(-Ep*overlapCount);
+				(prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) ) * Math.exp(-Ep);
 		}
 
 		// Acceptance probability
@@ -505,17 +509,11 @@ public class CPM {
 		
 		// Count number of intersections
 		Nano nano = new Nano(x,y,z);
-		int overlapCount = 0;
-//		for(Nano n : nanos){
-//			if(nano.overlap(n)){
-//				System.out.println("Collision detected");
-//				return 0;
-//			}
-//		}
-		
+		double Ep = 0;
 		for (int i = 0; i < polymers.length; i++) {
 			if(nano.overlap(polymers[i])){
-				overlapCount++;
+				r = Math.sqrt(polymers[0].squaredSeparation(nanos[i]));
+				Ep += penetrationEnergy(r);
 			}
 		}
 		
@@ -523,13 +521,13 @@ public class CPM {
 		for(Nano n : nanos){
 			for(Polymer p : polymers){
 				if(n.overlap(p)){
-					overlapCount++;
+					r = Math.sqrt(p.squaredSeparation(n));
+					Ep += penetrationEnergy(r);
 				}
 			}
 		}
 		
-//		System.out.println(Math.exp(-Ep*overlapCount));
-		return Math.exp(-Ep*overlapCount); 
+		return Math.exp(-Ep); 
 	}
 	
 	/**
@@ -585,22 +583,17 @@ public class CPM {
 		polymers[0].setX(x);
 		polymers[0].setY(y);
 		polymers[0].setZ(z);
-		int overlapCount = 0;
-//		for(Nano n : nanos){
-//			if(nano.overlap(n)){
-//				System.out.println("Collision detected");
-//				return 0;
-//			}
-//		}
+		double Ep = 0;
+		double r = 0;
 		
 		for (int i = 0; i < nanos.length; i++) {
 			if(polymers[0].overlap(nanos[i])){
-				overlapCount++;
+				r = Math.sqrt(polymers[0].squaredSeparation(nanos[i]));
+				Ep += penetrationEnergy(r);
 			}
 		}
-//		return overlapCount;
-//		System.out.println(Math.exp(-Ep*overlapCount));
-		return Math.exp(-Ep*overlapCount); 
+		
+		return Math.exp(-Ep);
 	}
 
 
@@ -648,5 +641,19 @@ public class CPM {
 		average = Math.sqrt(total / polymers.length);
 		ratio = average / Nano.getDefault_r();
 		return ratio;
+	}
+	
+	
+	/**
+	 * Returns the penetration energy profile for a given center-to-center distance.
+	 * @param r center-to-center distance
+	 * @return double Penetration energy.
+	 */
+	public double penetrationEnergy(double r){
+		if(energyProfile){
+			return 1/r;
+		}else{
+			return step_Ep;
+		}
 	}
 }
