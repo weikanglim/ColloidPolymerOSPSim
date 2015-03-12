@@ -1,10 +1,8 @@
 package org.opensourcephysics.sip.CPM;
 
-import java.util.Arrays;
 
 import org.opensourcephysics.numerics.Matrix3DTransformation;
 import org.opensourcephysics.numerics.PBC;
-import org.opensourcephysics.numerics.Root;
 import org.opensourcephysics.numerics.VectorMath;
 
 public class Polymer extends Particle{
@@ -136,10 +134,6 @@ public class Polymer extends Particle{
 					double yRatio = ellipsEigen[1] / ellipsEigen[0]; //  ratio of the radii, lambda2/lambda1
 					double zRatio = ellipsEigen[2] / ellipsEigen[0]; //  lambda3/lambda1
 					double [] roots = overlapPolynomial.rootsReal(); // get all roots
-					boolean inexactOverlap = Math.pow(sphereCoord[0]/(this.getrX()+nano.getrX()),2) + 
-							   Math.pow(sphereCoord[1]/(this.getrY()+nano.getrY()), 2) + 
-							   Math.pow(sphereCoord[2]/(this.getrZ()+nano.getrZ()),2) < 1;	
-					
 
 					for(double x : roots){
 						// Filter roots that are out of the ellipsoid coating.
