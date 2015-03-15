@@ -478,9 +478,9 @@ public class POMFApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 0.2459);
+		control.setValue("Polymer colloid ratio", 10);
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.019)); // Testing 2 + 2q for q < 1
+		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0002)); // Testing 2 + 2q for q < 1
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
@@ -550,7 +550,7 @@ public class POMFApp extends AbstractSimulation {
 				"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
 				"\n# Number of Coformations Sampled: " + maxConformations +
 				"\n# Number of dataPoints: " + maxDataPoints + 
-				"\n# Penetration Energy: " + np.C + "/q" + "="  + np.step_Ep
+				"\n# Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.C + "/q" + "="  + np.step_Ep)
 				;
 		switch(writeMode){
 		case WRITE_SHAPES:

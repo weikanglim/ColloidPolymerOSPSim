@@ -651,7 +651,7 @@ public class CPM {
 	 */
 	public double penetrationEnergy(double r){
 		if(energyProfile){
-			return 1/r;
+			return C/r;
 		}else{
 			return step_Ep;
 		}
