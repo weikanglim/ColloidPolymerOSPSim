@@ -96,6 +96,10 @@ public class POMFApp extends AbstractSimulation {
 		if(insertionType.equals("polymer") && np.q < 0.5){
 			np.Lz = np.Lx = 1 + 2*np.q;
 		}
+		else if(control.getBoolean("Auto width")){
+			np.Lz = np.Lx = 1 + 3*np.q;
+			np.Ly = 2 + 6*np.q;
+		}
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
@@ -490,6 +494,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Insertion method", "polymer");
+		control.setValue("Auto width", true);
 		control.setValue("Exact overlap", true);
 		control.setValue("Energy profile", true);
 		control.setValue("Initial configuration", "square");
