@@ -96,6 +96,10 @@ public class POMFApp extends AbstractSimulation {
 		if(insertionType.equals("polymer") && np.q < 0.5){
 			np.Lz = np.Lx = 1 + 2*np.q;
 		}
+		else if(control.getBoolean("Auto width")){
+			np.Lz = np.Lx = 1 + 3*np.q;
+			np.Ly = 2 + 6*np.q;
+		}
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
@@ -148,7 +152,11 @@ public class POMFApp extends AbstractSimulation {
 		if(np.q < 1){
 			radialEnd = Math.min(1 + np.q + 0.1, np.Ly-0.5-np.q) ; //
 		} else {
-			radialEnd = Math.min(1 + np.q + 0.1, (np.Ly-1)/2) ; // 2*Rp+2*Rn
+			if(control.getBoolean("Auto width")){
+				radialEnd = Math.min(1 + 3*np.q, np.Ly-1) ; 
+			} else {
+				radialEnd = Math.min(1 + np.q + 0.1, (np.Ly-1)/2) ; // 2*Rp+2*Rn
+			}
 		}
 		radialStart = 1;
 		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
@@ -490,6 +498,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
 		control.setValue("Insertion method", "polymer");
+		control.setValue("Auto width", true);
 		control.setValue("Exact overlap", true);
 		control.setValue("Energy profile", true);
 		control.setValue("Initial configuration", "square");
