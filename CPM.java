@@ -118,8 +118,8 @@ public class CPM {
 			setSqrPositions();
 		}
 		Particle.setBoundaries(Lx, Ly, Lz);
-		volFraction = pomfRun ? (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3):
-								nN * (4 * Math.PI / 3) * Math.pow(nano_r / Lx , 3);
+		volFraction = pomfRun ? (4 * Math.PI / 3) * nano_r / (Lx*Ly*Lz):
+								nN * (4 * Math.PI / 3) * nano_r / (Lx*Ly*Lz);
 	}
 
 	/**
