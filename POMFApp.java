@@ -98,7 +98,7 @@ public class POMFApp extends AbstractSimulation {
 		}
 		else if(control.getBoolean("Auto width")){
 			np.Lz = np.Lx = 1 + 3*np.q;
-			np.Ly = 2 + 6*np.q;
+			np.Ly = 2 + 4*np.q;
 		}
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
@@ -153,7 +153,7 @@ public class POMFApp extends AbstractSimulation {
 			radialEnd = Math.min(1 + np.q + 0.1, np.Ly-0.5-np.q) ; //
 		} else {
 			if(control.getBoolean("Auto width")){
-				radialEnd = Math.min(1 + 3*np.q, np.Ly-1) ; 
+				radialEnd = Math.min(1 + np.q, np.Ly-1) ; 
 			} else {
 				radialEnd = Math.min(1 + np.q + 0.1, (np.Ly-1)/2) ; // 2*Rp+2*Rn
 			}
