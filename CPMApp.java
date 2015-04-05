@@ -67,6 +67,7 @@ public class CPMApp extends AbstractSimulation {
 		np.lc = control.getDouble("Lattice constant");
 		//np.nano_r = 0.;
 		//np.nano_r = control.getDouble("Nanoparticle radius");
+		np.C = control.getDouble("Penetration free parameter:");
 		np.nano_r = 0.5;
 		np.init_eX = control.getDouble("x");
 		np.init_eY = control.getDouble("y");
@@ -372,6 +373,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
+		control.setValue("Penetration free parameter:", 3);		
 		control.setValue("Tolerance", 0.1);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
@@ -430,14 +432,6 @@ public class CPMApp extends AbstractSimulation {
 					df.close();
 				}
 			}
-		}
-		
-		for(Polymer p : np.polymers){
-			System.out.println(p.toPovray());
-		}
-		
-		for(Nano n : np.nanos){
-			System.out.println(n.toPovray());
 		}
 	}
 	
