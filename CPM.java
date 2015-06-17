@@ -91,7 +91,7 @@ public class CPM {
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
 		if(penetrationEnergy){
-			step_Ep = C/q;
+			step_Ep = C/q*( 1 + 1.1284/q + 0.3333/Math.pow(q,2) );
 		}else{
 			step_Ep = 0;
 			System.out.println("Penetration energy turned off.");

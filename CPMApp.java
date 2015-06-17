@@ -373,7 +373,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
-		control.setValue("Penetration free parameter:", 3);		
+		control.setValue("Penetration free parameter:", 6.839);		
 		control.setValue("Tolerance", 0.1);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
