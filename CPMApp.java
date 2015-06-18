@@ -197,7 +197,7 @@ public class CPMApp extends AbstractSimulation {
 				dataFiles = new DataFile[1];
 				dataFiles[0] = new DataFile("R^3", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 			case WRITE_ALL:
-				dataFiles = new DataFile[4];
+				dataFiles = new DataFile[5];
 				dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				dataFiles[1] = new DataFile("eY", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				dataFiles[2] = new DataFile("eZ", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
@@ -399,7 +399,7 @@ public class CPMApp extends AbstractSimulation {
 		control.setValue("Number of datapoints", 10000);
 		control.setValue("Number of runs", 5);
 		control.setValue("Penetration energy", true);
-		control.setValue("Write Mode", 4);
+		control.setValue("Write Mode", 5);
 		control.setAdjustableValue("Save", false);
 		i=0;
 		initialize();
