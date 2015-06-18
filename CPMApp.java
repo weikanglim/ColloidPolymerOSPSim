@@ -93,7 +93,8 @@ public class CPMApp extends AbstractSimulation {
 		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
 		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
 		case 3: writeMode = WriteModes.WRITE_RADIAL; break;
-		case 4: writeMode = WriteModes.WRITE_ALL; break;
+		case 4: writeMode = WriteModes.WRITE_SIZE; break;
+		case 5: writeMode = WriteModes.WRITE_ALL; break;
 		}
 		
 		np.initialize(configuration, penetrationEnergyToggle);
