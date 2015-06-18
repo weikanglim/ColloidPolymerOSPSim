@@ -19,7 +19,7 @@ import org.opensourcephysics.frames.PlotFrame;
  * 
  */
 public class CPMApp extends AbstractSimulation {
-	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_ALL;};
+	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_SIZE,WRITE_ALL;};
 	CPM np = new CPM();
 	Display3DFrame display3d = new Display3DFrame("3D Frame");
 	PlotFrame plotframe = new PlotFrame("Monte Carlo Steps",
@@ -193,12 +193,16 @@ public class CPMApp extends AbstractSimulation {
 				dataFiles[0] = new DataFile("radial", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				rdf = new RDF(np.nanos, np.Lx);
 				break;
+			case WRITE_SIZE:
+				dataFiles = new DataFile[1];
+				dataFiles[0] = new DataFile("R^3", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 			case WRITE_ALL:
 				dataFiles = new DataFile[4];
 				dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				dataFiles[1] = new DataFile("eY", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				dataFiles[2] = new DataFile("eZ", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				dataFiles[3] = new DataFile("radial", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				dataFiles[4] = new DataFile("R^3", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
 				rdf = new RDF(np.nanos, np.Lx);
 				break;
 			default:
@@ -315,12 +319,21 @@ public class CPMApp extends AbstractSimulation {
 							dataPoints++;
 						}
 						break;
+					case WRITE_SIZE:
+						if(np.mcs > START_MCS){ // hardcoded 
+							for(Polymer poly: np.polymers){
+							dataFiles[0].record(String.valueOf(poly.getrX()*poly.getrY()*poly.getrZ()));
+							}
+							dataPoints++;
+						}
+						break;
 					case WRITE_ALL:
 						if(np.mcs > START_MCS){ // hardcoded 
 							for(Polymer poly: np.polymers){
 									dataFiles[0].record(String.valueOf(poly.geteX()));
 									dataFiles[1].record(String.valueOf(poly.geteY()));
 									dataFiles[2].record(String.valueOf(poly.geteZ()));
+									dataFiles[4].record(String.valueOf(poly.getrX()*poly.getrY()*poly.getrZ()));
 							}
 							rdf.update();
 							dataPoints++;
