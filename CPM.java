@@ -502,7 +502,7 @@ public class CPM {
 		y += Ly/2f;
 		z += Lz/2f;
 		
-		double dist_sqrd =  Math.pow(x-Lx/2f,2) + Math.pow(y-Lx/2f, 2) + Math.pow(z-Lz/2f,2);
+		double dist_sqrd =  Math.pow(x-Lx/2f,2) + Math.pow(y-Ly/2f, 2) + Math.pow(z-Lz/2f,2);
 		if( dist_sqrd - Math.pow(r, 2) > 0.001){
 			System.out.println("r does not match: " + Math.sqrt(dist_sqrd) + " , " + r);
 		}
@@ -531,10 +531,14 @@ public class CPM {
 	}
 	
 	/**
-	 * Places a nanoparticle at the specified radial distance (currently only y-distance) from the origin.
+	 * Places a nanoparticle (2nd indexed) at the specified radial distance (currently only y-distance) from the center particle.
+	 * 
+	 * If the simulation has a specified nanoparticles number that is less than 2, no nanoparticle is placed.
+	 * If the simulation has an uninstantiated nanoparticle, the nanoparticle is instantiated and placed.
+	 * 
 	 */
 	public void placeNano2(double r){
-		if(nanos.length <2){
+		if(nanos.length <2){ // No 2nd nanoparticle instantiated
 			return;
 		}
 		
