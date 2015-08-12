@@ -93,13 +93,12 @@ public class POMFApp extends AbstractSimulation {
 		np.insertionType =insertionType = control.getString("Insertion method");
 		np.q = control.getDouble("Polymer colloid ratio");
 		np.Lx = np.Ly = np.Lz = control.getDouble("Lattice length");
-		if(insertionType.equals("polymer") && np.q < 0.5){
-			np.Lz = np.Lx = 1 + 2*np.q;
-		}
-		else if(control.getBoolean("Auto width")){
+		
+		if(control.getBoolean("Auto width")){
 			np.Lz = np.Lx = 1 + 3*np.q;
 			np.Ly = 2 + 4*np.q;
 		}
+		
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
@@ -149,17 +148,16 @@ public class POMFApp extends AbstractSimulation {
 		np.nano_r = 0.5;
 		clearCounters();
 		getInput();
-		if(np.q < 1){
-			radialEnd = Math.min(1 + np.q + 0.1, np.Ly-0.5-np.q) ; //
-		} else {
-			if(control.getBoolean("Auto width")){
-				radialEnd = Math.min(1 + np.q, np.Ly-1) ; 
-			} else {
-				radialEnd = Math.min(1 + np.q + 0.1, (np.Ly-1)/2) ; // 2*Rp+2*Rn
-			}
-		}
+		
 		radialStart = 1;
-		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
+		// Place the second nanoparticle up to 1 + q, when V(r) -> 0, or the maximum box length it can go before PBC kicks in.
+		if(np.q >= 0.5){
+			radialEnd = Math.min(1 + np.q + 0.1, np.Ly/2 - 0.5 - np.q);  // Nanoparticle placed at center.
+		} else {
+			radialEnd = Math.min(1 + np.q + np.q/2, np.Ly - 1 - 3 * np.q ); // The nanoparticle is not placed at the center for q < 0.5
+		}
+				
+		steps = (radialEnd-radialStart) / (maxDataPoints-1); // calculate dr needed to iterate through from [radialEnd, radialStart]
 		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
 		if(insertionType.equals("polymer")){
 			totalMCS = runs* maxConformations * (maxDataPoints+1); // 1 extra datapoint for U_inf
