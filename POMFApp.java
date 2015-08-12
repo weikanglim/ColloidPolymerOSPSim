@@ -324,19 +324,19 @@ public class POMFApp extends AbstractSimulation {
 			radialData[currentRun][dataPoints][0] = placementPosition;
 			radialData[currentRun][dataPoints][1] = avgDistribution; // temporarily place the variable, will be replaced with V_r calculations later on.
 			dataPoints++;
+			
+			// Enough datapoints, start calculating V_r
 			if(dataPoints >= maxDataPoints +1 ){ // all data points + U(inf)				
 				System.out.println("Run " + currentRun);
 
 				// Calculate V_r from averaged e^-U
 				int U_zero_index = maxDataPoints; // last position
 				double U_inf = 2*radialData[currentRun][U_zero_index][1]-1;
-				double lnU_inf = Math.log(U_inf);
-				System.out.println(lnU_inf + " U_inf: " + U_inf);
+				System.out.println("U_inf: " + U_inf);
 				for(int i =0; i < maxDataPoints; i++){
 					double r = radialData[currentRun][i][0];
-					double lnU_r = Math.log(radialData[currentRun][i][1]);
-					System.out.println(lnU_r);
-					double V_r = -lnU_r + lnU_inf;
+					double U_r = radialData[currentRun][i][1];
+					double V_r = U_inf - U_r;
 					radialData[currentRun][i][1] = V_r;
 					System.out.println(r + "\t" + V_r);
 				}
