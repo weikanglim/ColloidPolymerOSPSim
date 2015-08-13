@@ -2,6 +2,7 @@ package org.opensourcephysics.sip.CPM;
 
 import java.awt.Color;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 
 import org.opensourcephysics.controls.AbstractSimulation;
 import org.opensourcephysics.controls.SimulationControl;
@@ -43,6 +44,7 @@ public class POMFApp extends AbstractSimulation {
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
 	double [][][] radialData; 
+	// radialData[i][0] = r, radialData[i][1] = v(r), radialData[i][2] = uncertainty of v(r)
 	int runs;
 	int currentRun;
 	double polar;
@@ -52,14 +54,16 @@ public class POMFApp extends AbstractSimulation {
 	double radialEnd;
 	double sumVolume;
 	double volumeSnapshots;
-	double sumDistribution;
-	double sumSquaredDistribution;
+	double sumInteractionEnergy;
+	double sumLn_Pr;
+	double sumSquaredInteraction;
 	long timeStarted = 0;
 	long timeElapsed = 0;
 	int conformations;
 	int maxConformations;
 	int dataPoints;
 	int maxDataPoints;
+	int countShape;
 	double waitMCS;
 	double totalMCS;
 	double steps;
@@ -79,12 +83,14 @@ public class POMFApp extends AbstractSimulation {
 	DataFile [] dataFiles;
 
 	public void clearCounters(){
-		sumDistribution = 0;
+		sumInteractionEnergy = 0;
+		sumLn_Pr = 0;
 		sumVolume = 0;
 		volumeSnapshots = 0;
 		totalIntersections = 0;
 		dataPoints = 0;
 		conformations = 0;
+		countShape = 0;
 		clearNano =false;
 	}
 	
@@ -164,7 +170,7 @@ public class POMFApp extends AbstractSimulation {
 		} else{
 			totalMCS = runs* maxConformations * snapshotIntervals * maxDataPoints;			
 		}
-		radialData = new double[runs][maxDataPoints+1][3]; // radialData[i][0] = r, radialData[i][1] = e^[-U(r)], radialData[i][2] = uncertainty
+		radialData = new double[runs][maxDataPoints+1][3]; 
 
 		switch(control.getInt("Write Mode")){
 		case 0: writeMode = WriteModes.WRITE_NONE; break;
@@ -246,7 +252,9 @@ public class POMFApp extends AbstractSimulation {
 		// Insertion algorithms
 		// Polymer Insertion
 		if(insertionType.equals("polymer")){
-			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
+			double [] trialData = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
+			double lnPr = trialData[0];
+			double e_negU = trialData[1];
 			
 			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
 				if(debug){
@@ -297,8 +305,11 @@ public class POMFApp extends AbstractSimulation {
 					}
 				}
 				
-				
-				sumDistribution += e_negU;
+				if(lnPr > 0){ // Valid polymer shape
+					countShape++;
+					sumLn_Pr += lnPr;
+				}
+				sumInteractionEnergy += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
 				conformations++; 
 			}
@@ -310,7 +321,7 @@ public class POMFApp extends AbstractSimulation {
 				waitMCS--;
 			} else if( np.mcs % snapshotIntervals == 0){
 				double e_negU = np.nanoTrialPlacement(placementPosition);
-				sumDistribution += e_negU;
+				sumInteractionEnergy += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
 				conformations++;
 			}
@@ -319,24 +330,31 @@ public class POMFApp extends AbstractSimulation {
 		// Insertion algorithm snapshots
 		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
 			// Enough conformations for a data point, analyze distribution and record.
-			double avgDistribution = sumDistribution / conformations;
-			System.out.println(avgDistribution);
+			double avgInteractionEnergy = sumInteractionEnergy / conformations;
+			double avgLn_Pr = sumLn_Pr / countShape;
+			System.out.println("r=" + placementPosition);
+			System.out.println(placementPosition + "\t" + avgInteractionEnergy + "\t" + avgLn_Pr);
 			radialData[currentRun][dataPoints][0] = placementPosition;
-			radialData[currentRun][dataPoints][1] = avgDistribution; // temporarily place the variable, will be replaced with V_r calculations later on.
+			radialData[currentRun][dataPoints][1] = avgInteractionEnergy; // temporarily place the variable, will be replaced with V_r calculations later on.
+			radialData[currentRun][dataPoints][2] = avgLn_Pr; // temporary variable storage, will be replaced with uncertainty of V_r when a single run finishes.
 			dataPoints++;
 			
 			// Enough datapoints, start calculating V_r
 			if(dataPoints >= maxDataPoints +1 ){ // all data points + U(inf)				
 				System.out.println("Run " + currentRun);
 
-				// Calculate V_r from averaged e^-U
-				int U_zero_index = maxDataPoints; // last position
-				double U_inf = 2*radialData[currentRun][U_zero_index][1]-1;
+				// Get the infinite separation data.
+				// Last datapoint stores data from one nanoparticle insertions
+				double U_inf = 2*radialData[currentRun][maxDataPoints][1]-1;
+				double lnP_one = radialData[currentRun][maxDataPoints][2];
 				System.out.println("U_inf: " + U_inf);
+				
+				// Calculate V_r from averaged e^-U 
 				for(int i =0; i < maxDataPoints; i++){
 					double r = radialData[currentRun][i][0];
 					double U_r = radialData[currentRun][i][1];
-					double V_r = U_inf - U_r;
+					double internalFree = 2*lnP_one - radialData[currentRun][i][2] - 8.44002894726;
+					double V_r = U_inf - U_r + internalFree;
 					radialData[currentRun][i][1] = V_r;
 					System.out.println(r + "\t" + V_r);
 				}
@@ -399,7 +417,7 @@ public class POMFApp extends AbstractSimulation {
 			
 			// reset counters for next data point.
 			conformations = 0;
-			sumDistribution = 0;			
+			sumInteractionEnergy = 0;			
 			// Set placement position for next datapoint.
 			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
 			placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
