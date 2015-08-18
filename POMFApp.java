@@ -374,13 +374,15 @@ public class POMFApp extends AbstractSimulation {
 			
 			// Enough datapoints, start calculating V_r
 			if(dataPoints >= maxDataPoints +1 ){ // all data points + U(inf)				
-				System.out.println("Run " + currentRun);
+				System.out.println("Run " + currentRun + " completed.");
+				System.out.println("Results:");
 
 				// Get the infinite separation data.
 				// Last datapoint stores data from one nanoparticle insertions
 				double U_inf = 2*radialData[currentRun][maxDataPoints][1]-1;
 				double lnP_one = radialData[currentRun][maxDataPoints][2];
 				System.out.println("U_inf: " + U_inf);
+				System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape");
 				
 				// Calculate V_r from averaged e^-U 
 				for(int i =0; i < maxDataPoints; i++){
@@ -389,9 +391,9 @@ public class POMFApp extends AbstractSimulation {
 					double internalFree = 2*lnP_one - radialData[currentRun][i][2] - 8.44002894726;
 					double V_r = U_inf - U_r + internalFree;
 					radialData[currentRun][i][1] = V_r;
-					System.out.println(r + "\t" + V_r);
+					System.out.println(r + "\t" + V_r  + "\t" + (U_inf - U_r) + "\t" + internalFree);
 				}
-				
+								
 				// Reset counters for next run
 				clearCounters();
 				if(insertionType.equals("polymer")){
@@ -407,7 +409,7 @@ public class POMFApp extends AbstractSimulation {
 				}
 				currentRun++;
 
-				if(currentRun >= runs){
+				if(currentRun >= runs){ // All runs completed.
 					double [] avgPotential = new double[maxDataPoints];
 					double [] stdDevPotential = new double[maxDataPoints];
 					for(int i = 0; i < maxDataPoints; i++){
@@ -445,6 +447,9 @@ public class POMFApp extends AbstractSimulation {
 					dataFiles[0].record("# Number of runs: " + currentRun);
 					this.stopAnimation();
 					return;
+				} else{
+					System.out.println("Run " + currentRun + " start.");
+					System.out.println("r\t<e^-(del_U)>\t<ln P_2(r)>");
 				}
 			}
 			
