@@ -557,11 +557,9 @@ public class CPM {
 	 * @param x x-coordinate
 	 * @param y y-coordinate
 	 * @param z z-coordinate
-	 * @return A double array with the following indices and stored values: </br>
-	 * 0	ln(P(r)), the natural logarithm of the shape probability associated with the current polymer.
-	 * 1	Boltzmann faztor, e^(-_U) where U is the free energy associated with polymer nanoparticle interactions of the system
+	 * @return Boltzmann factor, e^(-_U) where U is the free energy associated with polymer nanoparticle interactions of the system
 	 */
-	public double [] polyTrialPlacement(double x, double y, double z) {
+	public double polyTrialPlacement(double x, double y, double z) {
 		if(Polymer.getShapeTolerance() != 0){
 			double oldEX = polymers[0].geteX();
 			double oldEY = polymers[0].geteY();
@@ -599,24 +597,7 @@ public class CPM {
 			}
 		}
 		
-		double [] results = new double[2];
-		double lnPr = 0;
-		
-		if(Ep > 0){ // There is an overlap energy cost
-			 // Accept with weighted boltzmann factor
-			if(Math.random() < Math.exp(-Ep)){ // Accepted
-				lnPr = Math.log(prob(polymers[0].geteX(), Vector.x) * prob(polymers[0].geteY(), Vector.y) * prob(polymers[0].geteZ(), Vector.z));
-			} else {	// Rejected
-				lnPr = 0;
-			}
-		} else { // Automatically accepted
-			lnPr = Math.log(prob(polymers[0].geteX(), Vector.x) * prob(polymers[0].geteY(), Vector.y) * prob(polymers[0].geteZ(), Vector.z));
-		}
-		
-		results[0] = lnPr;
-		results[1] =  Math.exp(-Ep); 
-		
-		return results;
+		return Math.exp(-Ep);
 	}
 
 

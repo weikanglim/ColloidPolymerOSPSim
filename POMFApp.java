@@ -26,6 +26,11 @@ import org.opensourcephysics.numerics.PBC;
  */
 public class POMFApp extends AbstractSimulation {
 	final int MCS_WAIT_TO_EQUIL = 5000;
+	final double LAMBDA1_END = 0.4;
+	final double LAMBDA2_END = 0.08;
+	final double LAMBDA3_END = 0.3;
+	final int HISTOGRAM_BINS = 1000;
+	
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
 	CPM np = new CPM();
 	Display3DFrame display3d = new Display3DFrame("3D Frame");
@@ -44,6 +49,9 @@ public class POMFApp extends AbstractSimulation {
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
 	double [][][] radialData; 
+	ArrayList<Double> eXData;
+	ArrayList<Double> eYData;
+	ArrayList<Double> eZData;
 	// radialData[i][0] = r, radialData[i][1] = v(r), radialData[i][2] = uncertainty of v(r)
 	int runs;
 	int currentRun;
@@ -83,6 +91,9 @@ public class POMFApp extends AbstractSimulation {
 	DataFile [] dataFiles;
 
 	public void clearCounters(){
+		eXData = new ArrayList<>(maxConformations);
+		eYData = new ArrayList<>(maxConformations);
+		eZData = new ArrayList<>(maxConformations);
 		sumInteractionEnergy = 0;
 		sumLn_Pr = 0;
 		sumVolume = 0;
@@ -152,8 +163,9 @@ public class POMFApp extends AbstractSimulation {
 		waitMCS = MCS_WAIT_TO_EQUIL;
 		currentRun = 0;
 		np.nano_r = 0.5;
-		clearCounters();
 		getInput();
+		clearCounters();
+
 		
 		radialStart = 1;
 		// Place the second nanoparticle up to 1 + q, when V(r) -> 0, or the maximum box length it can go before PBC kicks in.
@@ -252,9 +264,7 @@ public class POMFApp extends AbstractSimulation {
 		// Insertion algorithms
 		// Polymer Insertion
 		if(insertionType.equals("polymer")){
-			double [] trialData = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
-			double lnPr = trialData[0];
-			double e_negU = trialData[1];
+			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
 			
 			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
 				if(debug){
@@ -305,10 +315,27 @@ public class POMFApp extends AbstractSimulation {
 					}
 				}
 				
-				if(lnPr > 0){ // Valid polymer shape
-					countShape++;
-					sumLn_Pr += lnPr;
+				// Record polymer internal conformations
+				if(e_negU < 1){ // delta U > 0, energy unfavourable
+					 // Accept with boltzmann factor
+					if(Math.random() < e_negU){
+						// Accepted.
+						// Record polymer shape.
+						eXData.add(np.polymers[0].geteX());
+						eYData.add(np.polymers[0].geteY());
+						eZData.add(np.polymers[0].geteZ());
+					}
+					
+					// Rejected, do nothing.
+				} else { 
+					// Accepted.
+					// Record polymer shape.
+					eXData.add(np.polymers[0].geteX());
+					eYData.add(np.polymers[0].geteY());
+					eZData.add(np.polymers[0].geteZ());
 				}
+				
+				// Record polymer-nanoparticle interaction
 				sumInteractionEnergy += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
 				conformations++; 
@@ -331,12 +358,18 @@ public class POMFApp extends AbstractSimulation {
 		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
 			// Enough conformations for a data point, analyze distribution and record.
 			double avgInteractionEnergy = sumInteractionEnergy / conformations;
-			double avgLn_Pr = sumLn_Pr / countShape;
+			Histogram lambda1 = new Histogram(Utils.toPrimitiveArray(eXData), 0.0, LAMBDA1_END, HISTOGRAM_BINS);
+			Histogram lambda2 = new Histogram(Utils.toPrimitiveArray(eYData), 0.0, LAMBDA2_END, HISTOGRAM_BINS);
+			Histogram lambda3 = new Histogram(Utils.toPrimitiveArray(eZData), 0.0, LAMBDA3_END, HISTOGRAM_BINS);
+			double lnP1_r = lambda1.calculateEntropy(),
+				   lnP2_r = lambda2.calculateEntropy(),
+				   lnP3_r = lambda3.calculateEntropy();
+			double lnP_r = lnP1_r + lnP2_r + lnP3_r;
 			System.out.println("r=" + placementPosition);
-			System.out.println(placementPosition + "\t" + avgInteractionEnergy + "\t" + avgLn_Pr);
+			System.out.println(placementPosition + "\t" + avgInteractionEnergy + "\t" + lnP_r);
 			radialData[currentRun][dataPoints][0] = placementPosition;
 			radialData[currentRun][dataPoints][1] = avgInteractionEnergy; // temporarily place the variable, will be replaced with V_r calculations later on.
-			radialData[currentRun][dataPoints][2] = avgLn_Pr; // temporary variable storage, will be replaced with uncertainty of V_r when a single run finishes.
+			radialData[currentRun][dataPoints][2] = lnP_r; // temporary variable storage, will be replaced with uncertainty of V_r when a single run finishes.
 			dataPoints++;
 			
 			// Enough datapoints, start calculating V_r
