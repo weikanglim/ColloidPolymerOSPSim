@@ -113,8 +113,8 @@ public class Histogram implements Iterator<Histogram.Point>, Iterable<Histogram.
 	}
 	
 	/**
-	 * Calculate the entropy of the probability distribution.
-	 * @return 
+	 * Calculates the entropy of the histogram.
+	 * @return The entropy of the distribution.
 	 */
 	public double calculateEntropy(){
 		double entropy = 0;
@@ -123,6 +123,23 @@ public class Histogram implements Iterator<Histogram.Point>, Iterable<Histogram.
 		}
 		
 		return entropy;
+	}
+	
+	/**
+	 * Returns a string representation of the histogram.
+	 */
+	public String toString(){
+		String s = "";
+		StringBuffer sb = new StringBuffer();
+		for(Point p : this){
+			sb.append(p.x);
+			sb.append(",");
+			sb.append(p.y);
+			sb.append("\n");
+		}
+		
+		s = sb.toString();		
+		return s;
 	}
 
 	@Override
