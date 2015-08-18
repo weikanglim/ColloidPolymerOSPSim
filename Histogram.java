@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 /**
  * This class provides an implementation of a discretely normalized histogram.
  * 
- * It is created by reading in a dataset.
+ * It is created by reading in a dataset. The Histogram is strictly read-only after instantiating with dataset.
  *  
  * @author Wei Kang Lim
  *
@@ -167,5 +167,10 @@ public class Histogram implements Iterator<Histogram.Point>, Iterable<Histogram.
 	public Iterator<Point> iterator() {
 		this.iteratorCount = 0;
 		return this;
+	}
+
+	@Override
+	public void remove() {
+		throw new UnsupportedOperationException("Histogram is unmutable!");
 	}
 }
