@@ -8,20 +8,16 @@ import org.opensourcephysics.controls.AbstractSimulation;
 import org.opensourcephysics.controls.SimulationControl;
 import org.opensourcephysics.display.Dataset;
 import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
-import org.opensourcephysics.display3d.simple3d.ElementPoints;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.DisplayFrame;
 import org.opensourcephysics.frames.PlotFrame;
-import org.opensourcephysics.numerics.Matrix3DTransformation;
-import org.opensourcephysics.numerics.PBC;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
  * colloids(nanoparticles) and polymers model.
  * 
  * @author Wei Kang Lim, Alan Denton
- * @version 1.0 11-10-2013
  * 
  */
 public class POMFApp extends AbstractSimulation {
@@ -48,7 +44,8 @@ public class POMFApp extends AbstractSimulation {
 	double snapshotIntervals = 1;
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
-	double [][][] radialData; 
+	double [][][] radialData;
+	double [] lnP_inf;
 	ArrayList<Double> eXData;
 	ArrayList<Double> eYData;
 	ArrayList<Double> eZData;
@@ -65,6 +62,7 @@ public class POMFApp extends AbstractSimulation {
 	double sumInteractionEnergy;
 	double sumLn_Pr;
 	double sumSquaredInteraction;
+	double r_U_inf;
 	long timeStarted = 0;
 	long timeElapsed = 0;
 	int conformations;
@@ -83,6 +81,7 @@ public class POMFApp extends AbstractSimulation {
 	ElementSphere closest;
 	ElementSphere sphere;
 	ElementEllipsoid ellipse;
+	boolean bruteForce = false;
 	boolean added = false;
 	boolean penetrationEnergyToggle;
 	boolean clearNano = false;
@@ -142,6 +141,15 @@ public class POMFApp extends AbstractSimulation {
 		maxDataPoints = control.getInt("Number of datapoints"); 
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		runs = control.getInt("Runs");
+		bruteForce = control.getBoolean("U_inf bruteforce");
+		switch(control.getInt("Write Mode")){
+		case 0: writeMode = WriteModes.WRITE_NONE; break;
+		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
+		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
+		case 3: writeMode = WriteModes.WRITE_RADIAL; break;
+		case 4: writeMode = WriteModes.WRITE_POMF; break;
+		case 5: writeMode = WriteModes.WRITE_ALL; break;
+		}
 	}
 	/**
 	 * Initializes the model.
@@ -166,7 +174,7 @@ public class POMFApp extends AbstractSimulation {
 		getInput();
 		clearCounters();
 
-		
+		// Setup insertion parameters.
 		radialStart = 1;
 		// Place the second nanoparticle up to 1 + q, when V(r) -> 0, or the maximum box length it can go before PBC kicks in.
 		if(np.q >= 0.5){
@@ -182,22 +190,17 @@ public class POMFApp extends AbstractSimulation {
 		} else{
 			totalMCS = runs* maxConformations * snapshotIntervals * maxDataPoints;			
 		}
-		radialData = new double[runs][maxDataPoints+1][3]; 
-
-		switch(control.getInt("Write Mode")){
-		case 0: writeMode = WriteModes.WRITE_NONE; break;
-		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
-		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
-		case 3: writeMode = WriteModes.WRITE_RADIAL; break;
-		case 4: writeMode = WriteModes.WRITE_POMF; break;
-		case 5: writeMode = WriteModes.WRITE_ALL; break;
-		}
+		radialData = new double[runs][maxDataPoints+1][3];
+		lnP_inf = new double[runs];
 		
 		np.initialize(configuration, penetrationEnergyToggle);
 		placementPosition = radialStart;
+		
+		if(bruteForce) r_U_inf = 4 * ( 1 + np.q);
 		if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
 		plotframe.setMessage("r = " + placementPosition);
 
+		// Initialize Visualization
 		// add simple3d.Element particles to the arrays 
 		nanoSphere = new ElementSphere[np.nN];
 		polySphere = new ElementEllipsoid[np.nP];
@@ -239,11 +242,6 @@ public class POMFApp extends AbstractSimulation {
 			polySphere[i].getStyle().setLineColor(Color.RED);
 			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
 					np.polymers[i].getZ());
-//	            if(np.polymers[i].updateRotation()){
-//	                    polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
-//	            }
-			 
-
 			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 			display3d.setSquareAspect(true);
 		}		
@@ -252,6 +250,7 @@ public class POMFApp extends AbstractSimulation {
 	/**
 	 * Does a simulation step.
 	 */
+	@SuppressWarnings("deprecation")
 	public void doStep() {
 		if(np.mcs == 0){ // Initialization
 			initializeDataFiles();
@@ -365,7 +364,6 @@ public class POMFApp extends AbstractSimulation {
 				   lnP2_r = lambda2.calculateEntropy(),
 				   lnP3_r = lambda3.calculateEntropy();
 			double lnP_r = lnP1_r + lnP2_r + lnP3_r;
-			System.out.println("r=" + placementPosition);
 			System.out.println(placementPosition + "\t" + avgInteractionEnergy + "\t" + lnP_r);
 			radialData[currentRun][dataPoints][0] = placementPosition;
 			radialData[currentRun][dataPoints][1] = avgInteractionEnergy; // temporarily place the variable, will be replaced with V_r calculations later on.
@@ -381,25 +379,43 @@ public class POMFApp extends AbstractSimulation {
 				// Last datapoint stores data from one nanoparticle insertions
 				double U_inf = 2*radialData[currentRun][maxDataPoints][1]-1;
 				double lnP_one = radialData[currentRun][maxDataPoints][2];
-				System.out.println("U_inf: " + U_inf);
+				double U_inf_shape;
+				if(bruteForce){
+					U_inf_shape = radialData[currentRun][maxDataPoints][2];
+				} else {
+					U_inf_shape = 2*lnP_one - 8.44002894726;
+				}
+
 				System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape");
 				
 				// Calculate V_r from averaged e^-U 
 				for(int i =0; i < maxDataPoints; i++){
 					double r = radialData[currentRun][i][0];
 					double U_r = radialData[currentRun][i][1];
-					double internalFree = 2*lnP_one - radialData[currentRun][i][2] - 8.44002894726;
+					
+					double internalFree = U_inf_shape - radialData[currentRun][i][2];
 					double V_r = U_inf - U_r + internalFree;
 					radialData[currentRun][i][1] = V_r;
+					lnP_inf[currentRun] = U_inf_shape;
 					System.out.println(r + "\t" + V_r  + "\t" + (U_inf - U_r) + "\t" + internalFree);
 				}
+				System.out.println("ln_P_inf:" + U_inf_shape);
+				System.out.println("U_inf: " + U_inf);
 								
 				// Reset counters for next run
 				clearCounters();
 				if(insertionType.equals("polymer")){
 					np.nN = 2;
 					np.nanos = new Nano[2];
+					if(bruteForce){
+						np.Ly -= r_U_inf;
+						
+						// Redraw display
+						display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
+						display3d.setSquareAspect(true);
+					}
 					np.setPolyInsertionPositions();
+					
 					nanoSphere[1].setVisible(true);
 				} else {
 					np.nN = 1;
@@ -430,21 +446,29 @@ public class POMFApp extends AbstractSimulation {
 						dataFiles[0].record(radialData[0][i][0] + "\t" + avgPotential[i] + "\t" + stdDevPotential[i]);
 						data.append(radialData[0][i][0], avgPotential[i], 0, stdDevPotential[i]);
 					}
+					
+					double avg_lnP_inf = 0;
+					double stdDevLnP_inf = 0;
+					
+					for(int i=0; i < runs; i++){
+						avg_lnP_inf += lnP_inf[i];
+						stdDevLnP_inf += Math.pow(lnP_inf[i], 2);
+					}
+					
+					avg_lnP_inf /= runs;
+					stdDevLnP_inf /= runs;
+					stdDevLnP_inf = Math.sqrt(stdDevLnP_inf - Math.pow(avg_lnP_inf, 2));
 
 					resultsFrame.addDrawable(data);
 					control.setAdjustableValue("Save", true);
 					control.clearMessages();
 					control.println("Runs completed.");
-//					double avgPhiP = (sumVolume / volumeSnapshots) / (np.nP*np.Lx*np.Ly*np.Lz);
-//					System.out.println(avgPhiP);
-//					DecimalFormat threeDecimals = new DecimalFormat("#0.###");
-//					String phiP = threeDecimals.format(avgPhiP);
-//					dataFiles[0].record("Average phiP: " +  phiP);
 					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60));
 					int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
-					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
-					dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
-					dataFiles[0].record("# Number of runs: " + currentRun);
+					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s";
+					dataFiles[0].comment("lnP_inf: " + avg_lnP_inf + "\t" + stdDevLnP_inf);
+					dataFiles[0].comment("Total simulation time: " + formatTimeElapsed); 
+					dataFiles[0].comment("Number of runs: " + currentRun);
 					this.stopAnimation();
 					return;
 				} else{
@@ -458,7 +482,15 @@ public class POMFApp extends AbstractSimulation {
 			sumInteractionEnergy = 0;			
 			// Set placement position for next datapoint.
 			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
-			placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
+			if(dataPoints == maxDataPoints){
+				if(bruteForce){
+					placementPosition = r_U_inf;
+				} else {
+					placementPosition = 0;
+				}
+			} else {
+				placementPosition = radialStart+dataPoints*steps;
+			}
 			
 			if(placementPosition == 0 && !clearNano){ 
 				if(insertionType.equals("polymer")){
@@ -478,18 +510,20 @@ public class POMFApp extends AbstractSimulation {
 					np.nanos = new Nano[0];
 					waitMCS = MCS_WAIT_TO_EQUIL;
 				}
-			} 
+			} else if(bruteForce && placementPosition == r_U_inf){
+				np.Ly += r_U_inf; // Increase box length
+				np.setPolyInsertionPositions(); // Place nanoparticle at new center.
+				
+				// Redraw display
+				display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
+				display3d.setSquareAspect(true);
+			}
 
 			// set new nanoparticle position
 			if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
 			plotframe.setMessage("r = " + placementPosition);
 		}		
 		
-//		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (snapshotIntervals*10) == 0){
-//			dataFiles[0].write();
-//		}
-		
-
 		//!-- Visualization --! // START
 		// update intersect count and mcs step
 		display3d.setMessage("Number of mcs steps: " + np.mcs);
@@ -555,7 +589,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("Auto width", true);
 		control.setValue("Exact overlap", true);
 		control.setValue("Energy profile", true);
-		control.setValue("Initial configuration", "square");
+		control.setValue("U_inf bruteforce", false);
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1);
@@ -569,8 +603,6 @@ public class POMFApp extends AbstractSimulation {
 	}
 
 	public void stop() {
-		double averageIntersections = totalIntersections / np.mcs;
-
 		// close streams
 		if(control.getBoolean("Save")){
 			if(writeMode != WriteModes.WRITE_NONE){
@@ -613,6 +645,7 @@ public class POMFApp extends AbstractSimulation {
 				"Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals),
 				"Number of Coformations Sampled: " + maxConformations,
 				"Number of dataPoints: " + maxDataPoints,
+				"U_inf bruteforce: " + bruteForce,
 				"Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.C + "/q" + "="  + np.step_Ep)}
 				;
 		switch(writeMode){
