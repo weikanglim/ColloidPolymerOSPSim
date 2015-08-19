@@ -161,21 +161,21 @@ public class CPMApp extends AbstractSimulation {
 				phi_n = threeDecimal.format(np.volFraction);
 			}
 
-			String configurations = "# Number of Polymers: " + np.nP +
-					"\n# Number of Nanoparticles: "+np.nN +
-					"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
-					"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-					"\n# Nanoparticle Volume Fraction: "+phi_n + 
-					"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
-					"\n# Lattice Constant: " +threeDecimal.format(np.lc)+
-					"\n# Exact overlap: " + Polymer.getExact() + 			
-					"\n# Lattice Length: " +threeDecimal.format(np.Lx)+					
-					"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
-					"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
-					"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
-					"\n# Number of Data Points: " + maxDataPoints +
-					"\n# Run Number: " + currentRun + 
-					"\n# Penetration Energy On: " + this.penetrationEnergyToggle
+			String [] configurations = {"Number of Polymers: " + np.nP,
+					"Number of Nanoparticles: "+np.nN,
+					"Move Tolerance: "+threeDecimal.format(np.tolerance),
+					"Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance),
+					"Nanoparticle Volume Fraction: "+phi_n ,
+					"Polymer Colloid Ratio: "+threeDecimal.format(np.q),
+					"Lattice Constant: " +threeDecimal.format(np.lc),
+					"Exact overlap: " + Polymer.getExact() ,	
+					"Lattice Length: " +threeDecimal.format(np.Lx),					
+					"Rotation Tolerance: "+threeDecimal.format(np.rotTolerance),
+					"Trial Moves Per Mcs: "+np.trialMovesPerMcs,
+					"Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals),
+					"Number of Data Points: " + maxDataPoints ,
+					"Run Number: " + currentRun ,
+					"Penetration Energy On: " + this.penetrationEnergyToggle}
 					;
 			switch(writeMode){
 			case WRITE_SHAPES:

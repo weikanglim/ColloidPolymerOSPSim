@@ -597,23 +597,23 @@ public class POMFApp extends AbstractSimulation {
 	public void initializeDataFiles(){
 		DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 		DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-		String configurations = "# Number of Polymers: " + np.nP +
-				"\n# Number of Nanoparticles: "+np.nN +
-				"\n# Move Tolerance: "+threeDecimal.format(np.tolerance)+
-				"\n# Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance)+
-				"\n# Insertion type: " + insertionType +
-				"\n# Nanoparticle Volume Fraction: "+np.volFraction + 
-				"\n# Polymer Colloid Ratio: "+threeDecimal.format(np.q)+
-				"\n# Exact overlap: " + Polymer.getExact() + 
-				"\n# x length: " +largeDecimal.format(np.Lx)+
-				"\n# y length: " +largeDecimal.format(np.Ly)+
-				"\n# z length: " +largeDecimal.format(np.Lz)+
-				"\n# Rotation Tolerance: "+threeDecimal.format(np.rotTolerance)+
-				"\n# Trial Moves Per Mcs: "+np.trialMovesPerMcs+
-				"\n# Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals)+
-				"\n# Number of Coformations Sampled: " + maxConformations +
-				"\n# Number of dataPoints: " + maxDataPoints + 
-				"\n# Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.C + "/q" + "="  + np.step_Ep)
+		String [] configurations = { "Number of Polymers: " + np.nP,
+				"Number of Nanoparticles: "+np.nN,
+				"Move Tolerance: "+threeDecimal.format(np.tolerance),
+				"Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance),
+				"Insertion type: " + insertionType,
+				"Nanoparticle Volume Fraction: "+np.volFraction, 
+				"Polymer Colloid Ratio: "+threeDecimal.format(np.q),
+				"Exact overlap: " + Polymer.getExact(),
+				"x length: " +largeDecimal.format(np.Lx),
+				"y length: " +largeDecimal.format(np.Ly),
+				"z length: " +largeDecimal.format(np.Lz),
+				"Rotation Tolerance: "+threeDecimal.format(np.rotTolerance),
+				"Trial Moves Per Mcs: "+np.trialMovesPerMcs,
+				"Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals),
+				"Number of Coformations Sampled: " + maxConformations,
+				"Number of dataPoints: " + maxDataPoints,
+				"Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.C + "/q" + "="  + np.step_Ep)}
 				;
 		switch(writeMode){
 		case WRITE_SHAPES:

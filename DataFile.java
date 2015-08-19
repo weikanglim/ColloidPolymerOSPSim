@@ -9,14 +9,25 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.Calendar;
-import java.util.Scanner;
 
+/**
+ * <p>This class handles the creations of data files, and writing of data. All data are stored in a temporary buffer before being written to file.</p>
+ * 
+ * <p>The data added to the DataFile via methods {@link #record(String) record}, {@link #comment(String) comment} and {@link #commentLines(String[]) commentLines}
+ * are stored in a data buffer. The data can be written to file by using the {@link #write() write} method.</p>
+ * 
+ * <p>By default, the data files are stored in "$CWD/data". <br></br>
+ * For data files being stored for multiple runs, they are stored under "$CWD/data/$RUN/$RunNumber" for each multiple run.
+ * For example, "data/phiN=0.5,q=0.125_18-6-2014 23:44/1" for the first run.
+ * </p>
+ *  
+ *  
+ * @author Wei Kang Lim
+ *
+ */
 public class DataFile {
 	private static Calendar calendar;
 	private final static String baseDir = "data";
-	private String initialConfigurations;
-	private String name;
-	private String data;
 	private BufferedWriter bw;
 	private Path filePath;
 	public enum FileIdentifier { 
@@ -25,20 +36,21 @@ public class DataFile {
 		SIZE_AND_FRACTION
 	};
 	
-	public DataFile(String name, String configurations, FileIdentifier type, boolean multiple){
-		this.name = name;
+	public DataFile(String name, String [] configurations, FileIdentifier type, boolean multiple){
 		if(DataFile.calendar == null){
 			calendar = Calendar.getInstance();
 		}
-		Scanner scan = new Scanner(configurations);
 		String phiN = "";
 		String runNumber = "";
 		String q = "";
 
-		while(scan.hasNext()){
-			String token = scan.next();
-			if(token.equals("Fraction:")){
-				phiN = scan.next();
+		for(int i=0; i < configurations.length; i++){
+			String [] tokens = configurations[i].split(": ");
+			String key = tokens[0];
+			String value = tokens[1];
+			
+			if(key.equals("Nanoparticle Volume Fraction")){
+				phiN = value;
 				double phi_N = Double.parseDouble(phiN);
 				DecimalFormat threeDecimal = new DecimalFormat("#0.###");
 				DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
@@ -54,15 +66,15 @@ public class DataFile {
 
 			}
 			
-			if(token.equals("Ratio:")){
-				q = scan.next();
+			if(key.equals("Polymer Colloid Ratio")){
+				q = value;
 			}
 			
-			if(token.equals("Number:")){
-				runNumber = scan.next();
+			if(key.equals("Run Number")){
+				runNumber = value;
 			}
+			
 		}
-		scan.close();
 		
 		String prefix;
 		switch(type){
@@ -109,11 +121,11 @@ public class DataFile {
 			e.printStackTrace();
 		}
 		
-		record(configurations);
+		commentLines(configurations);
 	}
 	
 	/**
-	 * Adds the data to the buffer.
+	 * Adds the data to the file buffer.
 	 * @param data Data to be added
 	 */
 	public void record(String data){
@@ -124,6 +136,38 @@ public class DataFile {
 			e.printStackTrace();
 		} catch (NullPointerException e){
 			System.out.println("record method called without calling constructor!");
+		}
+	}
+	
+	/**
+	 * Adds a line of comment to the file buffer. 
+	 * @param comment A line of comment.
+	 */
+	public void comment(String comment){
+		try{
+			bw.write("# " + comment);
+			bw.newLine();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NullPointerException e){
+			System.out.println("commentLines method called without calling constructor!");
+		}
+	}
+	
+	/**
+	 * Adds multiple lines of comments to the file buffer.
+	 * @param comments An array of comments, with each being written on a new line.
+	 */
+	public void commentLines(String [] comments){
+		try{
+			for(int i = 0; i < comments.length; i++){
+				bw.write("# " + comments[i]);
+				bw.newLine();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NullPointerException e){
+			System.out.println("commentLines method called without calling constructor!");
 		}
 	}
 	
