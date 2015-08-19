@@ -119,7 +119,9 @@ public class Histogram implements Iterator<Histogram.Point>, Iterable<Histogram.
 	public double calculateEntropy(){
 		double entropy = 0;
 		for(int i=0; i < this.getBins(); i++){
-			entropy += this.getY(i) * Math.log(this.getY(i) / this.getBinWidth()); 
+			if(this.getY(i) != 0){
+				entropy += this.getY(i) * Math.log(this.getY(i) / this.getBinWidth());
+			}
 		}
 		
 		return entropy;
