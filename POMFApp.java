@@ -2,7 +2,6 @@ package org.opensourcephysics.sip.CPM;
 
 import java.awt.Color;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 
 import org.opensourcephysics.controls.AbstractSimulation;
 import org.opensourcephysics.controls.SimulationControl;
@@ -46,9 +45,9 @@ public class POMFApp extends AbstractSimulation {
 	double [] xAxis = {1,0,0};
 	double [][][] radialData;
 	double [] lnP_inf;
-	ArrayList<Double> eXData;
-	ArrayList<Double> eYData;
-	ArrayList<Double> eZData;
+	Histogram lambda1 = new Histogram(0.0, LAMBDA1_END, HISTOGRAM_BINS);
+	Histogram lambda2 = new Histogram(0.0, LAMBDA2_END, HISTOGRAM_BINS);
+	Histogram lambda3 = new Histogram(0.0, LAMBDA3_END, HISTOGRAM_BINS);
 	// radialData[i][0] = r, radialData[i][1] = v(r), radialData[i][2] = uncertainty of v(r)
 	int runs;
 	int currentRun;
@@ -90,9 +89,9 @@ public class POMFApp extends AbstractSimulation {
 	DataFile [] dataFiles;
 
 	public void clearCounters(){
-		eXData = new ArrayList<>(maxConformations);
-		eYData = new ArrayList<>(maxConformations);
-		eZData = new ArrayList<>(maxConformations);
+		lambda1.clear();
+		lambda2.clear();
+		lambda3.clear();
 		sumInteractionEnergy = 0;
 		sumLn_Pr = 0;
 		sumVolume = 0;
@@ -320,18 +319,18 @@ public class POMFApp extends AbstractSimulation {
 					if(Math.random() < e_negU){
 						// Accepted.
 						// Record polymer shape.
-						eXData.add(np.polymers[0].geteX());
-						eYData.add(np.polymers[0].geteY());
-						eZData.add(np.polymers[0].geteZ());
+						lambda1.add(np.polymers[0].geteX());
+						lambda2.add(np.polymers[0].geteY());
+						lambda3.add(np.polymers[0].geteZ());
 					}
 					
 					// Rejected, do nothing.
 				} else { 
 					// Accepted.
 					// Record polymer shape.
-					eXData.add(np.polymers[0].geteX());
-					eYData.add(np.polymers[0].geteY());
-					eZData.add(np.polymers[0].geteZ());
+					lambda1.add(np.polymers[0].geteX());
+					lambda2.add(np.polymers[0].geteY());
+					lambda3.add(np.polymers[0].geteZ());
 				}
 				
 				// Record polymer-nanoparticle interaction
@@ -357,9 +356,6 @@ public class POMFApp extends AbstractSimulation {
 		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
 			// Enough conformations for a data point, analyze distribution and record.
 			double avgInteractionEnergy = sumInteractionEnergy / conformations;
-			Histogram lambda1 = new Histogram(Utils.toPrimitiveArray(eXData), 0.0, LAMBDA1_END, HISTOGRAM_BINS);
-			Histogram lambda2 = new Histogram(Utils.toPrimitiveArray(eYData), 0.0, LAMBDA2_END, HISTOGRAM_BINS);
-			Histogram lambda3 = new Histogram(Utils.toPrimitiveArray(eZData), 0.0, LAMBDA3_END, HISTOGRAM_BINS);
 			double lnP1_r = lambda1.calculateEntropy(),
 				   lnP2_r = lambda2.calculateEntropy(),
 				   lnP3_r = lambda3.calculateEntropy();
