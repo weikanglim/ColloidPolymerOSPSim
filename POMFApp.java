@@ -67,7 +67,8 @@ public class POMFApp extends AbstractSimulation {
 	int conformations;
 	int maxConformations;
 	int dataPoints;
-	int maxDataPoints;
+	int userDataPoints; // user specified data points
+	int simDataPoints; // simulation required data points.
 	int countShape;
 	double waitMCS;
 	double totalMCS;
@@ -83,7 +84,6 @@ public class POMFApp extends AbstractSimulation {
 	boolean bruteForce = false;
 	boolean added = false;
 	boolean penetrationEnergyToggle;
-	boolean clearNano = false;
 	boolean debug = false;
 	String minuteInfo = "";
 	DataFile [] dataFiles;
@@ -100,7 +100,6 @@ public class POMFApp extends AbstractSimulation {
 		dataPoints = 0;
 		conformations = 0;
 		countShape = 0;
-		clearNano =false;
 	}
 	
 	public void getInput(){
@@ -137,7 +136,8 @@ public class POMFApp extends AbstractSimulation {
 		// Simulation control input
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxConformations = control.getInt("Number of conformations");
-		maxDataPoints = control.getInt("Number of datapoints"); 
+		userDataPoints = control.getInt("Number of datapoints"); 
+		simDataPoints = userDataPoints + 2; // Includes runs for U_inf and U_inf_shape
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		runs = control.getInt("Runs");
 		bruteForce = control.getBoolean("U_inf bruteforce");
@@ -182,14 +182,14 @@ public class POMFApp extends AbstractSimulation {
 			radialEnd = Math.min(1 + np.q + np.q/2, np.Ly - 1 - 3 * np.q ); // The nanoparticle is not placed at the center for q < 0.5
 		}
 				
-		steps = (radialEnd-radialStart) / (maxDataPoints-1); // calculate dr needed to iterate through from [radialEnd, radialStart]
+		steps = (radialEnd-radialStart) / (userDataPoints-1); // calculate dr needed to iterate through from [radialEnd, radialStart]
 		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
 		if(insertionType.equals("polymer")){
-			totalMCS = runs* maxConformations * (maxDataPoints+1); // 1 extra datapoint for U_inf
+			totalMCS = runs* maxConformations * simDataPoints; 
 		} else{
-			totalMCS = runs* maxConformations * snapshotIntervals * maxDataPoints;			
+			totalMCS = runs* maxConformations * snapshotIntervals * userDataPoints;			
 		}
-		radialData = new double[runs][maxDataPoints+1][3];
+		radialData = new double[runs][simDataPoints][3];
 		lnP_inf = new double[runs];
 		
 		np.initialize(configuration, penetrationEnergyToggle);
@@ -364,28 +364,36 @@ public class POMFApp extends AbstractSimulation {
 			radialData[currentRun][dataPoints][0] = placementPosition;
 			radialData[currentRun][dataPoints][1] = avgInteractionEnergy; // temporarily place the variable, will be replaced with V_r calculations later on.
 			radialData[currentRun][dataPoints][2] = lnP_r; // temporary variable storage, will be replaced with uncertainty of V_r when a single run finishes.
+			
+			// Increase counter for next datapoint.
 			dataPoints++;
 			
+			// For non-bruteforce calculations, we just need lnP_1.
+			// Hence, the last datapoint (r_inf) run can be skipped.
+			if(dataPoints == simDataPoints - 1 && !bruteForce){ 
+				dataPoints++; // Skip the last datapoint run.
+			}
+
 			// Enough datapoints, start calculating V_r
-			if(dataPoints >= maxDataPoints +1 ){ // all data points + U(inf)				
+			if(dataPoints >= simDataPoints ){ // all data points + U(inf)				
 				System.out.println("Run " + currentRun + " completed.");
 				System.out.println("Results:");
 
 				// Get the infinite separation data.
 				// Last datapoint stores data from one nanoparticle insertions
-				double U_inf = 2*radialData[currentRun][maxDataPoints][1]-1;
-				double lnP_one = radialData[currentRun][maxDataPoints][2];
+				double U_inf = 2*radialData[currentRun][simDataPoints-2][1]-1;
 				double U_inf_shape;
 				if(bruteForce){
-					U_inf_shape = radialData[currentRun][maxDataPoints][2];
+					U_inf_shape = radialData[currentRun][simDataPoints-1][2];
 				} else {
+					double lnP_one = radialData[currentRun][simDataPoints-2][2];
 					U_inf_shape = 2*lnP_one - 8.44002894726;
 				}
 
 				System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape");
 				
 				// Calculate V_r from averaged e^-U 
-				for(int i =0; i < maxDataPoints; i++){
+				for(int i =0; i < userDataPoints; i++){
 					double r = radialData[currentRun][i][0];
 					double U_r = radialData[currentRun][i][1];
 					
@@ -400,6 +408,8 @@ public class POMFApp extends AbstractSimulation {
 								
 				// Reset counters for next run
 				clearCounters();
+				
+				// Reset simulation parameters
 				if(insertionType.equals("polymer")){
 					np.nN = 2;
 					np.nanos = new Nano[2];
@@ -422,9 +432,9 @@ public class POMFApp extends AbstractSimulation {
 				currentRun++;
 
 				if(currentRun >= runs){ // All runs completed.
-					double [] avgPotential = new double[maxDataPoints];
-					double [] stdDevPotential = new double[maxDataPoints];
-					for(int i = 0; i < maxDataPoints; i++){
+					double [] avgPotential = new double[userDataPoints];
+					double [] stdDevPotential = new double[userDataPoints];
+					for(int i = 0; i < userDataPoints; i++){
 						for(int j = 0; j < runs; j++){
 							avgPotential[i] += radialData[j][i][1];
 							stdDevPotential[i] += Math.pow(radialData[j][i][1],2);
@@ -438,7 +448,7 @@ public class POMFApp extends AbstractSimulation {
 					
 					data = new Dataset();
 					dataFiles[0].record("# r\tV_r\tStd-dev" );
-					for(int i = 0; i < maxDataPoints; i++){
+					for(int i = 0; i < userDataPoints; i++){
 						dataFiles[0].record(radialData[0][i][0] + "\t" + avgPotential[i] + "\t" + stdDevPotential[i]);
 						data.append(radialData[0][i][0], avgPotential[i], 0, stdDevPotential[i]);
 					}
@@ -476,21 +486,12 @@ public class POMFApp extends AbstractSimulation {
 			// reset counters for next data point.
 			conformations = 0;
 			sumInteractionEnergy = 0;			
-			// Set placement position for next datapoint.
-			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
-			if(dataPoints == maxDataPoints){
-				if(bruteForce){
-					placementPosition = r_U_inf;
-				} else {
-					placementPosition = 0;
-				}
-			} else {
-				placementPosition = radialStart+dataPoints*steps;
-			}
 			
-			if(placementPosition == 0 && !clearNano){ 
+			// Set placement position for next datapoint.
+			if(dataPoints == simDataPoints - 2){ // U_inf run
+				placementPosition = 0;
+				
 				if(insertionType.equals("polymer")){
-					clearNano = true; // only perform once
 					nanoSphere[1].setVisible(false);
 					plotframe.clearDataAndRepaint();
 					
@@ -499,24 +500,31 @@ public class POMFApp extends AbstractSimulation {
 					np.nanos = new Nano[1];
 					np.setPolyInsertionPositions();
 				} else {
-					clearNano = true;
 					nanoSphere[0].setVisible(false);
 					plotframe.clearDataAndRepaint();
 					np.nN = 0;
 					np.nanos = new Nano[0];
 					waitMCS = MCS_WAIT_TO_EQUIL;
 				}
-			} else if(bruteForce && placementPosition == r_U_inf){
+			} else if(dataPoints == simDataPoints - 1 && bruteForce){ // U_inf_shape run
+				np.nN = 2;
+				np.nanos = new Nano[2];
+				placementPosition = r_U_inf;
+				
 				np.Ly += r_U_inf; // Increase box length
 				np.setPolyInsertionPositions(); // Place nanoparticle at new center.
-				
+								
 				// Redraw display
+				nanoSphere[1].setVisible(true);				
 				display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 				display3d.setSquareAspect(true);
-			}
 
+			} else{
+				placementPosition = radialStart+(dataPoints)*steps;
+			}
+			
 			// set new nanoparticle position
-			if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
+			if(insertionType.equals("polymer"))  np.placeNano2(placementPosition);
 			plotframe.setMessage("r = " + placementPosition);
 		}		
 		
@@ -640,7 +648,7 @@ public class POMFApp extends AbstractSimulation {
 				"Trial Moves Per Mcs: "+np.trialMovesPerMcs,
 				"Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals),
 				"Number of Coformations Sampled: " + maxConformations,
-				"Number of dataPoints: " + maxDataPoints,
+				"Number of dataPoints: " + userDataPoints,
 				"U_inf bruteforce: " + bruteForce,
 				"Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.C + "/q" + "="  + np.step_Ep)}
 				;
