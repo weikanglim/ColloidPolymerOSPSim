@@ -11,6 +11,9 @@ import java.util.Stack;
  */
 public class CPM {
 	public enum Vector {x, y, z};
+	public static final String POLYMER_INSERTION = "polymer";
+	public static final String NANOPARTICLE_INSERTION = "nano";
+	public static final String POLYMER_INSERTION_NANO_RESERVOIR = "polymer0";
 	
 	// constants
 	public final double NX = 0.5;
@@ -74,12 +77,17 @@ public class CPM {
 	 */
 	public void initialize(String configuration, boolean penetrationEnergy) {
 		if(insertionType != null){
-			if (insertionType.toLowerCase().equals("polymer")) {
+			if (insertionType.equalsIgnoreCase(POLYMER_INSERTION)) {
 				nP = 1;
 				nN = 2;
-			}else{
+			}else if (insertionType.equalsIgnoreCase(NANOPARTICLE_INSERTION)){
 				nN = 1;
 				nP = (int) Math.round(Lx*Ly*Lz/(Math.PI/6*Math.pow(q,3)));
+			} else if(insertionType.equalsIgnoreCase(POLYMER_INSERTION_NANO_RESERVOIR)){
+				nN = 0;
+				nP = 1;
+			} else {
+				throw new IllegalArgumentException("No valid insertion method specified. Choose one of (polymer, nano, polymer0).");
 			}
 		} else {
 			// nP and nN set by CPMApp
@@ -108,10 +116,14 @@ public class CPM {
 
 		// initialize positions
 		if(insertionType != null){
-			if (insertionType.toLowerCase().equals("polymer")) {
+			if (insertionType.equalsIgnoreCase(POLYMER_INSERTION)) {
 				setPolyInsertionPositions();
-			} else{
+			} else if(insertionType.equalsIgnoreCase(NANOPARTICLE_INSERTION)){
 				setPositions();
+			} else if(insertionType.equalsIgnoreCase(POLYMER_INSERTION_NANO_RESERVOIR)){
+				polymers[0] = new Polymer(0,0,0); 
+			} else {
+				throw new IllegalArgumentException("No valid insertion method specified. Choose one of (polymer, nano, polymer0).");
 			}
 		} else {
 			d = lc;

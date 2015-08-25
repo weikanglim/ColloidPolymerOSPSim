@@ -20,11 +20,12 @@ import org.opensourcephysics.frames.PlotFrame;
  * 
  */
 public class POMFApp extends AbstractSimulation {
-	final int MCS_WAIT_TO_EQUIL = 5000;
-	final double LAMBDA1_END = 0.4;
-	final double LAMBDA2_END = 0.08;
-	final double LAMBDA3_END = 0.03;
-	final int HISTOGRAM_BINS = 1000;
+	static final int MCS_WAIT_TO_EQUIL = 5000;
+	static final double LAMBDA1_END = 0.4;
+	static final double LAMBDA2_END = 0.08;
+	static final double LAMBDA3_END = 0.03;
+	static final int HISTOGRAM_BINS = 1000;
+	static final int NO_OF_VARIABLES = 3;
 	
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
 	CPM np = new CPM();
@@ -184,19 +185,21 @@ public class POMFApp extends AbstractSimulation {
 				
 		steps = (radialEnd-radialStart) / (userDataPoints-1); // calculate dr needed to iterate through from [radialEnd, radialStart]
 		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
-		if(insertionType.equals("polymer")){
+		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)  || insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
 			totalMCS = runs* maxConformations * simDataPoints; 
-		} else{
+		} else if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
 			totalMCS = runs* maxConformations * snapshotIntervals * userDataPoints;			
+		} else {
+			throw new IllegalArgumentException("No valid insertion method specified. Choose one of (polymer, nano, polymer0).");
 		}
-		radialData = new double[runs][simDataPoints][3];
+		radialData = new double[runs][simDataPoints][2*NO_OF_VARIABLES + 1]; // Each variable + std. dev and r
 		lnP_inf = new double[runs];
 		
 		np.initialize(configuration, penetrationEnergyToggle);
 		placementPosition = radialStart;
 		
 		if(bruteForce) r_U_inf = 4 * ( 1 + np.q);
-		if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
+		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)) np.placeNano2(placementPosition);
 		plotframe.setMessage("r = " + placementPosition);
 
 		// Initialize Visualization
@@ -261,7 +264,8 @@ public class POMFApp extends AbstractSimulation {
 		
 		// Insertion algorithms
 		// Polymer Insertion
-		if(insertionType.equals("polymer")){
+		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION) || 
+				insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
 			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
 			
 			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
@@ -341,7 +345,7 @@ public class POMFApp extends AbstractSimulation {
 		}
 		
 		// Nanoparticle insertion
-		if(insertionType.equals("nano") ){
+		if(insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION) ){
 			if(waitMCS > 0){
 				waitMCS--;
 			} else if( np.mcs % snapshotIntervals == 0){
@@ -410,7 +414,7 @@ public class POMFApp extends AbstractSimulation {
 				clearCounters();
 				
 				// Reset simulation parameters
-				if(insertionType.equals("polymer")){
+				if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)){
 					np.nN = 2;
 					np.nanos = new Nano[2];
 					if(bruteForce){
@@ -423,12 +427,12 @@ public class POMFApp extends AbstractSimulation {
 					np.setPolyInsertionPositions();
 					
 					nanoSphere[1].setVisible(true);
-				} else {
+				} else if(insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION)){
 					np.nN = 1;
 					np.nanos = new Nano[1];
 					nanoSphere[1].setVisible(true);
 					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
-				}
+				} 
 				currentRun++;
 
 				if(currentRun >= runs){ // All runs completed.
@@ -488,43 +492,46 @@ public class POMFApp extends AbstractSimulation {
 			sumInteractionEnergy = 0;			
 			
 			// Set placement position for next datapoint.
-			if(dataPoints == simDataPoints - 2){ // U_inf run
-				placementPosition = 0;
-				
-				if(insertionType.equals("polymer")){
+			if (insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)) {
+
+				if (dataPoints == simDataPoints - 2) { // U_inf run
+					placementPosition = 0;
+
 					nanoSphere[1].setVisible(false);
 					plotframe.clearDataAndRepaint();
-					
+
 					// Keep only one nanoparticle at the center
 					np.nN = 1;
 					np.nanos = new Nano[1];
 					np.setPolyInsertionPositions();
-				} else {
-					nanoSphere[0].setVisible(false);
-					plotframe.clearDataAndRepaint();
-					np.nN = 0;
-					np.nanos = new Nano[0];
-					waitMCS = MCS_WAIT_TO_EQUIL;
-				}
-			} else if(dataPoints == simDataPoints - 1 && bruteForce){ // U_inf_shape run
-				np.nN = 2;
-				np.nanos = new Nano[2];
-				placementPosition = r_U_inf;
-				
-				np.Ly += r_U_inf; // Increase box length
-				np.setPolyInsertionPositions(); // Place nanoparticle at new center.
-								
-				// Redraw display
-				nanoSphere[1].setVisible(true);				
-				display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
-				display3d.setSquareAspect(true);
+				} else if (dataPoints == simDataPoints - 1 && bruteForce) { // U_inf_shape
+																			// run
+					np.nN = 2;
+					np.nanos = new Nano[2];
+					placementPosition = r_U_inf;
 
-			} else{
-				placementPosition = radialStart+(dataPoints)*steps;
+					np.Ly += r_U_inf; // Increase box length
+					np.setPolyInsertionPositions(); // Place nanoparticle at new
+													// center.
+
+					// Redraw display
+					nanoSphere[1].setVisible(true);
+					display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
+					display3d.setSquareAspect(true);
+
+				} else {
+					placementPosition = radialStart + (dataPoints) * steps;
+				}
+			} else if (insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION)) {
+				nanoSphere[0].setVisible(false);
+				plotframe.clearDataAndRepaint();
+				np.nN = 0;
+				np.nanos = new Nano[0];
+				waitMCS = MCS_WAIT_TO_EQUIL;
 			}
 			
 			// set new nanoparticle position
-			if(insertionType.equals("polymer"))  np.placeNano2(placementPosition);
+			if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION))  np.placeNano2(placementPosition);
 			plotframe.setMessage("r = " + placementPosition);
 		}		
 		
@@ -589,7 +596,7 @@ public class POMFApp extends AbstractSimulation {
 		control.setValue("Tolerance", 0);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
-		control.setValue("Insertion method", "polymer");
+		control.setValue("Insertion method", CPM.POLYMER_INSERTION);
 		control.setValue("Auto width", true);
 		control.setValue("Exact overlap", true);
 		control.setValue("Energy profile", true);
