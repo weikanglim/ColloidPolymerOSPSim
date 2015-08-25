@@ -23,7 +23,7 @@ public class POMFApp extends AbstractSimulation {
 	final int MCS_WAIT_TO_EQUIL = 5000;
 	final double LAMBDA1_END = 0.4;
 	final double LAMBDA2_END = 0.08;
-	final double LAMBDA3_END = 0.3;
+	final double LAMBDA3_END = 0.03;
 	final int HISTOGRAM_BINS = 1000;
 	
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
