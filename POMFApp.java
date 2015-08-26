@@ -25,7 +25,7 @@ public class POMFApp extends AbstractSimulation {
 	static final double LAMBDA2_END = 0.08;
 	static final double LAMBDA3_END = 0.03;
 	static final int HISTOGRAM_BINS = 1000;
-	static final int NO_OF_VARIABLES = 3;
+	static final int NO_OF_VARIABLES = 6; // r, V(r), f_poly-nano(r), f_shape(r), e^(-U)(r), lnP(r) 
 	
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
 	CPM np = new CPM();
@@ -45,7 +45,9 @@ public class POMFApp extends AbstractSimulation {
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
 	double [][][] radialData;
+	double [][] results;
 	double [] lnP_inf;
+	double [] f_inf;
 	Histogram lambda1 = new Histogram(0.0, LAMBDA1_END, HISTOGRAM_BINS);
 	Histogram lambda2 = new Histogram(0.0, LAMBDA2_END, HISTOGRAM_BINS);
 	Histogram lambda3 = new Histogram(0.0, LAMBDA3_END, HISTOGRAM_BINS);
@@ -192,8 +194,29 @@ public class POMFApp extends AbstractSimulation {
 		} else {
 			throw new IllegalArgumentException("No valid insertion method specified. Choose one of (polymer, nano, polymer0).");
 		}
-		radialData = new double[runs][simDataPoints][2*NO_OF_VARIABLES + 1]; // Each variable + std. dev and r
+		/**
+		 In the last array,
+		 each variable and r
+		 0 - r, 
+		 1 - V(r)
+		 2 - f_poly-nano(r) 
+		 3 - f_shape(r)
+		 4 - e^(-Del(U)) 
+		 5 - lnP(r)
+		 **/
+		radialData = new double[runs][simDataPoints][NO_OF_VARIABLES];
+		/**
+		 Each variable + std. dev and r
+		 0 - r, 
+		 1 - V(r), 2- Sigma_V(r), 
+		 3 - f_poly-nano(r), 4 - Sigma_f_poly-nano(r), 
+		 5 - f_shape(r) 6 - Sigma_f_shape(r),
+		 7 - e^(-Del(U)), 8 -  Sigma_e^(-Del(U)), 
+		 9 - lnP(r), 10 - Sigma_lnP(r)
+		 **/
+		results = new double[userDataPoints][2*NO_OF_VARIABLES - 1];
 		lnP_inf = new double[runs];
+		f_inf = new double[runs];
 		
 		np.initialize(configuration, penetrationEnergyToggle);
 		placementPosition = radialStart;
@@ -364,10 +387,12 @@ public class POMFApp extends AbstractSimulation {
 				   lnP2_r = lambda2.calculateEntropy(),
 				   lnP3_r = lambda3.calculateEntropy();
 			double lnP_r = lnP1_r + lnP2_r + lnP3_r;
-			System.out.println(placementPosition + "\t" + avgInteractionEnergy + "\t" + lnP_r);
+			System.out.printf("%.5g\t%.5g\t%.5g", placementPosition, avgInteractionEnergy, lnP_r);
+			System.out.println();
 			radialData[currentRun][dataPoints][0] = placementPosition;
-			radialData[currentRun][dataPoints][1] = avgInteractionEnergy; // temporarily place the variable, will be replaced with V_r calculations later on.
-			radialData[currentRun][dataPoints][2] = lnP_r; // temporary variable storage, will be replaced with uncertainty of V_r when a single run finishes.
+			radialData[currentRun][dataPoints][4] = avgInteractionEnergy; 
+			radialData[currentRun][dataPoints][5] = lnP_r;
+			
 			
 			// Increase counter for next datapoint.
 			dataPoints++;
@@ -385,27 +410,36 @@ public class POMFApp extends AbstractSimulation {
 
 				// Get the infinite separation data.
 				// Last datapoint stores data from one nanoparticle insertions
-				double U_inf = 2*radialData[currentRun][simDataPoints-2][1]-1;
+				double U_inf = 2*radialData[currentRun][simDataPoints-2][4]-1;
 				double U_inf_shape;
 				if(bruteForce){
-					U_inf_shape = radialData[currentRun][simDataPoints-1][2];
+					U_inf_shape = radialData[currentRun][simDataPoints-1][5];
 				} else {
-					double lnP_one = radialData[currentRun][simDataPoints-2][2];
+					double lnP_one = radialData[currentRun][simDataPoints-2][5];
 					U_inf_shape = 2*lnP_one - 8.44002894726;
 				}
 
-				System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape");
+				System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape\te^-delt(U)\tlnP(r)");
 				
 				// Calculate V_r from averaged e^-U 
 				for(int i =0; i < userDataPoints; i++){
 					double r = radialData[currentRun][i][0];
-					double U_r = radialData[currentRun][i][1];
+					double U_r = radialData[currentRun][i][4];
 					
-					double internalFree = U_inf_shape - radialData[currentRun][i][2];
-					double V_r = U_inf - U_r + internalFree;
+					double internalFree = U_inf_shape - radialData[currentRun][i][5];
+					double polyNanoFree = U_inf - U_r;
+					double V_r = polyNanoFree + internalFree;
 					radialData[currentRun][i][1] = V_r;
+					radialData[currentRun][i][2] = polyNanoFree;
+					radialData[currentRun][i][3] = internalFree;
 					lnP_inf[currentRun] = U_inf_shape;
-					System.out.println(r + "\t" + V_r  + "\t" + (U_inf - U_r) + "\t" + internalFree);
+					f_inf[currentRun] = U_inf;
+					
+					for(int dataCount=0; dataCount < NO_OF_VARIABLES; dataCount++){
+						System.out.printf("%.5g\t", radialData[currentRun][i][dataCount]);
+					}
+					
+					System.out.println();
 				}
 				System.out.println("ln_P_inf:" + U_inf_shape);
 				System.out.println("U_inf: " + U_inf);
@@ -436,38 +470,42 @@ public class POMFApp extends AbstractSimulation {
 				currentRun++;
 
 				if(currentRun >= runs){ // All runs completed.
-					double [] avgPotential = new double[userDataPoints];
-					double [] stdDevPotential = new double[userDataPoints];
-					for(int i = 0; i < userDataPoints; i++){
-						for(int j = 0; j < runs; j++){
-							avgPotential[i] += radialData[j][i][1];
-							stdDevPotential[i] += Math.pow(radialData[j][i][1],2);
-						}
-						
-						
-						avgPotential[i] /= runs;
-						stdDevPotential[i] /= runs;
-						stdDevPotential[i] = Math.sqrt(stdDevPotential[i] - Math.pow(avgPotential[i],2));
-					}
+					Utils.averageRuns(radialData, results);
 					
 					data = new Dataset();
-					dataFiles[0].record("# r\tV_r\tStd-dev" );
-					for(int i = 0; i < userDataPoints; i++){
-						dataFiles[0].record(radialData[0][i][0] + "\t" + avgPotential[i] + "\t" + stdDevPotential[i]);
-						data.append(radialData[0][i][0], avgPotential[i], 0, stdDevPotential[i]);
+					dataFiles[0].comment("r   \tV(r)  \tdel_V(r)\tf_pnano(r)\tdel_fpn(r)\tf_shape(r)\tdel_f_s(r)\te^-U(r)\tdel_e^-U\tlnP(r)\tdel_lnP(r)" );
+					
+					StringBuffer buf = new StringBuffer();
+					for(int dataPoint = 0; dataPoint < userDataPoints; dataPoint++){
+						for(int var = 0; var < results[dataPoint].length; var++){
+							buf.append(String.format("%.5g\t", results[dataPoint][var]));
+						}
+						dataFiles[0].record(buf.toString());
+						buf = new StringBuffer();
+						data.append(results[dataPoint][0], results[dataPoint][1], 0, results[dataPoint][3]);
 					}
 					
 					double avg_lnP_inf = 0;
 					double stdDevLnP_inf = 0;
+					double avg_f_inf = 0;
+					double stdDev_f_inf = 0;
 					
 					for(int i=0; i < runs; i++){
 						avg_lnP_inf += lnP_inf[i];
 						stdDevLnP_inf += Math.pow(lnP_inf[i], 2);
+						
+						avg_f_inf += f_inf[i];
+						stdDev_f_inf +=Math.pow(f_inf[i], 2);
 					}
 					
 					avg_lnP_inf /= runs;
 					stdDevLnP_inf /= runs;
+					
+					avg_f_inf /= runs;
+					stdDev_f_inf /= runs;
+					
 					stdDevLnP_inf = Math.sqrt(stdDevLnP_inf - Math.pow(avg_lnP_inf, 2));
+					stdDev_f_inf = Math.sqrt(stdDev_f_inf - Math.pow(avg_f_inf, 2));
 
 					resultsFrame.addDrawable(data);
 					control.setAdjustableValue("Save", true);
@@ -476,7 +514,8 @@ public class POMFApp extends AbstractSimulation {
 					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60));
 					int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
 					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s";
-					dataFiles[0].comment("lnP_inf: " + avg_lnP_inf + "\t" + stdDevLnP_inf);
+					dataFiles[0].comment(String.format("lnP_inf: %.5g\t%.5g" , avg_lnP_inf, stdDevLnP_inf));
+					dataFiles[0].comment(String.format("f_poly-nano_inf: %.5g\t%.5g" , avg_f_inf , stdDev_f_inf));
 					dataFiles[0].comment("Total simulation time: " + formatTimeElapsed); 
 					dataFiles[0].comment("Number of runs: " + currentRun);
 					this.stopAnimation();
