@@ -139,8 +139,15 @@ public class POMFApp extends AbstractSimulation {
 		// Simulation control input
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxConformations = control.getInt("Number of conformations");
-		userDataPoints = control.getInt("Number of datapoints"); 
-		simDataPoints = userDataPoints + 2; // Includes runs for U_inf and U_inf_shape
+		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
+			userDataPoints = simDataPoints = 1;
+		} else if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)){
+			userDataPoints = control.getInt("Number of datapoints"); 
+			simDataPoints = userDataPoints + 2; // Includes runs for U_inf and U_inf_shape
+		} else if(insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION)){
+			userDataPoints = control.getInt("Number of datapoints");
+			simDataPoints = userDataPoints + 1; // Additional run for U_inf 
+		}
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		runs = control.getInt("Runs");
 		bruteForce = control.getBoolean("U_inf bruteforce");
@@ -407,42 +414,44 @@ public class POMFApp extends AbstractSimulation {
 			if(dataPoints >= simDataPoints ){ // all data points + U(inf)				
 				System.out.println("Run " + currentRun + " completed.");
 				System.out.println("Results:");
-
-				// Get the infinite separation data.
-				// Last datapoint stores data from one nanoparticle insertions
-				double U_inf = 2*radialData[currentRun][simDataPoints-2][4]-1;
-				double U_inf_shape;
-				if(bruteForce){
-					U_inf_shape = radialData[currentRun][simDataPoints-1][5];
-				} else {
-					double lnP_one = radialData[currentRun][simDataPoints-2][5];
-					U_inf_shape = 2*lnP_one - 8.44002894726;
-				}
-
-				System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape\te^-delt(U)\tlnP(r)");
 				
-				// Calculate V_r from averaged e^-U 
-				for(int i =0; i < userDataPoints; i++){
-					double r = radialData[currentRun][i][0];
-					double U_r = radialData[currentRun][i][4];
-					
-					double internalFree = U_inf_shape - radialData[currentRun][i][5];
-					double polyNanoFree = U_inf - U_r;
-					double V_r = polyNanoFree + internalFree;
-					radialData[currentRun][i][1] = V_r;
-					radialData[currentRun][i][2] = polyNanoFree;
-					radialData[currentRun][i][3] = internalFree;
-					lnP_inf[currentRun] = U_inf_shape;
-					f_inf[currentRun] = U_inf;
-					
-					for(int dataCount=0; dataCount < NO_OF_VARIABLES; dataCount++){
-						System.out.printf("%.5g\t", radialData[currentRun][i][dataCount]);
+				if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)){
+					// Get the infinite separation data.
+					// Last datapoint stores data from one nanoparticle insertions
+					double U_inf = 2*radialData[currentRun][simDataPoints-2][4]-1;
+					double U_inf_shape;
+					if(bruteForce){
+						U_inf_shape = radialData[currentRun][simDataPoints-1][5];
+					} else {
+						double lnP_one = radialData[currentRun][simDataPoints-2][5];
+						U_inf_shape = 2*lnP_one - 8.44002894726;
 					}
+	
+					System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape\te^-delt(U)\tlnP(r)");
 					
-					System.out.println();
+					// Calculate V_r from averaged e^-U 
+					for(int i =0; i < userDataPoints; i++){
+						double r = radialData[currentRun][i][0];
+						double U_r = radialData[currentRun][i][4];
+						
+						double internalFree = U_inf_shape - radialData[currentRun][i][5];
+						double polyNanoFree = U_inf - U_r;
+						double V_r = polyNanoFree + internalFree;
+						radialData[currentRun][i][1] = V_r;
+						radialData[currentRun][i][2] = polyNanoFree;
+						radialData[currentRun][i][3] = internalFree;
+						lnP_inf[currentRun] = U_inf_shape;
+						f_inf[currentRun] = U_inf;
+						
+						for(int dataCount=0; dataCount < NO_OF_VARIABLES; dataCount++){
+							System.out.printf("%.5g\t", radialData[currentRun][i][dataCount]);
+						}
+						
+						System.out.println();
+					}
+					System.out.println("ln_P_inf:" + U_inf_shape);
+					System.out.println("U_inf: " + U_inf);
 				}
-				System.out.println("ln_P_inf:" + U_inf_shape);
-				System.out.println("U_inf: " + U_inf);
 								
 				// Reset counters for next run
 				clearCounters();
