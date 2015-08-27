@@ -21,10 +21,10 @@ import org.opensourcephysics.frames.PlotFrame;
  */
 public class POMFApp extends AbstractSimulation {
 	static final int MCS_WAIT_TO_EQUIL = 5000;
-	static final double LAMBDA1_END = 0.4;
-	static final double LAMBDA2_END = 0.08;
-	static final double LAMBDA3_END = 0.03;
-	static final int HISTOGRAM_BINS = 1000;
+	static final double LAMBDA1_END = 2.0;
+	static final double LAMBDA2_END = 0.4;
+	static final double LAMBDA3_END = 0.15;
+	static final int HISTOGRAM_BINS = 5000;
 	static final int NO_OF_VARIABLES = 6; // r, V(r), f_poly-nano(r), f_shape(r), e^(-U)(r), lnP(r) 
 	
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
