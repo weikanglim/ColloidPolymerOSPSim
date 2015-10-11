@@ -7,26 +7,24 @@ import org.opensourcephysics.controls.AbstractSimulation;
 import org.opensourcephysics.controls.SimulationControl;
 import org.opensourcephysics.display.Dataset;
 import org.opensourcephysics.display3d.simple3d.ElementEllipsoid;
+import org.opensourcephysics.display3d.simple3d.ElementPoints;
 import org.opensourcephysics.display3d.simple3d.ElementSphere;
 import org.opensourcephysics.frames.Display3DFrame;
 import org.opensourcephysics.frames.DisplayFrame;
 import org.opensourcephysics.frames.PlotFrame;
+import org.opensourcephysics.numerics.Matrix3DTransformation;
+import org.opensourcephysics.numerics.PBC;
 
 /**
  * NanoPolyMixApp is a simulation framework for a binary mixture of
  * colloids(nanoparticles) and polymers model.
  * 
  * @author Wei Kang Lim, Alan Denton
+ * @version 1.1 19-09-2015
  * 
  */
 public class POMFApp extends AbstractSimulation {
-	static final int MCS_WAIT_TO_EQUIL = 5000;
-	static final double LAMBDA1_END = 2.0;
-	static final double LAMBDA2_END = 0.4;
-	static final double LAMBDA3_END = 0.15;
-	static final int HISTOGRAM_BINS = 5000;
-	static final int NO_OF_VARIABLES = 6; // r, V(r), f_poly-nano(r), f_shape(r), e^(-U)(r), lnP(r) 
-	
+	final int MCS_WAIT_TO_EQUIL = 5000;
 	public enum WriteModes{WRITE_NONE,WRITE_SHAPES,WRITE_ROTATIONS,WRITE_RADIAL,WRITE_POMF,WRITE_ALL;};
 	CPM np = new CPM();
 	Display3DFrame display3d = new Display3DFrame("3D Frame");
@@ -44,14 +42,7 @@ public class POMFApp extends AbstractSimulation {
 	double snapshotIntervals = 1;
 	double [] zAxis = {0,0,1};
 	double [] xAxis = {1,0,0};
-	double [][][] radialData;
-	double [][] results;
-	double [] lnP_inf;
-	double [] f_inf;
-	Histogram lambda1 = new Histogram(0.0, LAMBDA1_END, HISTOGRAM_BINS);
-	Histogram lambda2 = new Histogram(0.0, LAMBDA2_END, HISTOGRAM_BINS);
-	Histogram lambda3 = new Histogram(0.0, LAMBDA3_END, HISTOGRAM_BINS);
-	// radialData[i][0] = r, radialData[i][1] = v(r), radialData[i][2] = uncertainty of v(r)
+	double [][][] radialData; 
 	int runs;
 	int currentRun;
 	double polar;
@@ -61,18 +52,14 @@ public class POMFApp extends AbstractSimulation {
 	double radialEnd;
 	double sumVolume;
 	double volumeSnapshots;
-	double sumInteractionEnergy;
-	double sumLn_Pr;
-	double sumSquaredInteraction;
-	double r_U_inf;
+	double sumDistribution;
+	double sumSquaredDistribution;
 	long timeStarted = 0;
 	long timeElapsed = 0;
 	int conformations;
 	int maxConformations;
 	int dataPoints;
-	int userDataPoints; // user specified data points
-	int simDataPoints; // simulation required data points.
-	int countShape;
+	int maxDataPoints;
 	double waitMCS;
 	double totalMCS;
 	double steps;
@@ -84,42 +71,33 @@ public class POMFApp extends AbstractSimulation {
 	ElementSphere closest;
 	ElementSphere sphere;
 	ElementEllipsoid ellipse;
-	boolean bruteForce = false;
 	boolean added = false;
 	boolean penetrationEnergyToggle;
+	boolean clearNano = false;
 	boolean debug = false;
 	String minuteInfo = "";
 	DataFile [] dataFiles;
 
 	public void clearCounters(){
-		lambda1.clear();
-		lambda2.clear();
-		lambda3.clear();
-		sumInteractionEnergy = 0;
-		sumLn_Pr = 0;
+		sumDistribution = 0;
 		sumVolume = 0;
 		volumeSnapshots = 0;
 		totalIntersections = 0;
 		dataPoints = 0;
 		conformations = 0;
-		countShape = 0;
+		clearNano =false;
 	}
 	
 	public void getInput(){
 		// CPM (Simulation logic) input
 		np.insertionType =insertionType = control.getString("Insertion method");
 		np.q = control.getDouble("Polymer colloid ratio");
-		np.Lx = np.Ly = np.Lz = control.getDouble("Lattice length");
-		
-		if(control.getBoolean("Auto width")){
-			np.Lz = np.Lx = 1 + 3*np.q;
-			np.Ly = 2 + 4*np.q;
-		}
-		
+		np.Lx = np.Lz = 1 + 4*np.q;
+		np.Ly = 2 + 4*np.q;
 		configuration = control.getString("Initial configuration");
 		np.tolerance = control.getDouble("Tolerance");
 		np.trialMovesPerMcs = control.getInt("Trial moves per MCS");
-		np.C = control.getDouble("Penetration free parameter:");
+                np.C = control.getDouble("Penetration energy (epsilon)");
 		np.energyProfile = control.getBoolean("Energy profile");
 		Polymer.setExact(control.getBoolean("Exact overlap"));
 		
@@ -139,26 +117,9 @@ public class POMFApp extends AbstractSimulation {
 		// Simulation control input
 		snapshotIntervals = control.getInt("Snapshot interval");
 		maxConformations = control.getInt("Number of conformations");
-		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
-			userDataPoints = simDataPoints = 1;
-		} else if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)){
-			userDataPoints = control.getInt("Number of datapoints"); 
-			simDataPoints = userDataPoints + 2; // Includes runs for U_inf and U_inf_shape
-		} else if(insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION)){
-			userDataPoints = control.getInt("Number of datapoints");
-			simDataPoints = userDataPoints + 1; // Additional run for U_inf 
-		}
+		maxDataPoints = control.getInt("Number of data points"); 
 		penetrationEnergyToggle =control.getBoolean("Penetration energy");
 		runs = control.getInt("Runs");
-		bruteForce = control.getBoolean("U_inf bruteforce");
-		switch(control.getInt("Write Mode")){
-		case 0: writeMode = WriteModes.WRITE_NONE; break;
-		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
-		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
-		case 3: writeMode = WriteModes.WRITE_RADIAL; break;
-		case 4: writeMode = WriteModes.WRITE_POMF; break;
-		case 5: writeMode = WriteModes.WRITE_ALL; break;
-		}
 	}
 	/**
 	 * Initializes the model.
@@ -180,59 +141,41 @@ public class POMFApp extends AbstractSimulation {
 		waitMCS = MCS_WAIT_TO_EQUIL;
 		currentRun = 0;
 		np.nano_r = 0.5;
-		getInput();
 		clearCounters();
-
-		// Setup insertion parameters.
+		getInput();
+		if(np.q < 1){
+			radialEnd = Math.min(1 + np.q + 0.1, np.Ly-0.5-np.q) ; //
+		} else {
+			if(control.getBoolean("Auto width")){
+				radialEnd = Math.min(1 + np.q, np.Ly-1) ; 
+			} else {
+				radialEnd = Math.min(1 + np.q + 0.1, (np.Ly-1)/2) ; // 2*Rp+2*Rn
+			}
+		}
 		radialStart = 1;
-		// Place the second nanoparticle up to 1 + q, when V(r) -> 0, or the maximum box length it can go before PBC kicks in.
-		if(np.q >= 0.5){
-			radialEnd = Math.min(1 + np.q + 0.1, np.Ly/2 - 0.5 - np.q);  // Nanoparticle placed at center.
-		} else {
-			radialEnd = Math.min(1 + np.q + np.q/2, np.Ly - 1 - 3 * np.q ); // The nanoparticle is not placed at the center for q < 0.5
-		}
-				
-		steps = (radialEnd-radialStart) / (userDataPoints-1); // calculate dr needed to iterate through from [radialEnd, radialStart]
+		steps = (radialEnd-radialStart) / maxDataPoints; // calculate dr needed to iterate through from [radialEnd, radialStart]
 		System.out.println(radialStart + " " + radialEnd + " "  + " by " + steps );
-		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)  || insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
-			totalMCS = runs* maxConformations * simDataPoints; 
-		} else if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
-			totalMCS = runs* maxConformations * snapshotIntervals * userDataPoints;			
-		} else {
-			throw new IllegalArgumentException("No valid insertion method specified. Choose one of (polymer, nano, polymer0).");
+		if(insertionType.equals("polymer")){
+			totalMCS = runs* maxConformations * (maxDataPoints+1); // 1 extra data point for U_0
+		} else{
+			totalMCS = runs* maxConformations * snapshotIntervals * maxDataPoints;			
 		}
-		/**
-		 In the last array,
-		 each variable and r
-		 0 - r, 
-		 1 - V(r)
-		 2 - f_poly-nano(r) 
-		 3 - f_shape(r)
-		 4 - e^(-Del(U)) 
-		 5 - lnP(r)
-		 **/
-		radialData = new double[runs][simDataPoints][NO_OF_VARIABLES];
-		/**
-		 Each variable + std. dev and r
-		 0 - r, 
-		 1 - V(r), 2- Sigma_V(r), 
-		 3 - f_poly-nano(r), 4 - Sigma_f_poly-nano(r), 
-		 5 - f_shape(r) 6 - Sigma_f_shape(r),
-		 7 - e^(-Del(U)), 8 -  Sigma_e^(-Del(U)), 
-		 9 - lnP(r), 10 - Sigma_lnP(r)
-		 **/
-		results = new double[userDataPoints][2*NO_OF_VARIABLES - 1];
-		lnP_inf = new double[runs];
-		f_inf = new double[runs];
+		radialData = new double[runs][maxDataPoints+1][3]; // radialData[i][0] = r, radialData[i][1] = e^[-U(r)], radialData[i][2] = uncertainty
+
+		switch(control.getInt("Write Mode")){
+		case 0: writeMode = WriteModes.WRITE_NONE; break;
+		case 1: writeMode = WriteModes.WRITE_SHAPES; break;
+		case 2: writeMode = WriteModes.WRITE_ROTATIONS; break;
+		case 3: writeMode = WriteModes.WRITE_RADIAL; break;
+		case 4: writeMode = WriteModes.WRITE_POMF; break;
+		case 5: writeMode = WriteModes.WRITE_ALL; break;
+		}
 		
 		np.initialize(configuration, penetrationEnergyToggle);
 		placementPosition = radialStart;
-		
-		if(bruteForce) r_U_inf = 4 * ( 1 + np.q);
-		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)) np.placeNano2(placementPosition);
+		if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
 		plotframe.setMessage("r = " + placementPosition);
 
-		// Initialize Visualization
 		// add simple3d.Element particles to the arrays 
 		nanoSphere = new ElementSphere[np.nN];
 		polySphere = new ElementEllipsoid[np.nP];
@@ -272,8 +215,10 @@ public class POMFApp extends AbstractSimulation {
 					2 * np.polymers[i].getrY(), 2 * np.polymers[i].getrZ());
 			polySphere[i].getStyle().setFillColor(Color.RED);
 			polySphere[i].getStyle().setLineColor(Color.RED);
-			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(),
-					np.polymers[i].getZ());
+			polySphere[i].setXYZ(np.polymers[i].getX(), np.polymers[i].getY(), np.polymers[i].getZ());
+//	            	if(np.polymers[i].updateRotation()){
+//	                    polySphere[i].setTransformation(np.polymers[i].getRotationTransformation());
+//	            	}
 			display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
 			display3d.setSquareAspect(true);
 		}		
@@ -284,6 +229,7 @@ public class POMFApp extends AbstractSimulation {
 	 */
 	@SuppressWarnings("deprecation")
 	public void doStep() {
+
 		if(np.mcs == 0){ // Initialization
 			initializeDataFiles();
 			timeStarted = System.nanoTime();
@@ -293,10 +239,19 @@ public class POMFApp extends AbstractSimulation {
 		np.step();
 		
 		// Insertion algorithms
-		// Polymer Insertion
-		if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION) || 
-				insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION_NANO_RESERVOIR)){
-			double e_negU = np.polyTrialPlacement(Math.random()*np.Lx, Math.random()*np.Ly, Math.random()*np.Lz);
+		// Polymer Insertion (exploiting symmetry)
+		if(insertionType.equals("polymer")){
+			double e_negU;
+                        double r = placementPosition;
+                        double xPolymer, yPolymer, zPolymer;
+			xPolymer = Math.random()*np.Lx;
+			zPolymer = Math.random()*np.Lz;
+			if(np.nN == 1){
+			        yPolymer = np.nanos[0].getY()+(Math.random()-0.5)*(np.Ly-1);
+                        } else { // np.nN = 2
+			        yPolymer = np.nanos[0].getY() + 0.5*r + (Math.random()-0.5)*(1+4*np.q-r);
+                        }
+			e_negU = np.polyTrialPlacement(xPolymer, yPolymer, zPolymer); 
 			
 			if(Polymer.getShapeTolerance() == 0 || np.mcs >= 100){
 				if(debug){
@@ -346,41 +301,19 @@ public class POMFApp extends AbstractSimulation {
 						closest.setXYZ(0,0,0);
 					}
 				}
-				
-				// Record polymer internal conformations
-				if(e_negU < 1){ // delta U > 0, energy unfavourable
-					 // Accept with boltzmann factor
-					if(Math.random() < e_negU){
-						// Accepted.
-						// Record polymer shape.
-						lambda1.add(np.polymers[0].geteX());
-						lambda2.add(np.polymers[0].geteY());
-						lambda3.add(np.polymers[0].geteZ());
-					}
-					
-					// Rejected, do nothing.
-				} else { 
-					// Accepted.
-					// Record polymer shape.
-					lambda1.add(np.polymers[0].geteX());
-					lambda2.add(np.polymers[0].geteY());
-					lambda3.add(np.polymers[0].geteZ());
-				}
-				
-				// Record polymer-nanoparticle interaction
-				sumInteractionEnergy += e_negU;
-				plotframe.append(0, np.mcs, e_negU);
-				conformations++; 
 			}
+			plotframe.append(0, np.mcs, e_negU);
+			sumDistribution += e_negU;
+			conformations++; 
 		}
 		
 		// Nanoparticle insertion
-		if(insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION) ){
+		if(insertionType.equals("nano") ){
 			if(waitMCS > 0){
 				waitMCS--;
 			} else if( np.mcs % snapshotIntervals == 0){
 				double e_negU = np.nanoTrialPlacement(placementPosition);
-				sumInteractionEnergy += e_negU;
+				sumDistribution += e_negU;
 				plotframe.append(0, np.mcs, e_negU);
 				conformations++;
 			}
@@ -388,201 +321,145 @@ public class POMFApp extends AbstractSimulation {
 		
 		// Insertion algorithm snapshots
 		if (writeMode != WriteModes.WRITE_NONE && conformations >= maxConformations) {		
-			// Enough conformations for a data point, analyze distribution and record.
-			double avgInteractionEnergy = sumInteractionEnergy / conformations;
-			double lnP1_r = lambda1.calculateEntropy(),
-				   lnP2_r = lambda2.calculateEntropy(),
-				   lnP3_r = lambda3.calculateEntropy();
-			double lnP_r = lnP1_r + lnP2_r + lnP3_r;
-			System.out.printf("%.5g\t%.5g\t%.5g", placementPosition, avgInteractionEnergy, lnP_r);
-			System.out.println();
+			// Enough conformations for a data point.  Analyze distribution and record.
+			double avgDistribution = sumDistribution / conformations;
+			System.out.println(avgDistribution);
 			radialData[currentRun][dataPoints][0] = placementPosition;
-			radialData[currentRun][dataPoints][4] = avgInteractionEnergy; 
-			radialData[currentRun][dataPoints][5] = lnP_r;
-			
-			
-			// Increase counter for next datapoint.
+			radialData[currentRun][dataPoints][1] = avgDistribution; // later replaced with V_r
 			dataPoints++;
-			
-			// For non-bruteforce calculations, we just need lnP_1.
-			// Hence, the last datapoint (r_inf) run can be skipped.
-			if(dataPoints == simDataPoints - 1 && !bruteForce){ 
-				dataPoints++; // Skip the last datapoint run.
-			}
+			if(dataPoints >= maxDataPoints + 1){ // all data points + U_0
 
-			// Enough datapoints, start calculating V_r
-			if(dataPoints >= simDataPoints ){ // all data points + U(inf)				
-				System.out.println("Run " + currentRun + " completed.");
-				System.out.println("Results:");
-				
-				if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)){
-					// Get the infinite separation data.
-					// Last datapoint stores data from one nanoparticle insertions
-					double U_inf = 2*radialData[currentRun][simDataPoints-2][4]-1;
-					double U_inf_shape;
-					if(bruteForce){
-						U_inf_shape = radialData[currentRun][simDataPoints-1][5];
-					} else {
-						double lnP_one = radialData[currentRun][simDataPoints-2][5];
-						U_inf_shape = 2*lnP_one - 8.44002894726;
-					}
-	
-					System.out.println("r\tV(r)\tf(r)_poly-nano\tf(r)_shape\te^-delt(U)\tlnP(r)");
-					
-					// Calculate V_r from averaged e^-U 
-					for(int i =0; i < userDataPoints; i++){
-						double r = radialData[currentRun][i][0];
-						double U_r = radialData[currentRun][i][4];
-						
-						double internalFree = U_inf_shape - radialData[currentRun][i][5];
-						double polyNanoFree = U_inf - U_r;
-						double V_r = polyNanoFree + internalFree;
-						radialData[currentRun][i][1] = V_r;
-						radialData[currentRun][i][2] = polyNanoFree;
-						radialData[currentRun][i][3] = internalFree;
-						lnP_inf[currentRun] = U_inf_shape;
-						f_inf[currentRun] = U_inf;
-						
-						for(int dataCount=0; dataCount < NO_OF_VARIABLES; dataCount++){
-							System.out.printf("%.5g\t", radialData[currentRun][i][dataCount]);
-						}
-						
-						System.out.println();
-					}
-					System.out.println("ln_P_inf:" + U_inf_shape);
-					System.out.println("U_inf: " + U_inf);
+				double U_0;
+				System.out.println("Run " + currentRun);
+				int U_zero_index = maxDataPoints; // last position
+				if(np.q < 1){
+					U_0 = 1 - (1 - radialData[currentRun][U_zero_index][1]) * (np.Ly-1) / np.Ly; 
+				} else { // q >> 1
+					U_0 = radialData[currentRun][U_zero_index][1] * (np.Ly-1) / np.Ly; 
 				}
-								
+				radialData[currentRun][U_zero_index][1] = U_0;
+				System.out.println("U_0: " + U_0);
+
+				// Calculate V_r from averaged exp(-U) [or 1-exp(-U)]
+				for(int i = 0; i < maxDataPoints; i++){
+                                        double V_r;
+					double r = radialData[currentRun][i][0];
+					double U_r = radialData[currentRun][i][1];
+					if(np.q < 1){ // colloid limit
+                                        	V_r = - U_r * (1+4*np.q-r) / np.Ly; 
+					} else { // protein limit (q >> 1)
+                                        	V_r = U_r * (1+4*np.q-r) / np.Ly - 2 * U_0;
+					}
+					radialData[currentRun][i][1] = V_r;
+					System.out.println(r + "\t" + V_r);
+				}
+				
 				// Reset counters for next run
 				clearCounters();
-				
-				// Reset simulation parameters
-				if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)){
+				if(insertionType.equals("polymer")){
 					np.nN = 2;
 					np.nanos = new Nano[2];
-					if(bruteForce){
-						np.Ly -= r_U_inf;
-						
-						// Redraw display
-						display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
-						display3d.setSquareAspect(true);
-					}
 					np.setPolyInsertionPositions();
-					
 					nanoSphere[1].setVisible(true);
-				} else if(insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION)){
+				} else {
 					np.nN = 1;
 					np.nanos = new Nano[1];
 					nanoSphere[1].setVisible(true);
 					np.nanos[0] = new Nano(np.Lx/2f, np.Ly/2f, np.Lz/2f);
-				} 
+				}
 				currentRun++;
 
-				if(currentRun >= runs){ // All runs completed.
-					Utils.averageRuns(radialData, results);
+				if(currentRun >= runs){
+					double [] avgPotential = new double[maxDataPoints];
+					double [] stdDevPotential = new double[maxDataPoints];
+					for(int i = 0; i < maxDataPoints; i++){
+						avgPotential[i] = 0; 
+						stdDevPotential[i] = 0; 
+						for(int j = 0; j < runs; j++){
+							avgPotential[i] += radialData[j][i][1];
+							stdDevPotential[i] += Math.pow(radialData[j][i][1],2);
+						}
+						avgPotential[i] /= runs;
+						stdDevPotential[i] /= runs;
+						stdDevPotential[i] = Math.sqrt(stdDevPotential[i] - Math.pow(avgPotential[i],2));
+					}
+
+					double avgU_0 = 0;
+					double stdDevU_0 = 0;
+					for(int j = 0; j < runs; j++){
+						avgU_0 += radialData[j][U_zero_index][1];
+						stdDevU_0 += Math.pow(radialData[j][U_zero_index][1],2);
+					}
+
+					avgU_0 /= runs;
+					stdDevU_0 /= runs;
+					stdDevU_0= Math.sqrt(stdDevU_0 - Math.pow(avgU_0, 2));
 					
 					data = new Dataset();
-					dataFiles[0].comment("r   \tV(r)  \tdel_V(r)\tf_pnano(r)\tdel_fpn(r)\tf_shape(r)\tdel_f_s(r)\te^-U(r)\tdel_e^-U\tlnP(r)\tdel_lnP(r)" );
-					
-					StringBuffer buf = new StringBuffer();
-					for(int dataPoint = 0; dataPoint < userDataPoints; dataPoint++){
-						for(int var = 0; var < results[dataPoint].length; var++){
-							buf.append(String.format("%.5g\t", results[dataPoint][var]));
-						}
-						dataFiles[0].record(buf.toString());
-						buf = new StringBuffer();
-						data.append(results[dataPoint][0], results[dataPoint][1], 0, results[dataPoint][3]);
+					dataFiles[0].record("# r\t V_r\t Std-dev" );
+					for(int i = 0; i < maxDataPoints; i++){
+						dataFiles[0].record(radialData[0][i][0] + "\t" + avgPotential[i] + "\t" + stdDevPotential[i]);
+						data.append(radialData[0][i][0], avgPotential[i], 0, stdDevPotential[i]);
 					}
-					
-					double avg_lnP_inf = 0;
-					double stdDevLnP_inf = 0;
-					double avg_f_inf = 0;
-					double stdDev_f_inf = 0;
-					
-					for(int i=0; i < runs; i++){
-						avg_lnP_inf += lnP_inf[i];
-						stdDevLnP_inf += Math.pow(lnP_inf[i], 2);
-						
-						avg_f_inf += f_inf[i];
-						stdDev_f_inf +=Math.pow(f_inf[i], 2);
-					}
-					
-					avg_lnP_inf /= runs;
-					stdDevLnP_inf /= runs;
-					
-					avg_f_inf /= runs;
-					stdDev_f_inf /= runs;
-					
-					stdDevLnP_inf = Math.sqrt(stdDevLnP_inf - Math.pow(avg_lnP_inf, 2));
-					stdDev_f_inf = Math.sqrt(stdDev_f_inf - Math.pow(avg_f_inf, 2));
+					dataFiles[0].record("# U_0\t Std-dev" );
+					dataFiles[0].record("# " + avgU_0 + "\t" + stdDevU_0);
 
 					resultsFrame.addDrawable(data);
 					control.setAdjustableValue("Save", true);
 					control.clearMessages();
 					control.println("Runs completed.");
+//					double avgPhiP = (sumVolume / volumeSnapshots) / (np.nP*np.Lx*np.Ly*np.Lz);
+//					System.out.println(avgPhiP);
+//					DecimalFormat threeDecimals = new DecimalFormat("#0.###");
+//					String phiP = threeDecimals.format(avgPhiP);
+//					dataFiles[0].record("Average phiP: " +  phiP);
 					int elapsedMinutes = (int) Math.floor(timeElapsed/(1000*60));
 					int elapsedSeconds = (int) Math.round(timeElapsed/1000) % 60;
-					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s";
-					dataFiles[0].comment(String.format("lnP_inf: %.5g\t%.5g" , avg_lnP_inf, stdDevLnP_inf));
-					dataFiles[0].comment(String.format("f_poly-nano_inf: %.5g\t%.5g" , avg_f_inf , stdDev_f_inf));
-					dataFiles[0].comment("Total simulation time: " + formatTimeElapsed); 
-					dataFiles[0].comment("Number of runs: " + currentRun);
+					String formatTimeElapsed = (elapsedMinutes == 0) ? elapsedSeconds + "s ": elapsedMinutes + "m " + elapsedSeconds + "s"; 
+					dataFiles[0].record("# Total simulation time: " + formatTimeElapsed); 
+					dataFiles[0].record("# Number of runs: " + currentRun);
 					this.stopAnimation();
 					return;
-				} else{
-					System.out.println("Run " + currentRun + " start.");
-					System.out.println("r\t<e^-(del_U)>\t<ln P_2(r)>");
 				}
 			}
 			
 			// reset counters for next data point.
 			conformations = 0;
-			sumInteractionEnergy = 0;			
-			
+			sumDistribution = 0;			
 			// Set placement position for next datapoint.
-			if (insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION)) {
-
-				if (dataPoints == simDataPoints - 2) { // U_inf run
-					placementPosition = 0;
-
+			// set placement position to be 0 to calculate U at inf for last run, otherwise perform increment in radial distance from radialStart by step
+			placementPosition = dataPoints == maxDataPoints ? 0 : radialStart+dataPoints*steps;
+			
+			if(placementPosition == 0 && !clearNano){ 
+				if(insertionType.equals("polymer")){
+					clearNano = true; // only perform once
 					nanoSphere[1].setVisible(false);
 					plotframe.clearDataAndRepaint();
-
+					
 					// Keep only one nanoparticle at the center
 					np.nN = 1;
 					np.nanos = new Nano[1];
 					np.setPolyInsertionPositions();
-				} else if (dataPoints == simDataPoints - 1 && bruteForce) { // U_inf_shape
-																			// run
-					np.nN = 2;
-					np.nanos = new Nano[2];
-					placementPosition = r_U_inf;
-
-					np.Ly += r_U_inf; // Increase box length
-					np.setPolyInsertionPositions(); // Place nanoparticle at new
-													// center.
-
-					// Redraw display
-					nanoSphere[1].setVisible(true);
-					display3d.setPreferredMinMax(0, np.Lx, 0, np.Ly, 0, np.Lz);
-					display3d.setSquareAspect(true);
-
 				} else {
-					placementPosition = radialStart + (dataPoints) * steps;
+					clearNano = true;
+					nanoSphere[0].setVisible(false);
+					plotframe.clearDataAndRepaint();
+					np.nN = 0;
+					np.nanos = new Nano[0];
+					waitMCS = MCS_WAIT_TO_EQUIL;
 				}
-			} else if (insertionType.equalsIgnoreCase(CPM.NANOPARTICLE_INSERTION)) {
-				nanoSphere[0].setVisible(false);
-				plotframe.clearDataAndRepaint();
-				np.nN = 0;
-				np.nanos = new Nano[0];
-				waitMCS = MCS_WAIT_TO_EQUIL;
-			}
-			
+			} 
+
 			// set new nanoparticle position
-			if(insertionType.equalsIgnoreCase(CPM.POLYMER_INSERTION))  np.placeNano2(placementPosition);
+			if(insertionType.equals("polymer")) np.placeNano2(placementPosition);
 			plotframe.setMessage("r = " + placementPosition);
 		}		
 		
+//		if(writeMode != WriteModes.WRITE_NONE && np.mcs % (snapshotIntervals*10) == 0){
+//			dataFiles[0].write();
+//		}
+		
+
 		//!-- Visualization --! // START
 		// update intersect count and mcs step
 		display3d.setMessage("Number of mcs steps: " + np.mcs);
@@ -633,27 +510,27 @@ public class POMFApp extends AbstractSimulation {
 	 */
 	public void reset() {
 		enableStepsPerDisplay(true);
-		control.setValue("Polymer colloid ratio", 10);
+		control.setValue("Polymer colloid ratio", 0.146949); // q=0.125 (ellipsoids)
+		//control.setValue("Polymer colloid ratio", 0.1370358); // q=0.125 (spheres)
 		control.setValue("Spherical polymers", false);
-		control.setValue("Lattice length", Math.cbrt(Math.PI/6*1/0.0002)); // Testing 2 + 2q for q < 1
 		control.setValue("x", 0.01);
 		control.setValue("y", 0.01);
 		control.setValue("z", 0.01);
-		control.setValue("Penetration free parameter:", 6.839);
-		control.setValue("Runs", 5);
+		control.setValue("Runs", 1);
 		control.setValue("Tolerance", 0);
 		control.setValue("Rotation tolerance", 0.1);
 		control.setValue("Shape tolerance", 0.001);
-		control.setValue("Insertion method", CPM.POLYMER_INSERTION);
+		control.setValue("Insertion method", "polymer");
 		control.setValue("Auto width", true);
 		control.setValue("Exact overlap", true);
-		control.setValue("Energy profile", true);
-		control.setValue("U_inf bruteforce", false);
+		control.setValue("Penetration energy (epsilon)", 6.839);
+		control.setValue("Energy profile", false);
+		control.setValue("Initial configuration", "square");
 		control.setValue("Trial moves per MCS", 1);
 		control.setAdjustableValue("Visualization on", true);
 		control.setValue("Snapshot interval", 1);
-		control.setValue("Number of datapoints", 8);
-		control.setValue("Number of conformations", 2000000);
+		control.setValue("Number of data points", 1);
+		control.setValue("Number of conformations", 200000);
 		control.setValue("Penetration energy", true);
 		control.setValue("Write Mode", 4);
 		control.setAdjustableValue("Save", false);
@@ -662,6 +539,8 @@ public class POMFApp extends AbstractSimulation {
 	}
 
 	public void stop() {
+		double averageIntersections = totalIntersections / np.mcs;
+
 		// close streams
 		if(control.getBoolean("Save")){
 			if(writeMode != WriteModes.WRITE_NONE){
@@ -688,24 +567,24 @@ public class POMFApp extends AbstractSimulation {
 	public void initializeDataFiles(){
 		DecimalFormat largeDecimal = new DecimalFormat("0.##E0");
 		DecimalFormat threeDecimal = new DecimalFormat("#0.###");
-		String [] configurations = { "Number of Polymers: " + np.nP,
-				"Number of Nanoparticles: "+np.nN,
-				"Move Tolerance: "+threeDecimal.format(np.tolerance),
-				"Shape Change Tolerance: "+threeDecimal.format(np.shapeTolerance),
-				"Insertion type: " + insertionType,
-				"Nanoparticle Volume Fraction: "+np.volFraction, 
-				"Polymer Colloid Ratio: "+threeDecimal.format(np.q),
-				"Exact overlap: " + Polymer.getExact(),
-				"x length: " +largeDecimal.format(np.Lx),
-				"y length: " +largeDecimal.format(np.Ly),
-				"z length: " +largeDecimal.format(np.Lz),
-				"Rotation Tolerance: "+threeDecimal.format(np.rotTolerance),
-				"Trial Moves Per Mcs: "+np.trialMovesPerMcs,
-				"Snapshot Interval: "+largeDecimal.format(this.snapshotIntervals),
-				"Number of Coformations Sampled: " + maxConformations,
-				"Number of dataPoints: " + userDataPoints,
-				"U_inf bruteforce: " + bruteForce,
-				"Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.C + "/q" + "="  + np.step_Ep)}
+		String [] configurations = {"Number of Polymers: " + np.nP,
+				"Number of Nanoparticles: " + np.nN,
+				"Spherical Polymers: " + control.getBoolean("Spherical polymers"),
+				"Move Tolerance: " + threeDecimal.format(np.tolerance),
+				"Shape Change Tolerance: " + threeDecimal.format(np.shapeTolerance),
+				"Insertion Type: " + insertionType,
+				"Nanoparticle Volume Fraction: " + np.volFraction,
+				"Polymer Colloid Size Ratio: " + np.q,
+				"Exact Overlap: " + Polymer.getExact(), 
+				"x length: " + np.Lx,
+				"y length: " + np.Ly,
+				"z length: " + np.Lz,
+				"Rotation Tolerance: " + threeDecimal.format(np.rotTolerance),
+				"Trial Moves Per MCS: " + np.trialMovesPerMcs,
+				"Snapshot Interval: " + largeDecimal.format(this.snapshotIntervals),
+				"Number of Conformations Sampled: " + maxConformations,
+				"Number of Data Points: " + maxDataPoints,
+				"Penetration Energy: " + (np.energyProfile? np.C + "/r" : np.step_Ep)}
 				;
 		switch(writeMode){
 		case WRITE_SHAPES:

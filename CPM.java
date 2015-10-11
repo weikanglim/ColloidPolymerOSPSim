@@ -3,11 +3,11 @@ package org.opensourcephysics.sip.CPM;
 import java.util.Stack;
 
 /**
- * NanoPolyMix is an abstraction for a binary mixture of colloids(nanoparticles)
+ * NanoPolyMix is an abstraction for a binary mixture of colloids (nanoparticles)
  * and polymers model.
  * 
  * @author Wei Kang Lim, Alan Denton
- * @version 1.0 11-10-2013 * 
+ * @version 1.1 19-09-2015 * 
  */
 public class CPM {
 	public enum Vector {x, y, z};
@@ -61,7 +61,7 @@ public class CPM {
 	public double step_Ep; // Penetration Energy
 	public double mcs;
 	public double rotTolerance;
-	public double C;
+	public double C; // ideal polymer in a theta solvent
 	public boolean pomfRun = true;
 	public boolean energyProfile = false;
 	public String insertionType;
@@ -98,8 +98,8 @@ public class CPM {
 		steps = 0;
 		polymers = new Polymer[nP];
 		nanos = new Nano[nN];
-		if(penetrationEnergy){
-			step_Ep = C/q*( 1 + 1.1284/q + 0.3333/Math.pow(q,2) );
+		if(penetrationEnergy){ // ideal polymer in a theta solvent
+			step_Ep = (C/q) * (1. + 2./Math.sqrt(Math.PI)/q + 1./(3.*q*q)); 
 		}else{
 			step_Ep = 0;
 			System.out.println("Penetration energy turned off.");
@@ -176,14 +176,10 @@ public class CPM {
 
 							if ((ix + 1) * d + d / 2 > Lx
 									&& (iy + 1) * d + d / 2 > Ly
-									&& (iz + 1) * d + d / 2 > Lz) { // the next
-																	// position
-																	// is out of
-																	// the
-																	// lattice
-								ix = iy = 0; // reset position counter,
-												// overlap
-												// poylmers
+									&& (iz + 1) * d + d / 2 > Lz) { 
+// the next position is out of the lattice
+								ix = iy = 0; 
+// reset position counter, overlap polymers
 								iz = -1;
 							}
 						} else
@@ -204,22 +200,17 @@ public class CPM {
 			for (iy = 0; iy < nx; iy++) {
 				for (ix = 0; ix < nx; ix++) {
 					for (iz = 0; iz < nx; iz++) {
-						if (i < polymers.length) { // checks for remaining
-													// particles
+						if (i < polymers.length) { // checks for remaining particles
 							polymers[i] = new Polymer(ix * d + d / 2, iy * d
 									+ d / 2, iz * d + d / 2);
 							i++;
 
 							if ((ix + 1) * d + d / 2 > Lx
 									&& (iy + 1) * d + d / 2 > Ly
-									&& (iz + 1) * d + d / 2 > Lz) { // the next
-																	// position
-																	// is out of
-																	// the
-																	// lattice
-								ix = iy = 0; // reset position counter,
-												// overlap
-												// poylmers
+									&& (iz + 1) * d + d / 2 > Lz) { 
+// the next position is out of the lattice
+								ix = iy = 0; 
+// reset position counter, overlap polymers
 								iz = -1;
 							}
 						} else
@@ -251,21 +242,16 @@ public class CPM {
 		for (iy = 0; iy < rows; iy++) {
 			for (ix = 0; ix < rows; ix++) {
 				for (iz = 0; iz < rows; iz++) {
-					if (i < polymers.length) { // checks for remaining
-												// particles
+					if (i < polymers.length) { // checks for remaining particles
 						polymers[i] = new Polymer(ix * Lx/rows, iy * Ly/rows, iz * Lz/rows);
 						i++;
 
 						if ((ix + 1) * Lx/rows > Lx
 								&& (iy + 1) * Ly/rows > Ly
-								&& (iz + 1) * Lz/rows > Lz) { // the next
-																// position
-																// is out of
-																// the
-																// lattice
-							ix = iy = 0; // reset position counter,
-											// overlap
-											// poylmers
+								&& (iz + 1) * Lz/rows > Lz) { 
+// the next position is out of the lattice
+							ix = iy = 0; 
+// reset position counter, overlap polymers
 							iz = -1;
 						}
 					} else
@@ -289,7 +275,7 @@ public class CPM {
 	}
 	
 	/**
-	 * Does a monte carlo simulation step.
+	 * Does a Monte Carlo simulation step.
 	 */
 	public void step() {
 		mcs++;
@@ -308,12 +294,12 @@ public class CPM {
 	public void trialMoves() {
 		
 		for(int x = 1; x <= trialMovesPerMcs; x++){
-		// Nanoparticles Trial Displacements
+		// Nanoparticle trial displacements
 			for (int i = 0; i < nanos.length; ++i) {
 				int j = (int) (Math.random()*nanos.length);
 				nanoTrialMove(nanos[j]);
 			}
-			// Polymer Trial Displacements
+			// Polymer trial displacements
 			for (int i = 0; i < polymers.length; ++i) {
 				int j = (int) (Math.random()*polymers.length);
 				polyTrialMove(polymers[j]);
@@ -328,7 +314,7 @@ public class CPM {
 	public void polyTrialMoves() {
 		
 		for(int x = 1; x <= trialMovesPerMcs; x++){
-			// Polymer Trial Displacements
+			// Polymer trial displacements
 			for (int i = 0; i < polymers.length; ++i) {
 				int j = (int) (Math.random()*polymers.length);
 				polyTrialMove(polymers[j]);
@@ -504,7 +490,7 @@ public class CPM {
 		double cosTheta = 2*Math.random() - 1; // (-1,1)
 		double theta = Math.acos(cosTheta);
 		
-		// Calculate cartesian coordinates
+		// Calculate Cartesian coordinates
 		double x = r*Math.cos(phi)*Math.sin(theta);  
 		double y = r*Math.sin(phi)*Math.sin(theta);
 		double z = r*Math.cos(theta);
@@ -569,7 +555,7 @@ public class CPM {
 	 * @param x x-coordinate
 	 * @param y y-coordinate
 	 * @param z z-coordinate
-	 * @return Boltzmann factor, e^(-_U) where U is the free energy associated with polymer nanoparticle interactions of the system
+	 * @return  1-exp(-U), where U is free energy of polymer-nanoparticle interactions
 	 */
 	public double polyTrialPlacement(double x, double y, double z) {
 		if(Polymer.getShapeTolerance() != 0){
@@ -581,8 +567,8 @@ public class CPM {
 			double newEY = polymers[0].geteY();
 			double newEZ = polymers[0].geteZ();
 			
-			double p = (prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) ) / 
-					   (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z) );
+			double p = prob(newEX, Vector.x) * prob(newEY, Vector.y) * prob(newEZ, Vector.z) / 
+				  (prob(oldEX, Vector.x) * prob(oldEY, Vector.y) * prob(oldEZ, Vector.z));
 			
 			if(p < 1 && Math.random() >= p){
 				polymers[0].seteX(oldEX);
@@ -595,21 +581,78 @@ public class CPM {
 			polymers[0].rotate();
 		}
 		
-		// Count number of intersections
 		polymers[0].setX(x);
 		polymers[0].setY(y);
 		polymers[0].setZ(z);
+
 		double Ep = 0;
 		double r = 0;
-		
+		int count = 0;
 		for (int i = 0; i < nanos.length; i++) {
 			if(polymers[0].overlap(nanos[i])){
-				r = Math.sqrt(polymers[0].squaredSeparation(nanos[i]));
-				Ep += penetrationEnergy(r);
+				count ++;
+				if(q >= 1) { // protein limit (q >> 1)
+					r = Math.sqrt(polymers[0].squaredSeparation(nanos[i]));
+					Ep += penetrationEnergy(r);
+				}
 			}
 		}
+
+/*
+		if(nN == 2) { 
+			if(count == 2) { // count only DOUBLE intersections 
+				if(q < 0.5) { 
+					//System.out.println("count = " + count);
+					return 1; // double overlap 
+				} else { // q >= 0.5
+					//System.out.println("Ep = " + Ep + " C = " + C);
+					return 1 - Math.exp(-Ep);
+				}
+			} else { // count != 2
+				return 0;
+			}
+		} else { // nN = 1
+			if(count > 0) { 
+				if(q < 0.5) { 
+					return 0; // overlap 
+				} else { // q >= 0.5
+					return Math.exp(-Ep);
+				}
+			} else { // count = 0
+				return 1;
+			}
+		}
+*/
 		
-		return Math.exp(-Ep);
+		if(q < 1) { // colloid limit
+			if(nN == 2) { // 2 nanoparticles
+				if(count == 2) { // count only DOUBLE overlaps
+					return 1; // double overlap 
+				} else { // count != 2
+					return 0;
+				}
+			} else { // 1 nanoparticle
+				if(count > 0) { 
+					return 0; // overlap 
+				} else { // count = 0
+					return 1;
+				}
+			}
+		} else { // protein limit (q >> 1)
+			if(nN == 2) { // 2 nanoparticles
+				if(count > 0) { // 1 or 2 overlaps
+					return 1- Math.exp(-Ep);
+				} else { // no overlaps
+					return 0;
+				}
+			} else { // 1 nanoparticle
+				if(count > 0) { // 1 overlap  
+					return 1- Math.exp(-Ep);
+				} else { // no overlaps
+					return 0;
+				}
+			}
+		}
 	}
 
 
@@ -628,8 +671,8 @@ public class CPM {
 			return (Math.pow(ei, -NX) * Math.pow(AX * DX, NX - 1) / (2 * KX))
 					* Math.exp(-ei / AX - DX * DX * AX / ei);
 		case y:
-			return (Math.pow(ei, -NY) * Math.pow( (AY * DY), (NY - 1)) / (2 * KY))
-					* Math.exp( (-ei / AY) - (DY * DY * AY / ei));
+			return (Math.pow(ei, -NY) * Math.pow(AY * DY, NY - 1) / (2 * KY))
+					* Math.exp(-ei / AY - DY * DY * AY / ei);
 		case z:
 			return (Math.pow(ei, -NZ) * Math.pow(AZ * DZ, NZ - 1) / (2 * KZ))
 					* Math.exp(-ei / AZ - DZ * DZ * AZ / ei);
