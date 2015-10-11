@@ -147,6 +147,7 @@ public class CPMApp extends AbstractSimulation {
 	/**
 	 * Does a simulation step.
 	 */
+	@SuppressWarnings("deprecation")
 	public void doStep() {
 		// Initialize files for writing output data during the first step
 		// This code is being ran here 
@@ -197,6 +198,7 @@ public class CPMApp extends AbstractSimulation {
 			case WRITE_SIZE:
 				dataFiles = new DataFile[1];
 				dataFiles[0] = new DataFile("R^3", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
+				break;
 			case WRITE_ALL:
 				dataFiles = new DataFile[5];
 				dataFiles[0] = new DataFile("eX", configurations, DataFile.FileIdentifier.SIZE_AND_FRACTION, true);
