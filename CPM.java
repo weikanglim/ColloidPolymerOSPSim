@@ -139,7 +139,9 @@ public class CPM {
 	 * If number of nano particles is 0, polymers are placed by themselves.
 	 */
 	public void setSqrPositions() {
-		int ix, iy, iz, nx;
+		int ix, iy, iz; // Counters for iterating through lattice
+		int nx; // Lattice side length (in units of cells)
+
 		if (nN > 0) {
 			double dnx = Math.cbrt(nN);
 			nx = (int) dnx;
@@ -170,8 +172,8 @@ public class CPM {
 					for (iz = nx/2; iz < nx; iz++) {
 						if (i < polymers.length) { // checks for remaining
 													// particles
-							polymers[i] = new Polymer(ix * d , iy * d
-									, iz * d );
+							polymers[i] = new Polymer(ix * d + d /2 , iy * d + d / 2
+									, iz * d + d / 2);
 							i++;
 
 							if ((ix + 1) * d + d / 2 > Lx
